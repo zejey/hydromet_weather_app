@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 // using hardcoded API key for testing purposes
-const apiKey = 'a62db0fee1e1de12a993982cece6a6bc';
+const apiKey = '98b876bdda3ba2bbf68d26d48a26b4b9';
 
 class WeatherService {
   // Use this for Web version - Flutter Web
