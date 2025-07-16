@@ -526,15 +526,15 @@ class _WeatherScreenState extends State<WeatherScreen>
       context: context,
       position: position,
       items: [
-        const PopupMenuItem(
-            value: 'forum',
-            child: Row(
-              children: [
-                Icon(Icons.forum, size: 20, color: Colors.blue),
-                SizedBox(width: 8),
-                Text('Community Forum', style: TextStyle(color: Colors.blue)),
-              ],
-            )),
+        // const PopupMenuItem(
+        //     value: 'forum',
+        //     child: Row(
+        //       children: [
+        //         Icon(Icons.forum, size: 20, color: Colors.blue),
+        //         SizedBox(width: 8),
+        //         Text('Community Forum', style: TextStyle(color: Colors.blue)),
+        //       ],
+        //     )),
         const PopupMenuItem(
             value: 'about',
             child: Row(
