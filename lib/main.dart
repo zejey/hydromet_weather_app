@@ -6,7 +6,7 @@ import 'screens/user_profile.dart';
 import 'screens/tips_screen.dart';
 import 'screens/hotlines_screen.dart';
 import 'screens/user_settings_screen.dart';
-import 'screens/community_forum_screen.dart';
+// import 'screens/community_forum_screen.dart';
 import 'services/auth_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
         '/tips': (context) => const TipsScreen(),
         '/hotlines': (context) => const HotlinesScreen(),
         '/settings': (context) => const UserSettingsScreen(),
-        '/forum': (context) => const CommunityForumScreen(),
+        // '/forum': (context) => const CommunityForumScreen(),
       },
       debugShowCheckedModeBanner: false,
     );
