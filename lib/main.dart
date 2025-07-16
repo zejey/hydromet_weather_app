@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/weather_screen.dart';
 import 'screens/log_in.dart';
+import 'screens/login_form.dart';
 import 'screens/user_registration.dart';
 import 'screens/user_profile.dart';
 import 'screens/tips_screen.dart';
@@ -16,8 +17,8 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await AuthManager().initialize();
-  
+  // Remove or implement if AuthManager().initialize() does not exist
+  await AuthManager().initialize(); 
   runApp(const MyApp());
 }
 
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
-      initialRoute: '/weather',
+      initialRoute: '/login-form',
       routes: {
         '/': (context) => const LoginScreen(),
         '/login': (context) => const LoginScreen(),
