@@ -6,16 +6,15 @@ import 'screens/user_profile.dart';
 import 'screens/tips_screen.dart';
 import 'screens/hotlines_screen.dart';
 import 'screens/user_settings_screen.dart';
-import 'screens/community_forum_screen.dart';
+// import 'screens/community_forum_screen.dart'; // <-- File missing, import commented out
 import 'services/auth_service.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Use only for Web version - Flutter Web - locally
+  //await dotenv.load(fileName: ".env");
+  
+  // Initialize auth service
   await AuthManager().initialize();
   
   runApp(const MyApp());
@@ -43,7 +42,7 @@ class MyApp extends StatelessWidget {
         '/tips': (context) => const TipsScreen(),
         '/hotlines': (context) => const HotlinesScreen(),
         '/settings': (context) => const UserSettingsScreen(),
-        '/forum': (context) => const CommunityForumScreen(),
+        // '/forum': (context) => const CommunityForumScreen(), // <-- Widget missing, route commented out
       },
       debugShowCheckedModeBanner: false,
     );
