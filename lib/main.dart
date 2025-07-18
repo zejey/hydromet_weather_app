@@ -11,8 +11,7 @@ import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Use only for Web version - Flutter Web - locally
-  //await dotenv.load(fileName: ".env");
+  
   
   // Initialize auth service
   await AuthManager().initialize();
@@ -42,7 +41,7 @@ class MyApp extends StatelessWidget {
         '/tips': (context) => const TipsScreen(),
         '/hotlines': (context) => const HotlinesScreen(),
         '/settings': (context) => const UserSettingsScreen(),
-        // '/forum': (context) => const CommunityForumScreen(), // <-- Widget missing, route commented out
+      
       },
       debugShowCheckedModeBanner: false,
     );
