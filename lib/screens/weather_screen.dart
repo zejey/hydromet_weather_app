@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/weather_service.dart';
-import '../services/auth_service.dart';
+import '../services/user_registration_service.dart';
 import 'log_in.dart';
 
 class WeatherScreen extends StatefulWidget {
@@ -41,7 +41,8 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'Barangay Riverside - Flood Risk',
       'type': 'flood',
-      'location': LatLng(14.3489, 121.0612), // Near actual Laguna de Bay shoreline
+      'location':
+          LatLng(14.3489, 121.0612), // Near actual Laguna de Bay shoreline
       'severity': 'high',
       'description':
           'High flood risk during heavy rainfall and typhoons due to proximity to Laguna de Bay',
@@ -49,7 +50,8 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'Barangay San Vicente - Landslide Risk',
       'type': 'landslide',
-      'location': LatLng(14.3278, 121.0356), // Elevated area near sports complex
+      'location':
+          LatLng(14.3278, 121.0356), // Elevated area near sports complex
       'severity': 'medium',
       'description':
           'Moderate landslide risk on steep slopes in hillside areas',
@@ -91,7 +93,7 @@ class _WeatherScreenState extends State<WeatherScreen>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
-  final AuthManager _authManager = AuthManager();
+  final UserRegistrationService _signInService = UserRegistrationService();
 
   @override
   void initState() {
@@ -461,10 +463,11 @@ class _WeatherScreenState extends State<WeatherScreen>
               key: _profileButtonKey,
               onPressed: _showProfileMenu,
               icon: Icon(
-                _authManager.isLoggedIn
+                _signInService.isLoggedIn
                     ? Icons.account_circle
                     : Icons.account_circle_outlined,
-                color: _authManager.isLoggedIn ? Colors.white : Colors.white70,
+                color:
+                    _signInService.isLoggedIn ? Colors.white : Colors.white70,
                 size: 28,
               ),
             ),
@@ -605,7 +608,7 @@ class _WeatherScreenState extends State<WeatherScreen>
               ],
             )),
         // Login-required items
-        if (_authManager.isLoggedIn) ...[
+        if (_signInService.isLoggedIn) ...[
           const PopupMenuItem(
               value: 'profile',
               child: Row(
@@ -647,7 +650,7 @@ class _WeatherScreenState extends State<WeatherScreen>
       ],
     ).then((String? result) {
       if (result == 'profile' && mounted) {
-        if (_authManager.isLoggedIn) {
+        if (_signInService.isLoggedIn) {
           Navigator.pushNamed(context, '/profile');
         } else {
           _showSnackBar('Please log in to access profile');
@@ -686,7 +689,7 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   void _navigateToSettings() {
-    if (_authManager.isLoggedIn) {
+    if (_signInService.isLoggedIn) {
       Navigator.pushNamed(context, '/settings');
     } else {
       _showSnackBar('Please log in to access settings');
@@ -712,7 +715,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                 final messenger = ScaffoldMessenger.of(context);
                 nav.pop();
                 // Clear both authentication systems
-                await _authManager.logout();
+                await _signInService.logout();
                 AuthService.signOut();
                 if (mounted) {
                   setState(() {
@@ -1342,14 +1345,38 @@ class _WeatherScreenState extends State<WeatherScreen>
   List<Marker> _buildNearbyLocationMarkers() {
     // Only show San Pedro, Laguna specific locations with accurate coordinates
     final sanPedroLocations = [
-      {'name': 'San Pedro City Hall', 'coords': LatLng(14.3358, 121.0417)}, // Actual City Hall location
-      {'name': 'St. Peter the Apostle Cathedral', 'coords': LatLng(14.3364, 121.0423)}, // Main cathedral
-      {'name': 'Pacita Complex I', 'coords': LatLng(14.3189, 121.0401)}, // Pacita subdivision
-      {'name': 'SM City San Pedro', 'coords': LatLng(14.3336, 121.0439)}, // Shopping center
-      {'name': 'Landayan Town Center', 'coords': LatLng(14.3411, 121.0478)}, // Commercial area
-      {'name': 'San Pedro Plaza', 'coords': LatLng(14.3361, 121.0419)}, // Town plaza
-      {'name': 'Laguna de Bay Shoreline', 'coords': LatLng(14.3489, 121.0612)}, // Actual lakefront
-      {'name': 'San Pedro Sports Complex', 'coords': LatLng(14.3278, 121.0356)}, // Sports facility
+      {
+        'name': 'San Pedro City Hall',
+        'coords': LatLng(14.3358, 121.0417)
+      }, // Actual City Hall location
+      {
+        'name': 'St. Peter the Apostle Cathedral',
+        'coords': LatLng(14.3364, 121.0423)
+      }, // Main cathedral
+      {
+        'name': 'Pacita Complex I',
+        'coords': LatLng(14.3189, 121.0401)
+      }, // Pacita subdivision
+      {
+        'name': 'SM City San Pedro',
+        'coords': LatLng(14.3336, 121.0439)
+      }, // Shopping center
+      {
+        'name': 'Landayan Town Center',
+        'coords': LatLng(14.3411, 121.0478)
+      }, // Commercial area
+      {
+        'name': 'San Pedro Plaza',
+        'coords': LatLng(14.3361, 121.0419)
+      }, // Town plaza
+      {
+        'name': 'Laguna de Bay Shoreline',
+        'coords': LatLng(14.3489, 121.0612)
+      }, // Actual lakefront
+      {
+        'name': 'San Pedro Sports Complex',
+        'coords': LatLng(14.3278, 121.0356)
+      }, // Sports facility
     ];
 
     return sanPedroLocations.map((location) {

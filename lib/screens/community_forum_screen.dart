@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../services/user_registration_service.dart';
 
 class CommunityForumScreen extends StatefulWidget {
   const CommunityForumScreen({super.key});
@@ -20,12 +20,12 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
   }
 
   Future<void> _checkAuthStatus() async {
-    final authManager = AuthManager();
-    await authManager.initialize();
-    
+    final signInService = UserRegistrationService();
+    await signInService.initialize();
+
     if (mounted) {
       setState(() {
-        _isLoggedIn = authManager.isLoggedIn;
+        _isLoggedIn = signInService.isLoggedIn;
       });
     }
   }
@@ -95,33 +95,37 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
           border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
         ),
         child: Row(
-          children: tabs.map((tab) => Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedTab = tab;
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _selectedTab == tab
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  tab,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: _selectedTab == tab ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 11,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          )).toList(),
+          children: tabs
+              .map((tab) => Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedTab = tab;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _selectedTab == tab
+                              ? Colors.white.withValues(alpha: 0.2)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          tab,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: _selectedTab == tab
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 11,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ))
+              .toList(),
         ),
       ),
     );
@@ -148,7 +152,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'Maria Santos',
         'time': '2 hours ago',
         'location': 'Brgy. San Vicente',
-        'report': 'Heavy rain and flooding observed along Maharlika Highway. Water level reached ankle-deep near the market area.',
+        'report':
+            'Heavy rain and flooding observed along Maharlika Highway. Water level reached ankle-deep near the market area.',
         'image': 'assets/flood.jpg',
         'likes': 12,
         'comments': 5,
@@ -157,7 +162,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'Juan Dela Cruz',
         'time': '4 hours ago',
         'location': 'Brgy. Poblacion',
-        'report': 'Clear skies now but strong winds earlier. Some tree branches down near the church.',
+        'report':
+            'Clear skies now but strong winds earlier. Some tree branches down near the church.',
         'image': 'assets/clear_day.jpg',
         'likes': 8,
         'comments': 3,
@@ -166,7 +172,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'Anna Reyes',
         'time': '6 hours ago',
         'location': 'Brgy. Riverside',
-        'report': 'Laguna de Bay water level rising. Residents near the shore are advised to monitor closely.',
+        'report':
+            'Laguna de Bay water level rising. Residents near the shore are advised to monitor closely.',
         'image': 'assets/rainy.jpg',
         'likes': 15,
         'comments': 7,
@@ -190,7 +197,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'DRRMO San Pedro',
         'time': '1 day ago',
         'title': 'Flood Preparedness Checklist',
-        'content': 'Keep emergency supplies ready: flashlight, battery radio, first aid kit, and bottled water for 3 days.',
+        'content':
+            'Keep emergency supplies ready: flashlight, battery radio, first aid kit, and bottled water for 3 days.',
         'icon': Icons.security,
         'likes': 25,
         'comments': 8,
@@ -199,7 +207,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'Barangay Captain Torres',
         'time': '2 days ago',
         'title': 'Typhoon Season Reminders',
-        'content': 'Secure loose items around your house, check drainage systems, and have evacuation plans ready.',
+        'content':
+            'Secure loose items around your house, check drainage systems, and have evacuation plans ready.',
         'icon': Icons.warning,
         'likes': 18,
         'comments': 12,
@@ -208,7 +217,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'Health Center',
         'time': '3 days ago',
         'title': 'Water Safety During Floods',
-        'content': 'Avoid wading through floodwater. If you must, use a stick to check depth and watch for manholes.',
+        'content':
+            'Avoid wading through floodwater. If you must, use a stick to check depth and watch for manholes.',
         'icon': Icons.health_and_safety,
         'likes': 22,
         'comments': 6,
@@ -232,7 +242,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'San Pedro LGU',
         'time': '3 hours ago',
         'title': 'New Flood Control System Operational',
-        'content': 'The newly installed pumping station at Brgy. Nueva is now operational and will help reduce flooding in the area.',
+        'content':
+            'The newly installed pumping station at Brgy. Nueva is now operational and will help reduce flooding in the area.',
         'image': 'assets/b.jpg',
         'likes': 45,
         'comments': 15,
@@ -241,7 +252,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'PAGASA Laguna',
         'time': '1 day ago',
         'title': 'Weather Update: Rainy Season Extended',
-        'content': 'Expected continuation of rainy weather until December. Residents are advised to stay vigilant.',
+        'content':
+            'Expected continuation of rainy weather until December. Residents are advised to stay vigilant.',
         'image': 'assets/rainy.jpg',
         'likes': 32,
         'comments': 9,
@@ -250,7 +262,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'user': 'Barangay Council',
         'time': '2 days ago',
         'title': 'Community Emergency Drill Schedule',
-        'content': 'Monthly emergency drill scheduled for next Saturday at 2 PM. All residents are encouraged to participate.',
+        'content':
+            'Monthly emergency drill scheduled for next Saturday at 2 PM. All residents are encouraged to participate.',
         'image': 'assets/logo.png',
         'likes': 28,
         'comments': 11,
@@ -273,25 +286,29 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
       {
         'user': 'Pedro Gonzales',
         'time': '5 minutes ago',
-        'message': 'Anyone else hearing the thunder? Seems like another storm is coming.',
+        'message':
+            'Anyone else hearing the thunder? Seems like another storm is coming.',
         'replies': 3,
       },
       {
         'user': 'Lisa Mendoza',
         'time': '10 minutes ago',
-        'message': 'The drainage near our area needs cleaning. Who can we contact?',
+        'message':
+            'The drainage near our area needs cleaning. Who can we contact?',
         'replies': 7,
       },
       {
         'user': 'Carlos Ramos',
         'time': '15 minutes ago',
-        'message': 'Thank you to everyone who helped during last week\'s flooding. Bayanihan spirit!',
+        'message':
+            'Thank you to everyone who helped during last week\'s flooding. Bayanihan spirit!',
         'replies': 12,
       },
       {
         'user': 'Elena Cruz',
         'time': '30 minutes ago',
-        'message': 'Weather looking good for the weekend. Perfect for the community event.',
+        'message':
+            'Weather looking good for the weekend. Perfect for the community event.',
         'replies': 5,
       },
     ];
@@ -565,7 +582,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
                     children: [
                       Text(
                         message['user'],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       Text(
                         message['time'],
@@ -627,7 +645,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey.shade200,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),
@@ -657,7 +676,12 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
           children: [
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'Category'),
-              items: ['Weather Report', 'Safety Tip', 'Local News', 'General Discussion']
+              items: [
+                'Weather Report',
+                'Safety Tip',
+                'Local News',
+                'General Discussion'
+              ]
                   .map((category) => DropdownMenuItem(
                         value: category,
                         child: Text(category),
@@ -709,9 +733,12 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
           height: 300,
           child: ListView(
             children: [
-              _buildCommentTile('Ana Torres', '2 hours ago', 'Very helpful information, thank you!'),
-              _buildCommentTile('Carlos Mendez', '1 hour ago', 'I saw the same thing in our area.'),
-              _buildCommentTile('Maria Santos', '30 minutes ago', 'Stay safe everyone!'),
+              _buildCommentTile('Ana Torres', '2 hours ago',
+                  'Very helpful information, thank you!'),
+              _buildCommentTile('Carlos Mendez', '1 hour ago',
+                  'I saw the same thing in our area.'),
+              _buildCommentTile(
+                  'Maria Santos', '30 minutes ago', 'Stay safe everyone!'),
             ],
           ),
         ),
@@ -743,9 +770,12 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
           height: 300,
           child: ListView(
             children: [
-              _buildCommentTile('Rico Santos', '8 minutes ago', 'Yes, I heard it too. Better prepare.'),
-              _buildCommentTile('Elena Cruz', '5 minutes ago', 'Already secured our windows.'),
-              _buildCommentTile('Jun Reyes', '2 minutes ago', 'Thanks for the heads up!'),
+              _buildCommentTile('Rico Santos', '8 minutes ago',
+                  'Yes, I heard it too. Better prepare.'),
+              _buildCommentTile('Elena Cruz', '5 minutes ago',
+                  'Already secured our windows.'),
+              _buildCommentTile(
+                  'Jun Reyes', '2 minutes ago', 'Thanks for the heads up!'),
             ],
           ),
         ),
@@ -774,7 +804,8 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         radius: 16,
         child: Icon(Icons.person, color: Colors.white, size: 16),
       ),
-      title: Text(user, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      title: Text(user,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

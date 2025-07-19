@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:weather_hybrid_app/services/user_registration_service.dart';
+import '../services/user_registration_service.dart';
 
 class UserSettingsScreen extends StatefulWidget {
   const UserSettingsScreen({Key? key}) : super(key: key);
@@ -17,7 +18,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
   String _temperatureUnit = 'Celsius';
   String _language = 'English';
   double _alertRadius = 5.0;
-  final AuthManager _authManager = AuthManager();
+  final UserRegistrationService _userRegistrationService =
+      UserRegistrationService();
 
   @override
   void initState() {
@@ -35,7 +37,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     // If user is not logged in, show login prompt
-    if (!_authManager.isLoggedIn) {
+    if (!_userRegistrationService.isLoggedIn) {
       return Scaffold(
         body: Container(
           decoration: const BoxDecoration(
@@ -137,12 +139,14 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                             const SizedBox(height: 32),
                             ElevatedButton(
                               onPressed: () {
-                                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                                Navigator.pushNamedAndRemoveUntil(
+                                    context, '/', (route) => false);
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -248,23 +252,26 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                           'Enable Notifications',
                           'Receive weather updates and alerts',
                           _notificationsEnabled,
-                          (value) => setState(() => _notificationsEnabled = value),
+                          (value) =>
+                              setState(() => _notificationsEnabled = value),
                         ),
                         _buildSwitchTile(
                           'Weather Alerts',
                           'Get notified about severe weather conditions',
                           _weatherAlertsEnabled,
-                          (value) => setState(() => _weatherAlertsEnabled = value),
+                          (value) =>
+                              setState(() => _weatherAlertsEnabled = value),
                         ),
                         _buildSwitchTile(
                           'Emergency Alerts',
                           'Critical emergency notifications',
                           _emergencyAlertsEnabled,
-                          (value) => setState(() => _emergencyAlertsEnabled = value),
+                          (value) =>
+                              setState(() => _emergencyAlertsEnabled = value),
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Location Section
                         _buildSectionHeader('📍 Location'),
                         _buildSwitchTile(
@@ -273,7 +280,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                           _locationEnabled,
                           (value) => setState(() => _locationEnabled = value),
                         ),
-                        
+
                         // Alert Radius Slider
                         _buildSliderTile(
                           'Alert Radius',
@@ -283,9 +290,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                           20.0,
                           (value) => setState(() => _alertRadius = value),
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Display Section
                         _buildSectionHeader('🎨 Display'),
                         _buildSwitchTile(
@@ -294,7 +301,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                           _darkModeEnabled,
                           (value) => setState(() => _darkModeEnabled = value),
                         ),
-                        
+
                         // Temperature Unit Dropdown
                         _buildDropdownTile(
                           'Temperature Unit',
@@ -302,9 +309,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                           ['Celsius', 'Fahrenheit'],
                           (value) => setState(() => _temperatureUnit = value!),
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Language Section
                         _buildSectionHeader('🌐 Language'),
                         _buildDropdownTile(
@@ -313,9 +320,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                           ['English', 'Filipino', 'Tagalog'],
                           (value) => setState(() => _language = value!),
                         ),
-                        
+
                         const SizedBox(height: 32),
-                        
+
                         // Action Buttons
                         Row(
                           children: [
@@ -325,7 +332,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -346,7 +354,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.red,
                                   side: const BorderSide(color: Colors.red),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -362,9 +371,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // About Section
                         _buildInfoCard(),
                       ],
@@ -393,7 +402,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     );
   }
 
-  Widget _buildSwitchTile(String title, String subtitle, bool value, Function(bool) onChanged) {
+  Widget _buildSwitchTile(
+      String title, String subtitle, bool value, Function(bool) onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -424,7 +434,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     );
   }
 
-  Widget _buildSliderTile(String title, String subtitle, double value, double min, double max, Function(double) onChanged) {
+  Widget _buildSliderTile(String title, String subtitle, double value,
+      double min, double max, Function(double) onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
@@ -472,7 +483,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     );
   }
 
-  Widget _buildDropdownTile(String title, String value, List<String> items, Function(String?) onChanged) {
+  Widget _buildDropdownTile(String title, String value, List<String> items,
+      Function(String?) onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
@@ -499,7 +511,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             items: items.map((String item) {
               return DropdownMenuItem<String>(
@@ -562,7 +575,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Reset Settings'),
-          content: const Text('Are you sure you want to reset all settings to default values?'),
+          content: const Text(
+              'Are you sure you want to reset all settings to default values?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),

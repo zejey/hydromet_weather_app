@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/auth_service.dart';
+import 'package:weather_hybrid_app/services/user_registration_service.dart';
+import '../services/user_registration_service.dart';
 
 class LoginFormScreen extends StatefulWidget {
   const LoginFormScreen({super.key});
@@ -60,7 +61,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     setState(() => _isLoading = false);
 
     // Use AuthManager for login (for demo, use phone as both username/email)
-    bool success = await AuthManager().login(phone, phone + '@hydromet.local');
+    bool success =
+        await UserRegistrationService().login(phone, phone + '@hydromet.local');
     if (success && mounted) {
       Navigator.pushNamedAndRemoveUntil(context, '/weather', (route) => false);
     } else {
@@ -217,13 +219,15 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.green, width: 2),
+                            borderSide:
+                                const BorderSide(color: Colors.green, width: 2),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 15,
                           ),
-                          prefixIcon: const Icon(Icons.phone, color: Colors.green),
+                          prefixIcon:
+                              const Icon(Icons.phone, color: Colors.green),
                           counterText: '',
                         ),
                       ),
@@ -242,13 +246,15 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.green, width: 2),
+                            borderSide:
+                                const BorderSide(color: Colors.green, width: 2),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 15,
                           ),
-                          prefixIcon: const Icon(Icons.sms, color: Colors.green),
+                          prefixIcon:
+                              const Icon(Icons.sms, color: Colors.green),
                           counterText: '',
                         ),
                       ),

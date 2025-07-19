@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// import '../services/user_registration_service.dart';
 import '../services/user_registration_service.dart';
 
 class UserRegistrationScreen extends StatefulWidget {
@@ -14,7 +15,10 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _houseAddressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final UserRegistrationService _registrationService = UserRegistrationService();
+  final UserRegistrationService _userRegistrationService =
+      UserRegistrationService();
+  // final UserRegistrationService _userRegistrationService =
+  //     UserRegistrationService();
 
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
@@ -167,46 +171,47 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   }
 
   Future<void> _register() async {
-    // Validate all fields
-    if (_firstNameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your first name');
-      return;
-    }
+    // // Validate all fields
+    // if (_firstNameController.text.trim().isEmpty) {
+    //   _showSnackBar('Please enter your first name');
+    //   return;
+    // }
 
-    if (_lastNameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your last name');
-      return;
-    }
+    // if (_lastNameController.text.trim().isEmpty) {
+    //   _showSnackBar('Please enter your last name');
+    //   return;
+    // }
 
-    if (_houseAddressController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your house number/street');
-      return;
-    }
+    // if (_houseAddressController.text.trim().isEmpty) {
+    //   _showSnackBar('Please enter your house number/street');
+    //   return;
+    // }
 
+    // if (_phoneController.text.trim().isEmpty) {
+    //   _showSnackBar('Please enter your phone number');
+    //   return;
+    // }
+
+    // if (_phoneController.text.trim().length < 10) {
+    //   _showSnackBar('Please enter a valid phone number');
+    //   return;
+    // }
     if (_selectedBarangay == null) {
       _showSnackBar('Please select your barangay');
       return;
     }
 
-    if (_phoneController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your phone number');
-      return;
-    }
-
-    if (_phoneController.text.trim().length < 10) {
-      _showSnackBar('Please enter a valid phone number');
-      return;
-    }
-
     if (!_agreeToTerms) {
-      _showSnackBar('Please agree to the Terms and Conditions and Privacy Policy');
+      _showSnackBar(
+          'Please agree to the Terms and Conditions and Privacy Policy');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      await _registrationService.registerUser(
+      // Call your new registerUser function (it already checks for duplicates)
+      final result = await _userRegistrationService.registerUser(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         houseAddress: _houseAddressController.text.trim(),
@@ -216,16 +221,42 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
       setState(() => _isLoading = false);
 
-      _showSnackBar('Registration successful! Please sign in to verify your account.');
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login-form');
+      if (result['success']) {
+        _showSnackBar(
+            'Registration successful! Please sign in to verify your account.');
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login-form');
+        }
+      } else {
+        _showSnackBar(result['error']);
       }
     } catch (e) {
       setState(() => _isLoading = false);
       _showSnackBar('Registration failed. Please try again. (${e.toString()})');
     }
   }
+  //   try {
+  //     await _registrationService.registerUser(
+  //       firstName: _firstNameController.text.trim(),
+  //       lastName: _lastNameController.text.trim(),
+  //       houseAddress: _houseAddressController.text.trim(),
+  //       barangay: _selectedBarangay!,
+  //       phoneNumber: _phoneController.text.trim(),
+  //     );
+
+  //     setState(() => _isLoading = false);
+
+  //     _showSnackBar('Registration successful! Please sign in to verify your account.');
+  //     await Future.delayed(const Duration(seconds: 1));
+  //     if (mounted) {
+  //       Navigator.pushReplacementNamed(context, '/login-form');
+  //     }
+  //   } catch (e) {
+  //     setState(() => _isLoading = false);
+  //     _showSnackBar('Registration failed. Please try again. (${e.toString()})');
+  //   }
+  // }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -336,7 +367,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                      borderSide:
+                          const BorderSide(color: Colors.green, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -360,7 +392,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                      borderSide:
+                          const BorderSide(color: Colors.green, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,

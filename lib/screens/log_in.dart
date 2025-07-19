@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+// import '../services/sign_in.dart';
 
 class AuthService {
   static bool _isSignedIn = false;
@@ -41,7 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: AuthService.isSignedIn ? _buildProfileView() : _buildSignInView(),
+          child:
+              AuthService.isSignedIn ? _buildProfileView() : _buildSignInView(),
         ),
       ),
     );
@@ -290,15 +291,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          _buildProfileField('First Name:', 'First Name', Icons.person),
+                          _buildProfileField(
+                              'First Name:', 'First Name', Icons.person),
                           const SizedBox(height: 16),
-                          _buildProfileField('Middle Name:', 'Middle Name', Icons.person_outline),
+                          _buildProfileField('Middle Name:', 'Middle Name',
+                              Icons.person_outline),
                           const SizedBox(height: 16),
-                          _buildProfileField('Last Name:', 'Last Name', Icons.person),
+                          _buildProfileField(
+                              'Last Name:', 'Last Name', Icons.person),
                           const SizedBox(height: 16),
-                          _buildProfileField('Mobile Number:', AuthService.userPhone.isNotEmpty ? AuthService.userPhone : '09XXXXXXXXX', Icons.phone, enabled: false),
+                          _buildProfileField(
+                              'Mobile Number:',
+                              AuthService.userPhone.isNotEmpty
+                                  ? AuthService.userPhone
+                                  : '09XXXXXXXXX',
+                              Icons.phone,
+                              enabled: false),
                           const SizedBox(height: 16),
-                          _buildProfileField('Address:', 'Address', Icons.location_on),
+                          _buildProfileField(
+                              'Address:', 'Address', Icons.location_on),
                           const SizedBox(height: 30),
                           SizedBox(
                             width: double.infinity,
@@ -309,7 +320,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -329,7 +341,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: double.infinity,
                             child: TextButton(
                               onPressed: () {
-                                Navigator.pushReplacementNamed(context, '/weather');
+                                Navigator.pushReplacementNamed(
+                                    context, '/weather');
                               },
                               child: const Text(
                                 'Back to Weather Dashboard',
@@ -355,7 +368,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildProfileField(String label, String hint, IconData icon, {bool enabled = true}) {
+  Widget _buildProfileField(String label, String hint, IconData icon,
+      {bool enabled = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -409,11 +423,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showMenu() {
     final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(const Offset(0, 50), ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+        button.localToGlobal(button.size.bottomRight(Offset.zero),
+            ancestor: overlay),
       ),
       Offset.zero & overlay.size,
     );
