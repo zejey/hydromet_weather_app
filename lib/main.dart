@@ -8,8 +8,9 @@ import 'screens/tips_screen.dart';
 import 'screens/hotlines_screen.dart';
 import 'screens/user_settings_screen.dart';
 // import 'screens/community_forum_screen.dart';
-import 'services/auth_service.dart';
+import 'services/user_registration_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -18,7 +19,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   // Remove or implement if AuthManager().initialize() does not exist
-  await AuthManager().initialize(); 
+  await UserRegistrationService().initialize();
   runApp(const MyApp());
 }
 
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
-      initialRoute: '/login-form',
+      initialRoute: '/register',
       routes: {
         '/': (context) => const LoginScreen(),
         '/login': (context) => const LoginScreen(),
