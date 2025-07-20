@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:weather_hybrid_app/services/user_registration_service.dart';
 import '../services/user_registration_service.dart';
 
 class UserSettingsScreen extends StatefulWidget {
