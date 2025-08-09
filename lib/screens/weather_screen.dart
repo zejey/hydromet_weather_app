@@ -19,6 +19,7 @@ class _WeatherScreenState extends State<WeatherScreen>
       TextEditingController(text: "San Pedro, Laguna, Philippines");
   final GlobalKey _hamburgerMenuKey = GlobalKey();
   final GlobalKey _profileButtonKey = GlobalKey();
+  final UserRegistrationService _signInService = UserRegistrationService();
 
   String city = 'San Pedro, Laguna, Philippines';
   Map<String, dynamic>? weatherData;
@@ -93,11 +94,21 @@ class _WeatherScreenState extends State<WeatherScreen>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
-  final UserRegistrationService _signInService = UserRegistrationService();
+  // 🆕 AI integration variables
+  Map<String, dynamic>? hazardPrediction;
+  Map<String, dynamic>? hazardForecast;
+  bool isLocalApiAvailable = false;
+
+  // FIX: Move this outside of initState
+  Future<void> _reloadLoginState() async {
+    await _signInService.initialize();
+    setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
+    _reloadLoginState();
     loadWeather();
 
     _animationController = AnimationController(
@@ -119,9 +130,7 @@ class _WeatherScreenState extends State<WeatherScreen>
     _cityController.dispose();
     _animationController.dispose();
     super.dispose();
-  }
-
-  Future<void> loadWeather() async {
+  }  Future<void> loadWeather() async {
     try {
       setState(() => isLoading = true);
 
@@ -136,10 +145,22 @@ class _WeatherScreenState extends State<WeatherScreen>
       final forecast =
           await _weatherService.fetchHourlyForecast(sanPedroLat, sanPedroLon);
 
+      // AI integration
+      final apiAvailable = await _weatherService.checkLocalApiHealth();
+      Map<String, dynamic>? hazardData;
+      Map<String, dynamic>? forecastData;
+      if (apiAvailable) {
+        hazardData = await _weatherService.fetchHazardPrediction(weather);
+        forecastData = await _weatherService.fetchHazardForecast(weather);
+      }
+
       setState(() {
         weatherData = weather;
         airData = air;
         hourlyForecast = forecast;
+        hazardPrediction = hazardData;
+        hazardForecast = forecastData;
+        isLocalApiAvailable = apiAvailable;
         selectedLocation = LatLng(sanPedroLat, sanPedroLon);
         isLoading = false;
       });
@@ -436,6 +457,102 @@ class _WeatherScreenState extends State<WeatherScreen>
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildHazardAlert() {
+    if (hazardPrediction == null || !isLocalApiAvailable) {
+      // You can return a placeholder or nothing
+      return const SizedBox.shrink();
+    }
+
+    final hazardLevel = hazardPrediction!['hazard_level'] ?? 0;
+    final hazardDesc = hazardPrediction!['hazard_description'] ?? 'Unknown';
+    final confidence = hazardPrediction!['confidence'] ?? 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _weatherService.getHazardColor(hazardLevel).withOpacity(0.9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                _weatherService.getHazardIcon(hazardLevel),
+                color: Colors.white,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI HAZARD ALERT',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    Text(
+                      hazardDesc.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Level $hazardLevel',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.psychology, color: Colors.white70, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                'AI Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const Spacer(),
+              Text(
+                'San Pedro Model',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
           ),
         ],
       ),
@@ -870,6 +987,8 @@ class _WeatherScreenState extends State<WeatherScreen>
                                             color: Colors.white),
                                       ),
                                       const SizedBox(height: 10),
+
+                                      buildHazardAlert(),
                                       Image.network(
                                         "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
                                         width: 100,

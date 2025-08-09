@@ -112,6 +112,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
       if (result['success'] && mounted) {
         _showSnackBar('Login successful!');
+        await UserRegistrationService().login(phone);
         Navigator.pushNamedAndRemoveUntil(
             context, '/weather', (route) => false);
       } else {

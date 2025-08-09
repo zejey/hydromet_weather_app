@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'user_registration_service.dart'; // <-- Make sure this is imported
 
 class LoginService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -196,6 +197,9 @@ class LoginService {
       // Save to SharedPreferences
       await _saveLoginState();
 
+      // --- ADD THIS: Sync login state with UserRegistrationService ---
+      await UserRegistrationService().login(phoneNumber);
+
       return {
         'success': true,
         'message': 'Login successful!',
@@ -285,6 +289,9 @@ class LoginService {
 
       await _saveLoginState();
 
+      // --- ADD THIS: Sync login state with UserRegistrationService ---
+      await UserRegistrationService().login(uid);
+
       return {
         'success': true,
         'message': 'Login successful!',
@@ -366,6 +373,9 @@ class LoginService {
     await prefs.remove(_emailKey);
     await prefs.remove(_tokenKey);
     await prefs.remove(_phoneKey);
+
+    // --- ADD THIS: Sync logout state with UserRegistrationService ---
+    await UserRegistrationService().logout();
   }
 
   /// Save current login state to SharedPreferences
