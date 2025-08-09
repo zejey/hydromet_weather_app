@@ -1011,7 +1011,7 @@ if __name__ == "__main__":
     forecaster = ImprovedWeatherForecaster(config)
     
     # Train model from CSV file
-    csv_file_path = "export.csv"  # Updated to use your export.csv file
+    csv_file_path = "lib/py/export.csv"  # Updated to use your export.csv file
     
     try:
         result = forecaster.train_model_from_csv(csv_file_path)
