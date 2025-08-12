@@ -56,30 +56,27 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          
-          // Header with hamburger menu
+          // Header with Tips and Hotlines buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Hamburger Menu Button
-              IconButton(
-                onPressed: () {
-                  // Add your menu functionality here
-                  _showMenu();
-                },
-                icon: const Icon(
-                  Icons.menu,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                tooltip: 'Menu',
+              // Tips Button (left)
+              TextButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/tips'),
+                icon: const Icon(Icons.lightbulb, color: Colors.green),
+                label: const Text('Tips', style: TextStyle(color: Colors.green)),
+                style: TextButton.styleFrom(foregroundColor: Colors.green),
               ),
-              const Spacer(),
+              // Hotlines Button (right)
+              TextButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/hotlines'),
+                icon: const Icon(Icons.phone, color: Colors.green),
+                label: const Text('Hotlines', style: TextStyle(color: Colors.green)),
+                style: TextButton.styleFrom(foregroundColor: Colors.green),
+              ),
             ],
           ),
-          
           const SizedBox(height: 20),
-          
           // Main Welcome Card
           Expanded(
             child: Container(
@@ -753,7 +750,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                       const SizedBox(height: 8),
                       
                       const Text(
-                        'Enter your details to continue',
+                        'Access your forecasts — anytime, anywhere.', 
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,

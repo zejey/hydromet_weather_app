@@ -1,5 +1,6 @@
 
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -37,6 +38,646 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateMixin {
+  // Build aligned weather tiles in a 2-column grid
+  Widget buildWeatherTilesGrid() {
+    if (weatherData == null) return const SizedBox();
+    final tiles = [
+      buildWeatherTile("Feels Like", "${weatherData!['main']['feels_like'].round()}°C", Icons.thermostat),
+      buildWeatherTile("Humidity", "${weatherData!['main']['humidity']}%", Icons.water_drop),
+      buildWeatherTile("Wind", "${weatherData!['wind']['speed']} m/s", Icons.air),
+      buildWeatherTile("Pressure", "${weatherData!['main']['pressure']} hPa", Icons.speed),
+      buildWeatherTile("Visibility", "${(weatherData!['visibility'] / 1000).toStringAsFixed(1)} km", Icons.remove_red_eye),
+      buildWeatherTile("Clouds", "${weatherData!['clouds']['all']}%", Icons.cloud),
+    ];
+    // Add Air Quality as a full-width tile if available
+    if (airData != null) {
+      final aqi = airData!['list'][0]['main']['aqi'];
+      final aqiInfo = _getAQIInfo(aqi);
+      tiles.add(
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: aqiInfo['color'].withOpacity(0.85),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.18)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.13),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.air, color: Colors.white, size: 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Air Quality",
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    Text(
+                      aqiInfo['label'],
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      aqiInfo['description'],
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "AQI $aqi",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    List<Widget> rows = [];
+    for (int i = 0; i < tiles.length; i += 2) {
+      // If last tile and odd count, make it full width
+      if (i == tiles.length - 1) {
+        rows.add(Padding(
+          padding: const EdgeInsets.only(top: 12.0),
+          child: tiles[i],
+        ));
+      } else {
+        rows.add(Row(
+          children: [
+            Expanded(child: tiles[i]),
+            const SizedBox(width: 12),
+            Expanded(child: tiles[i + 1]),
+          ],
+        ));
+        rows.add(const SizedBox(height: 12));
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
+  }
+
+  Map<String, dynamic> _getAQIInfo(int aqi) {
+    // Detailed AQI info with color, label, and description
+    switch (aqi) {
+      case 1:
+        return {
+          'label': 'Good',
+          'color': Colors.green,
+          'description': 'Air quality is good. Ideal for outdoor activities.',
+        };
+      case 2:
+        return {
+          'label': 'Fair',
+          'color': Colors.yellow,
+          'description': 'Air quality is acceptable. Sensitive individuals should take care.',
+        };
+      case 3:
+        return {
+          'label': 'Moderate',
+          'color': Colors.orange,
+          'description': 'Air quality is moderate. People with respiratory issues should limit outdoor exertion.',
+        };
+      case 4:
+        return {
+          'label': 'Poor',
+          'color': Colors.red,
+          'description': 'Air quality is poor. Limit outdoor activities, especially for sensitive groups.',
+        };
+      case 5:
+        return {
+          'label': 'Very Poor',
+          'color': Colors.purple,
+          'description': 'Air quality is very poor. Avoid outdoor activities and stay indoors.',
+        };
+      default:
+        return {
+          'label': 'Unknown',
+          'color': Colors.grey,
+          'description': 'Air quality data unavailable.',
+        };
+    }
+  }
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final nav = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                nav.pop();
+                // Clear both authentication systems
+                await _authManager.logout();
+                AuthService.signOut();
+                if (mounted) {
+                  setState(() {});
+                  nav.pushNamedAndRemoveUntil('/', (route) => false);
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: const Text('Logged out successfully'),
+                      backgroundColor: Colors.green.shade700,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('About HydroMet San Pedro'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('HydroMet San Pedro, Laguna'),
+              SizedBox(height: 8),
+              Text('Version: 1.0.0'),
+              SizedBox(height: 8),
+              Text('A weather application specifically designed for San Pedro, Laguna, Philippines. Provides real-time weather updates, local hazard warnings, emergency hotlines, and safety tips for residents.'),
+              SizedBox(height: 16),
+              Text('© 2025 City of San Pedro, Laguna'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  // Admin notifications (replace with backend data as needed)
+  List<Map<String, dynamic>> notifications = [
+    {
+      'title': 'Weather Alert: Heavy Rainfall',
+      'body': 'A heavy rainfall warning is in effect for San Pedro, Laguna. Please stay indoors and monitor local advisories.',
+      'timestamp': '2025-08-13 14:30'
+    },
+    // Add more alerts here or fetch from backend
+  ];
+  double _getTemperatureIntensity(double temperature) {
+    // Normalize temperature to 0-1 scale for heat map intensity
+    if (temperature <= 0) return 0.0;
+    if (temperature >= 40) return 1.0;
+    return temperature / 40.0;
+  }
+  // Generate temperature points for heatmap
+  void _generateTemperaturePoints() {
+    if (selectedLocation == null || weatherData == null) return;
+    _temperaturePoints.clear();
+    final random = Random();
+    final baseTemp = weatherData!['main']['temp'] ?? 25.0;
+    for (int i = 0; i < 20; i++) {
+      final angle = random.nextDouble() * 2 * pi;
+      final distance = random.nextDouble() * 0.08; // ~8km radius
+      final lat = selectedLocation!.latitude + (distance * cos(angle));
+      final lng = selectedLocation!.longitude + (distance * sin(angle));
+      final tempVariation = (random.nextDouble() - 0.5) * 6; // ±3°C variation
+      final pointTemp = baseTemp + tempVariation;
+      _temperaturePoints.add({
+        'location': LatLng(lat, lng),
+        'temperature': pointTemp,
+        'intensity': _getTemperatureIntensity(pointTemp),
+      });
+    }
+  }
+
+  // Generate wind data points
+  void _generateWindData() {
+    if (selectedLocation == null || weatherData == null) return;
+    _windData.clear();
+    final random = Random();
+    final windSpeed = weatherData!['wind']['speed'] ?? 0.0;
+    final windDirection = weatherData!['wind']['deg'] ?? 0.0;
+    for (int i = 0; i < 15; i++) {
+      final angle = random.nextDouble() * 2 * pi;
+      final distance = random.nextDouble() * 0.06; // ~6km radius
+      final lat = selectedLocation!.latitude + (distance * cos(angle));
+      final lng = selectedLocation!.longitude + (distance * sin(angle));
+      final directionVariation = (random.nextDouble() - 0.5) * 30; // ±15° variation
+      final pointDirection = windDirection + directionVariation;
+      _windData.add({
+        'location': LatLng(lat, lng),
+        'speed': windSpeed + (random.nextDouble() - 0.5) * 2, // ±1 m/s variation
+        'direction': pointDirection,
+      });
+    }
+  }
+  // Helper for temperature color (used in heatmap)
+  Color _getTemperatureColor(double temperature) {
+    if (temperature <= 10) return Colors.blue;
+    if (temperature <= 20) return Colors.cyan;
+    if (temperature <= 25) return Colors.green;
+    if (temperature <= 30) return Colors.yellow;
+    if (temperature <= 35) return Colors.orange;
+    return Colors.red;
+  }
+
+  // Build animated rain particles
+  List<Marker> _buildRainParticles() {
+    return _rainParticleLocations.map((location) {
+      return Marker(
+        width: 20.0,
+        height: 20.0,
+        point: location,
+        builder: (ctx) => AnimatedBuilder(
+          animation: _rainAnimation,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _rainAnimation.value * 10),
+              child: Container(
+                width: 4,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }).toList();
+  }
+
+  // Build wind direction arrows
+  List<Marker> _buildWindArrows() {
+    return _windData.map((windPoint) {
+      return Marker(
+        width: 40.0,
+        height: 40.0,
+        point: windPoint['location'],
+        builder: (ctx) => Transform.rotate(
+          angle: (windPoint['direction'] * pi) / 180, // Convert degrees to radians
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.blueGrey, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.arrow_upward,
+              color: _getWindSpeedColor(windPoint['speed']),
+              size: 24,
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  // Get color based on wind speed
+  Color _getWindSpeedColor(double speed) {
+    if (speed <= 5) return Colors.green;
+    if (speed <= 10) return Colors.yellow;
+    if (speed <= 15) return Colors.orange;
+    return Colors.red;
+  }
+
+  // Get weather-based circle color
+  Color _getWeatherCircleColor() {
+    if (weatherData == null) return Colors.blue;
+    final weatherCondition = weatherData!['weather'][0]['main'].toLowerCase();
+    switch (weatherCondition) {
+      case 'rain':
+      case 'drizzle':
+        return Colors.blue;
+      case 'thunderstorm':
+        return Colors.purple;
+      case 'snow':
+        return Colors.lightBlue;
+      case 'clear':
+        return Colors.yellow;
+      case 'clouds':
+        return Colors.grey;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  // Minimized "Safe to go out" indicator
+  Widget _buildSafetyIndicator() {
+    final isSafe = _calculateSafetyStatus();
+    return Positioned(
+      bottom: 180,
+      left: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSafe ? Colors.green : Colors.red,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSafe ? Icons.check_circle_rounded : Icons.warning_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              isSafe ? 'SAFE' : 'STAY IN',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  // --- BEGIN ALL REQUIRED FIELDS (deduplicated) ---
+  List<Map<String, dynamic>> hourlyForecast = [];
+  Map<String, dynamic>? weatherData;
+  Map<String, dynamic>? airData;
+  bool isLoading = true;
+  LatLng? selectedLocation;
+  List<Map<String, dynamic>> locationSuggestions = [];
+  String city = 'San Pedro, Laguna, Philippines';
+  final MapController _mapController = MapController();
+  double _currentZoom = 14.0;
+  String _currentMapStyle = 'satellite';
+  bool _showSatelliteLayer = false;
+  bool _showRainAnimation = false;
+  bool _showHazardLocations = false;
+  bool _showAirQualityIndicator = false;
+  bool _showSafetyIndicator = false;
+  // --- END ALL REQUIRED FIELDS ---
+
+  // --- BEGIN CLEAN FORECAST SECTION (single version) ---
+  // ...existing code...
+  // --- END CLEAN FORECAST SECTION ---
+
+  Widget buildHourlyForecast() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Title with Updated badge
+          Padding(
+            padding: const EdgeInsets.only(left: 16, bottom: 12),
+            child: Row(
+              children: [
+                const Text(
+                  '24-Hour Forecast',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Updated ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.55), // increased opacity
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: _buildTemperatureGraph(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemperatureGraph() {
+    // Show all 24 hours instead of just 12
+    final displayData = hourlyForecast.take(24).toList();
+    if (displayData.isEmpty) return const SizedBox();
+
+    // Calculate temperature range
+    final temps = displayData.map((e) => (e['temp']?.toDouble() ?? 0.0)).toList();
+    final minTemp = temps.reduce((a, b) => a < b ? a : b);
+    final maxTemp = temps.reduce((a, b) => a > b ? a : b);
+    final tempRange = maxTemp - minTemp;
+
+    return Column(
+      children: [
+        // Temperature Graph
+        SizedBox(
+          height: 135,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Container(
+              width: displayData.length * 85.0,
+              child: CustomPaint(
+                size: Size(displayData.length * 85.0, 135),
+                painter: TemperatureGraphPainter(
+                  data: displayData,
+                  minTemp: minTemp,
+                  maxTemp: maxTemp,
+                  tempRange: tempRange,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Weather Icons Row (no wind speed)
+        SizedBox(
+          height: 48,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: displayData.asMap().entries.map((entry) {
+                final index = entry.key;
+                final forecast = entry.value;
+                final icon = forecast['icon'] ?? '01d';
+                return Container(
+                  width: 85,
+                  padding: EdgeInsets.only(
+                    left: index == 0 ? 16 : 0,
+                    right: index == displayData.length - 1 ? 16 : 0,
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Image.network(
+                          "https://openweathermap.org/img/wn/$icon.png",
+                          width: 30,
+                          height: 30,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.wb_cloudy,
+                              color: Colors.white,
+                              size: 28,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Time Labels Row
+        SizedBox(
+          height: 27,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: displayData.asMap().entries.map((entry) {
+                final index = entry.key;
+                final forecast = entry.value;
+                final time = forecast['time'] ?? '';
+                String displayTime = "N/A";
+                bool isNow = index == 0;
+                try {
+                  if (time.isNotEmpty) {
+                    final dateTime = DateTime.parse(time);
+                    if (isNow) {
+                      displayTime = "Now";
+                    } else {
+                      displayTime = "${dateTime.hour.toString().padLeft(2, '0')}:00";
+                    }
+                  }
+                } catch (e) {
+                  displayTime = "${index}h";
+                }
+                return Container(
+                  width: 85,
+                  padding: EdgeInsets.only(
+                    left: index == 0 ? 16 : 0,
+                    right: index == displayData.length - 1 ? 16 : 0,
+                  ),
+                  child: Text(
+                    displayTime,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isNow ? 16 : 14,
+                      fontWeight: isNow ? FontWeight.bold : FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
   // Helper for forecast overlay tile URLs
   String _getForecastTileUrl(ForecastLayer layer) {
     const apiKey = 'a62db0fee1e1de12a993982cece6a6bc'; // OpenWeatherMap API key
@@ -62,34 +703,16 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   // Notification dialog handler with sample admin-posted notifications
   void _showNotifications() {
-    final List<Map<String, String>> notifications = [
-      {
-        'title': 'Weather Alert: Heavy Rainfall',
-        'body': 'A heavy rainfall warning is in effect for San Pedro, Laguna. Please stay indoors and monitor local advisories.',
-        'timestamp': '2025-07-15 14:30'
-      },
-      {
-        'title': 'Scheduled Power Interruption',
-        'body': 'There will be a scheduled power interruption on July 16, 2025, from 8:00 AM to 12:00 NN for maintenance.',
-        'timestamp': '2025-07-14 17:00'
-      },
-      {
-        'title': 'Community Event: Tree Planting',
-        'body': 'Join us for a tree planting activity at San Pedro Plaza on July 20, 2025, 7:00 AM.',
-        'timestamp': '2025-07-13 09:00'
-      },
-    ];
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Notifications'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: notifications.isEmpty
-                ? const Text('No notifications.')
-                : ListView.separated(
+          content: notifications.isEmpty
+              ? const Text('No new notifications.')
+              : SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: notifications.length,
                     separatorBuilder: (_, __) => const Divider(),
@@ -100,20 +723,27 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                           notif['title'] ?? '',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(notif['body'] ?? ''),
-                        trailing: notif['timestamp'] != null
-                            ? Text(
-                                notif['timestamp']!,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey,
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(notif['body'] ?? ''),
+                            if (notif['timestamp'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  notif['timestamp'],
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              )
-                            : null,
+                              ),
+                          ],
+                        ),
                       );
                     },
                   ),
-          ),
+                ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -124,36 +754,11 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       },
     );
   }
-
-  String city = 'San Pedro, Laguna, Philippines';
-  Map<String, dynamic>? weatherData;
-  Map<String, dynamic>? airData;
-  List<Map<String, dynamic>> locationSuggestions = [];
-  List<Map<String, dynamic>> hourlyForecast = [];
-  bool isLoading = true;
-  LatLng? selectedLocation;
-
-  // Map-related variables
-  final MapController _mapController = MapController();
-  String _currentMapStyle = 'satellite';
-  final bool _showWeatherLayer = false;
-  bool _showSatelliteLayer = false;
-  bool _showHazardLocations = true; // Show hazards by default
-  double _currentZoom = 14.0; // Better zoom level for San Pedro city view
-  
-  // Simple safety indicator
-  bool _showSafetyIndicator = true;
-  
-  // Air quality indicator
-  bool _showAirQualityIndicator = true;
-  
-  // Enhanced weather visualization variables
-  bool _showRainAnimation = false;
   bool _showTemperatureHeatmap = false;
   bool _showWindArrows = false;
-  List<LatLng> _rainParticleLocations = [];
-  List<Map<String, dynamic>> _temperaturePoints = [];
-  List<Map<String, dynamic>> _windData = [];
+  final List<LatLng> _rainParticleLocations = [];
+  final List<Map<String, dynamic>> _temperaturePoints = [];
+  final List<Map<String, dynamic>> _windData = [];
   late AnimationController _rainAnimationController;
   late Animation<double> _rainAnimation;
 
@@ -276,230 +881,16 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   // Generate rain particle locations around the selected area
   void _generateRainParticles() {
     if (selectedLocation == null) return;
-    
     _rainParticleLocations.clear();
     final random = Random();
-    
     // Generate 50 rain particles in a 5km radius
     for (int i = 0; i < 50; i++) {
       final angle = random.nextDouble() * 2 * pi;
       final distance = random.nextDouble() * 0.05; // ~5km radius in degrees
-      
       final lat = selectedLocation!.latitude + (distance * cos(angle));
       final lng = selectedLocation!.longitude + (distance * sin(angle));
-      
       _rainParticleLocations.add(LatLng(lat, lng));
     }
-  }
-
-  // Generate temperature points for heatmap
-  void _generateTemperaturePoints() {
-    if (selectedLocation == null || weatherData == null) return;
-    
-    _temperaturePoints.clear();
-    final random = Random();
-    final baseTemp = weatherData!['main']['temp'] ?? 25.0;
-    
-    // Generate temperature variation points
-    for (int i = 0; i < 20; i++) {
-      final angle = random.nextDouble() * 2 * pi;
-      final distance = random.nextDouble() * 0.08; // ~8km radius
-      
-      final lat = selectedLocation!.latitude + (distance * cos(angle));
-      final lng = selectedLocation!.longitude + (distance * sin(angle));
-      
-      // Add some temperature variation
-      final tempVariation = (random.nextDouble() - 0.5) * 6; // ±3°C variation
-      final pointTemp = baseTemp + tempVariation;
-      
-      _temperaturePoints.add({
-        'location': LatLng(lat, lng),
-        'temperature': pointTemp,
-        'intensity': _getTemperatureIntensity(pointTemp),
-      });
-    }
-  }
-
-  // Generate wind data points
-  void _generateWindData() {
-    if (selectedLocation == null || weatherData == null) return;
-    
-    _windData.clear();
-    final random = Random();
-    final windSpeed = weatherData!['wind']['speed'] ?? 0.0;
-    final windDirection = weatherData!['wind']['deg'] ?? 0.0;
-    
-    // Generate wind indicators in a grid pattern
-    for (int i = 0; i < 15; i++) {
-      final angle = random.nextDouble() * 2 * pi;
-      final distance = random.nextDouble() * 0.06; // ~6km radius
-      
-      final lat = selectedLocation!.latitude + (distance * cos(angle));
-      final lng = selectedLocation!.longitude + (distance * sin(angle));
-      
-      // Add some directional variation
-      final directionVariation = (random.nextDouble() - 0.5) * 30; // ±15° variation
-      final pointDirection = windDirection + directionVariation;
-      
-      _windData.add({
-        'location': LatLng(lat, lng),
-        'speed': windSpeed + (random.nextDouble() - 0.5) * 2, // ±1 m/s variation
-        'direction': pointDirection,
-      });
-    }
-  }
-
-  double _getTemperatureIntensity(double temperature) {
-    // Normalize temperature to 0-1 scale for heat map intensity
-    if (temperature <= 0) return 0.0;
-    if (temperature >= 40) return 1.0;
-    return temperature / 40.0;
-  }
-
-  // Get color based on temperature for heatmap
-  Color _getTemperatureColor(double temperature) {
-    if (temperature <= 10) return Colors.blue;
-    if (temperature <= 20) return Colors.cyan;
-    if (temperature <= 25) return Colors.green;
-    if (temperature <= 30) return Colors.yellow;
-    if (temperature <= 35) return Colors.orange;
-    return Colors.red;
-  }
-
-  // Get weather-based circle color
-  Color _getWeatherCircleColor() {
-    if (weatherData == null) return Colors.blue;
-    
-    final weatherCondition = weatherData!['weather'][0]['main'].toLowerCase();
-    switch (weatherCondition) {
-      case 'rain':
-      case 'drizzle':
-        return Colors.blue;
-      case 'thunderstorm':
-        return Colors.purple;
-      case 'snow':
-        return Colors.lightBlue;
-      case 'clear':
-        return Colors.yellow;
-      case 'clouds':
-        return Colors.grey;
-      default:
-        return Colors.blue;
-    }
-  }
-
-  // Build animated rain particles
-  List<Marker> _buildRainParticles() {
-    return _rainParticleLocations.map((location) {
-      return Marker(
-        width: 20.0,
-        height: 20.0,
-        point: location,
-        builder: (ctx) => AnimatedBuilder(
-          animation: _rainAnimation,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, _rainAnimation.value * 10),
-              child: Container(
-                width: 4,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    }).toList();
-  }
-
-  // Build wind direction arrows
-  List<Marker> _buildWindArrows() {
-    return _windData.map((windPoint) {
-      return Marker(
-        width: 40.0,
-        height: 40.0,
-        point: windPoint['location'],
-        builder: (ctx) => Transform.rotate(
-          angle: (windPoint['direction'] * pi) / 180, // Convert degrees to radians
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.blueGrey, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.arrow_upward,
-              color: _getWindSpeedColor(windPoint['speed']),
-              size: 24,
-            ),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-  // Get color based on wind speed
-  Color _getWindSpeedColor(double speed) {
-    if (speed <= 5) return Colors.green;
-    if (speed <= 10) return Colors.yellow;
-    if (speed <= 15) return Colors.orange;
-    return Colors.red;
-  }
-
-  // Minimized "Safe to go out" indicator
-  Widget _buildSafetyIndicator() {
-    final isSafe = _calculateSafetyStatus();
-    return Positioned(
-      bottom: 180,
-      left: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSafe ? Colors.green : Colors.red,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-          border: Border.all(
-            color: Colors.white,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSafe ? Icons.check_circle_rounded : Icons.warning_rounded,
-              color: Colors.white,
-              size: 16,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              isSafe ? 'SAFE' : 'STAY IN',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   bool _calculateSafetyStatus() {
@@ -550,7 +941,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.air, color: Colors.white, size: 14),
+            const Icon(Icons.air, color: Colors.white, size: 14),
             const SizedBox(width: 4),
             Text(
               aqiInfo['label'],
@@ -566,22 +957,6 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     );
   }
 
-  Map<String, dynamic> _getAQIInfo(int aqi) {
-    switch (aqi) {
-      case 1:
-        return {'label': 'GOOD', 'color': Colors.green, 'description': 'Air quality is good'};
-      case 2:
-        return {'label': 'FAIR', 'color': Colors.yellow, 'description': 'Moderate air quality'};
-      case 3:
-        return {'label': 'MODERATE', 'color': Colors.orange, 'description': 'Unhealthy for sensitive groups'};
-      case 4:
-        return {'label': 'POOR', 'color': Colors.red, 'description': 'Unhealthy air quality'};
-      case 5:
-        return {'label': 'VERY POOR', 'color': Colors.purple, 'description': 'Very unhealthy air quality'};
-      default:
-        return {'label': 'UNKNOWN', 'color': Colors.grey, 'description': 'Air quality data unavailable'};
-    }
-  }
 
   // Simplified weather emoji overlay - positioned at top-left
   Widget _buildWeatherEmojiOverlay() {
@@ -673,25 +1048,48 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       const sanPedroLat = 14.3358; // San Pedro City Hall coordinates
       const sanPedroLon = 121.0417;
 
-      final weather =
-          await _weatherService.fetchWeatherByCoords(sanPedroLat, sanPedroLon);
-      final air =
-          await _weatherService.fetchAirPollution(sanPedroLat, sanPedroLon);
-      final forecast =
-          await _weatherService.fetchHourlyForecast(sanPedroLat, sanPedroLon);
-
-      setState(() {
-        weatherData = weather;
-        airData = air;
-        hourlyForecast = forecast;
-        selectedLocation = LatLng(sanPedroLat, sanPedroLon);
-        isLoading = false;
-      });
+      // Fetch weather data with timeout
+      final weather = await _weatherService.fetchWeatherByCoords(sanPedroLat, sanPedroLon)
+          .timeout(const Duration(seconds: 10));
       
-      // Update weather effects based on new data
-      _initializeWeatherEffects();
+      // Fetch air pollution data (optional, continue if fails)
+      Map<String, dynamic>? air;
+      try {
+        air = await _weatherService.fetchAirPollution(sanPedroLat, sanPedroLon)
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        print('Air pollution data fetch failed: $e');
+        // Continue without air data
+      }
+
+      // Fetch hourly forecast (optional, continue if fails)
+      List<Map<String, dynamic>> forecast = [];
+      try {
+        forecast = await _weatherService.fetchHourlyForecast(sanPedroLat, sanPedroLon)
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        print('Hourly forecast fetch failed: $e');
+        // Continue with empty forecast
+      }
+
+      if (mounted) {
+        setState(() {
+          weatherData = weather;
+          airData = air;
+          hourlyForecast = forecast;
+          selectedLocation = LatLng(sanPedroLat, sanPedroLon);
+          isLoading = false;
+        });
+        
+        // Update weather effects based on new data
+        _initializeWeatherEffects();
+      }
     } catch (e) {
-      setState(() => isLoading = false);
+      print('Weather data fetch failed: $e');
+      if (mounted) {
+        setState(() => isLoading = false);
+        _showSnackBar('Failed to load weather data. Please check your internet connection.');
+      }
     }
   }
 
@@ -749,17 +1147,19 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     }
   }
 
-  Widget buildWeatherTile(String title, String value, IconData icon) {
+  Widget buildWeatherTile(String title, String value, IconData icon, {bool isFullWidth = false, Color? backgroundColor}) {
     return Container(
-      width: MediaQuery.of(context).size.width * 0.42,
+      width: isFullWidth
+          ? double.infinity
+          : MediaQuery.of(context).size.width * 0.42,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: Colors.grey.shade200.withOpacity(0.85), // Lighter grey for better contrast
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.white.withOpacity(0.10)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -768,13 +1168,13 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white, size: 24),
+          Icon(icon, color: Colors.black87, size: 24), // Use dark icon for light background
           const SizedBox(height: 8),
           Text(title,
-              style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              style: const TextStyle(color: Colors.black54, fontSize: 14)),
           Text(value,
               style: const TextStyle(
-                  color: Colors.white,
+                  color: Colors.black87,
                   fontSize: 18,
                   fontWeight: FontWeight.bold)),
         ],
@@ -782,212 +1182,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     );
   }
 
-  Widget buildHourlyForecast() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section Title
-          const Padding(
-            padding: EdgeInsets.only(left: 16, bottom: 12),
-            child: Text(
-              '24-Hour Forecast',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          // Horizontal Scrollable Forecast
-          SizedBox(
-            height: 120,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics:
-                  const ClampingScrollPhysics(), // Changed to ClampingScrollPhysics for better scrolling
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: hourlyForecast.length > 24
-                  ? 24
-                  : hourlyForecast.length, // Limit to 24 hours
-              itemBuilder: (context, index) {
-                final forecast = hourlyForecast[index];
-                final time = forecast['time'] ?? '';
-
-                // Parse the time more accurately
-                DateTime? dateTime;
-                String displayTime = "N/A";
-                String displayDate = "";
-
-                try {
-                  if (time.isNotEmpty) {
-                    dateTime = DateTime.parse(time);
-                    displayTime =
-                        "${dateTime.hour.toString().padLeft(2, '0')}:00";
-
-                    // Show date for items that are not today
-                    final now = DateTime.now();
-                    if (dateTime.day != now.day) {
-                      displayDate = "${dateTime.day}/${dateTime.month}";
-                    } else if (index == 0) {
-                      displayTime = "Now";
-                    }
-                  }
-                } catch (e) {
-                  // Fallback for parsing errors
-                  if (time.length >= 13) {
-                    displayTime = "${time.substring(11, 13)}:00";
-                  }
-                }
-
-                final temp = "${(forecast['temp'] ?? 0).round()}°";
-                final icon = forecast['icon'] ?? '01d';
-                final humidity = "${(forecast['humidity'] ?? 0)}%";
-
-                // Determine if this is the current hour
-                final isCurrentHour = index == 0;
-
-                return Container(
-                  width: 90,
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isCurrentHour
-                        ? Colors.white.withValues(alpha: 0.3)
-                        : Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isCurrentHour
-                          ? Colors.white.withValues(alpha: 0.6)
-                          : Colors.white.withValues(alpha: 0.3),
-                      width: isCurrentHour ? 2 : 1,
-                    ),
-                    boxShadow: isCurrentHour
-                        ? [
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    mainAxisSize:
-                        MainAxisSize.min, // Add this to prevent overflow
-                    children: [
-                      // Time
-                      Text(
-                        displayTime,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isCurrentHour ? 13 : 12,
-                          fontWeight:
-                              isCurrentHour ? FontWeight.bold : FontWeight.w500,
-                        ),
-                        overflow:
-                            TextOverflow.ellipsis, // Add text overflow handling
-                      ),
-
-                      // Date (if different day)
-                      if (displayDate.isNotEmpty)
-                        Text(
-                          displayDate,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                          ),
-                          overflow: TextOverflow
-                              .ellipsis, // Add text overflow handling
-                        ),
-
-                      // Weather Icon
-                      Flexible(
-                        // Wrap with Flexible to prevent overflow
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Image.network(
-                            "https://openweathermap.org/img/wn/$icon.png",
-                            width: 32,
-                            height: 32,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.wb_cloudy,
-                                color: Colors.white,
-                                size: 32,
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-
-                      // Temperature
-                      Text(
-                        temp,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isCurrentHour ? 16 : 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow:
-                            TextOverflow.ellipsis, // Add text overflow handling
-                      ),
-
-                      // Additional info for current hour
-                      if (isCurrentHour) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          humidity,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                          ),
-                          overflow: TextOverflow
-                              .ellipsis, // Add text overflow handling
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Real-time update indicator
-          Padding(
-            padding: const EdgeInsets.only(left: 16, top: 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.greenAccent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Updated ${_getLastUpdateTime()}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // ...existing code...
 
   String _getLastUpdateTime() {
     final now = DateTime.now();
@@ -995,60 +1190,62 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   }
 
   Widget _buildHeader() {
-    return Column(
+    return Row(
       children: [
-        // Top row with notification button and profile button
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              key: _notificationButtonKey,
-              onPressed: _showNotifications,
-              icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
-            ),
-            IconButton(
-              key: _profileButtonKey,
-              onPressed: _showProfileMenu,
-              icon: Icon(
-                _authManager.isLoggedIn
-                    ? Icons.account_circle
-                    : Icons.account_circle_outlined,
-                color: _authManager.isLoggedIn ? Colors.white : Colors.white70,
-                size: 28,
-              ),
-            ),
-          ],
+        // Notification button
+        IconButton(
+          key: _notificationButtonKey,
+          onPressed: _showNotifications,
+          icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
         ),
-        const SizedBox(height: 8),
-        // Search bar below the buttons
-        Container(
-          height: 45,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-          ),
-          child: TextField(
-            controller: _cityController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: 'Search location...',
-              hintStyle: TextStyle(color: Colors.white70),
-              prefixIcon: Icon(Icons.search, color: Colors.white70),
-              border: InputBorder.none,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        
+        // Fixed location display bar (expanded to fill middle space)
+        Expanded(
+          child: Container(
+            height: 45,
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
             ),
-            onChanged: searchLocations,
-            onSubmitted: (value) {
-              if (value.trim().isNotEmpty) {
-                setState(() {
-                  city = value;
-                  locationSuggestions = [];
-                });
-                loadWeather();
-              }
-            },
+            child: Row(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 20),
+                  child: Icon(
+                    Icons.location_pin, // Pinpoint icon
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'San Pedro, Laguna, Philippines', // Fixed location text
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis, // Handle long text
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Profile button
+        IconButton(
+          key: _profileButtonKey,
+          onPressed: _showProfileMenu,
+          icon: Icon(
+            _authManager.isLoggedIn
+                ? Icons.account_circle
+                : Icons.account_circle_outlined,
+            color: _authManager.isLoggedIn ? Colors.white : Colors.white70,
+            size: 28,
           ),
         ),
       ],
@@ -1163,9 +1360,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
               value: 'login',
               child: Row(
                 children: [
-                  Icon(Icons.login, size: 20, color: Colors.green),
+                  Icon(Icons.login, size: 20, color: Colors.black),
                   SizedBox(width: 8),
-                  Text('Login', style: TextStyle(color: Colors.green)),
+                  Text('Login', style: TextStyle(color: Colors.black)),
                 ],
               )),
         ],
@@ -1221,77 +1418,6 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     }
   }
 
-  void _handleLogout() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final nav = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
-                nav.pop();
-                // Clear both authentication systems
-                await _authManager.logout();
-                AuthService.signOut();
-                if (mounted) {
-                  setState(() {
-                    // Rebuild to reflect auth state change
-                  });
-                  nav.pushNamedAndRemoveUntil('/', (route) => false);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: const Text('Logged out successfully'),
-                      backgroundColor: Colors.green.shade700,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Logout'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showAboutDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('About HydroMet San Pedro'),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('HydroMet San Pedro, Laguna'),
-              SizedBox(height: 8),
-              Text('Version: 1.0.0'),
-              SizedBox(height: 8),
-              Text(
-                  'A weather application specifically designed for San Pedro, Laguna, Philippines. Provides real-time weather updates, local hazard warnings, emergency hotlines, and safety tips for residents.'),
-              SizedBox(height: 16),
-              Text('© 2025 City of San Pedro, Laguna'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void _showHelpDialog() {
     showDialog(
@@ -1345,114 +1471,90 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                   fit: StackFit.expand,
                   children: [
                     Image.asset(getBackgroundImage(), fit: BoxFit.cover),
-                    Container(color: Colors.black.withValues(alpha: 0.1)),
+                    Container(color: Colors.black.withOpacity(0.1)),
                   ],
                 ),
               ),
             ),
 
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Header with hamburger menu and profile button
-                  _buildHeader(),
-                  const SizedBox(height: 16),
+            // Main scrollable content with fixed header
+            Column(
+              children: [
+                // Fixed header (non-scrollable)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildHeader(),
+                ),
 
-                  // Content
-                  Expanded(
-                    child: locationSuggestions.isNotEmpty
-                        ? ListView.builder(
-                            itemCount: locationSuggestions.length,
-                            itemBuilder: (context, index) {
-                              final suggestion = locationSuggestions[index];
-                              final displayText = [
-                                suggestion['name'] ?? '',
-                                suggestion['state'] ?? '',
-                                suggestion['country'] ?? '',
-                              ].where((e) => e.isNotEmpty).join(', ');
-                              return ListTile(
-                                title: Text(displayText,
-                                    style:
-                                        const TextStyle(color: Colors.white)),
-                                onTap: () => handleSelectLocation(suggestion),
-                              );
-                            },
-                          )
-                        : isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    if (weatherData != null) ...[
-                                      Text(
-                                        weatherData!['name'],
-                                        style: const TextStyle(
-                                            fontSize: 30,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Image.network(
-                                        "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
-                                        width: 100,
-                                      ),
-                                      Text(
-                                        "${weatherData!['main']['temp'].round()}°C",
-                                        style: const TextStyle(
-                                            fontSize: 50,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white),
-                                      ),
-                                      Text(
-                                        weatherData!['weather'][0]
-                                            ['description'],
-                                        style: const TextStyle(
-                                            color: Colors.white70),
-                                      ),
-                                      const SizedBox(height: 20),
+                // Scrollable content area
+                Expanded(
+                  child: locationSuggestions.isNotEmpty
+                      ? ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: locationSuggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = locationSuggestions[index];
+                            final displayText = [
+                              suggestion['name'] ?? '',
+                              suggestion['state'] ?? '',
+                              suggestion['country'] ?? '',
+                            ].where((e) => e.isNotEmpty).join(', ');
+                            return ListTile(
+                              title: Text(displayText,
+                                  style: const TextStyle(color: Colors.white)),
+                              onTap: () => handleSelectLocation(suggestion),
+                            );
+                          },
+                        )
+                      : isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : SingleChildScrollView(
+                              // Enhanced scroll physics for better scrolling experience
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  if (weatherData != null) ...[
+                                    // Main weather info
+                                    Text(
+                                      weatherData!['name'],
+                                      style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Image.network(
+                                      "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
+                                      width: 80,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      "${weatherData!['main']['temp'].round()}°C",
+                                      style: const TextStyle(
+                                          fontSize: 48,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      weatherData!['weather'][0]['description'],
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white),
+                                    ),
+                                    const SizedBox(height: 20),
 
-                                      // Hourly Forecast Scroll View
-                                      if (hourlyForecast.isNotEmpty)
-                                        buildHourlyForecast(),
+                                    // 24-Hour Forecast - Now properly sized for scrolling
+                                    if (hourlyForecast.isNotEmpty)
+                                      buildHourlyForecast(),
 
-                                      // Responsive Card Grid
-                                      Wrap(
-                                        spacing: 12,
-                                        runSpacing: 12,
-                                        children: [
-                                          buildWeatherTile(
-                                              "Feels Like",
-                                              "${weatherData!['main']['feels_like'].round()}°C",
-                                              Icons.thermostat),
-                                          buildWeatherTile(
-                                              "Humidity",
-                                              "${weatherData!['main']['humidity']}%",
-                                              Icons.water_drop),
-                                          buildWeatherTile(
-                                              "Wind",
-                                              "${weatherData!['wind']['speed']} m/s",
-                                              Icons.air),
-                                          buildWeatherTile(
-                                              "Pressure",
-                                              "${weatherData!['main']['pressure']} hPa",
-                                              Icons.speed),
-                                          buildWeatherTile(
-                                              "Visibility",
-                                              "${(weatherData!['visibility'] / 1000).toStringAsFixed(1)} km",
-                                              Icons.remove_red_eye),
-                                          buildWeatherTile(
-                                              "Clouds",
-                                              "${weatherData!['clouds']['all']}%",
-                                              Icons.cloud),
-                                          if (airData != null)
-                                            buildWeatherTile(
-                                                "Air Quality",
-                                                "${airData!['list'][0]['main']['aqi']}",
-                                                Icons.factory),
-                                        ],
-                                      ),
+                                    const SizedBox(height: 20),
+
+                                    // Weather details grid (aligned)
+                                    buildWeatherTilesGrid(),
 
                                       const SizedBox(height: 20),
 
@@ -1468,7 +1570,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                                             boxShadow: [
                                               BoxShadow(
                                                 color: Colors.black
-                                                    .withValues(alpha: 0.1),
+                                                    .withOpacity(0.1),
                                                 blurRadius: 10,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -1723,13 +1825,15 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                                             ),
                                           ),
                                         ),
-                                    ]
-                                  ],
+
+                                        // Bottom padding for better scroll experience
+                                        const SizedBox(height: 40),
+                                      ]
+                                    ],
+                                  ),
                                 ),
-                              ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1879,7 +1983,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.green.withValues(alpha: 0.8),
+              color: Colors.green.withOpacity(0.8),
               border: Border.all(color: Colors.white, width: 2),
             ),
             child: const Icon(
@@ -3020,4 +3124,180 @@ class _ForecastOverlayLegendState extends State<_ForecastOverlayLegend> with Sin
         };
     }
   }
+}
+
+class TemperatureGraphPainter extends CustomPainter {
+  final List<Map<String, dynamic>> data;
+  final double minTemp;
+  final double maxTemp;
+  final double tempRange;
+
+  TemperatureGraphPainter({
+    required this.data,
+    required this.minTemp,
+    required this.maxTemp,
+    required this.tempRange,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 4.0 // MASSIVE stroke from 3.5 to 4.0 - ultimate bold!
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withOpacity(0.45), // MAXIMUM opacity!
+          Colors.white.withOpacity(0.15),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..style = PaintingStyle.fill;
+
+    final dotPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    // Temperature scaling for MASSIVE graph
+    double effectiveMinTemp = minTemp;
+    double effectiveTempRange = tempRange;
+
+    if (tempRange < 10) {
+      final midTemp = (minTemp + maxTemp) / 2;
+      effectiveMinTemp = midTemp - 5;
+      effectiveTempRange = 10;
+    }
+
+    // Calculate points with 85px width spacing - MASSIVE!
+    final points = <Offset>[];
+    final fillPath = ui.Path();
+    final hourWidth = size.width / data.length; // This will be 85px per hour - MASSIVE!
+    
+    for (int i = 0; i < data.length; i++) {
+      final temp = data[i]['temp']?.toDouble() ?? 0.0;
+      final x = (i * hourWidth) + (hourWidth / 2);
+      
+      final normalizedTemp = effectiveTempRange == 0 ? 0.5 : 
+          (temp - effectiveMinTemp) / effectiveTempRange;
+      
+      // Use MASSIVE height (135px) with optimal padding for ultimate visualization
+      final y = size.height * (1 - normalizedTemp) * 0.8 + size.height * 0.1;
+      
+      points.add(Offset(x, y));
+      
+      if (i == 0) {
+        fillPath.moveTo(x, size.height);
+        fillPath.lineTo(x, y);
+      } else {
+        fillPath.lineTo(x, y);
+      }
+    }
+    
+    if (points.isNotEmpty) {
+      fillPath.lineTo(points.last.dx, size.height);
+      fillPath.close();
+    }
+
+    // Draw gradient fill
+    canvas.drawPath(fillPath, fillPaint);
+
+    // Draw temperature line with smooth curves
+    if (points.length > 1) {
+      final path = ui.Path();
+      path.moveTo(points[0].dx, points[0].dy);
+
+      for (int i = 1; i < points.length; i++) {
+        final controlPoint1 = Offset(
+          points[i - 1].dx + (points[i].dx - points[i - 1].dx) / 3,
+          points[i - 1].dy,
+        );
+        final controlPoint2 = Offset(
+          points[i].dx - (points[i].dx - points[i - 1].dx) / 3,
+          points[i].dy,
+        );
+        
+        path.cubicTo(
+          controlPoint1.dx, controlPoint1.dy,
+          controlPoint2.dx, controlPoint2.dy,
+          points[i].dx, points[i].dy,
+        );
+      }
+
+      canvas.drawPath(path, paint);
+    }
+
+    // Draw temperature dots and labels - ULTIMATE maximum visibility
+    final textPainter = TextPainter(
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+
+    for (int i = 0; i < points.length; i++) {
+      final point = points[i];
+      final temp = data[i]['temp']?.round() ?? 0;
+      // Draw dot
+      canvas.drawCircle(point, 5.0, dotPaint);
+      // Show temperature label for every hour
+      textPainter.text = TextSpan(
+        text: '${temp}°',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(
+              offset: Offset(0.8, 0.8),
+              blurRadius: 2.0,
+              color: Colors.black87,
+            ),
+          ],
+        ),
+      );
+      textPainter.layout();
+      final labelOffset = Offset(
+        point.dx - textPainter.width / 2,
+        point.dy - textPainter.height - 8,
+      );
+      final labelBg = RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          labelOffset.dx - 4,
+          labelOffset.dy - 2,
+          textPainter.width + 8,
+          textPainter.height + 4,
+        ),
+        const Radius.circular(4),
+      );
+      canvas.drawRRect(
+        labelBg,
+        Paint()
+          ..color = Colors.black.withOpacity(0.85)
+          ..style = PaintingStyle.fill,
+      );
+      textPainter.paint(canvas, labelOffset);
+    }
+
+    // ULTIMATE visibility grid lines
+    final gridPaint = Paint()
+      ..color = Colors.white.withOpacity(0.25) // MAXIMUM opacity!
+      ..strokeWidth = 1.0; // MAXIMUM width!
+
+    // 4 horizontal grid lines for MAXIMUM reference
+    for (int i = 0; i <= 4; i++) {
+      final y = (size.height * 0.75 / 4) * i + size.height * 0.12;
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        gridPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

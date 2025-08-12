@@ -61,7 +61,7 @@ class WeatherService {
     }
   }
 
-    // Fetch 5-day / 3-hour forecast (next 24 hours only)
+    // Fetch 5-day / 3-hour forecast (24 hours worth of data)
     Future<List<Map<String, dynamic>>> fetchHourlyForecast(double lat, double lon) async {
       final response = await http.get(Uri.parse(
         'https://api.openweathermap.org/data/2.5/forecast?lat=$lat&lon=$lon&appid=$apiKey&units=metric',
@@ -70,12 +70,56 @@ class WeatherService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List forecasts = data['list'];
-        return forecasts.take(8).map<Map<String, dynamic>>((item) => {
-          'time': item['dt_txt'],
-          'temp': item['main']['temp'],
-          'icon': item['weather'][0]['icon'],
-          'humidity': item['main']['humidity'],
-        }).toList();
+        
+        // Take first 8 forecasts (24 hours with 3-hour intervals)
+        // Then create hourly interpolated data for smooth graph
+        List<Map<String, dynamic>> hourlyData = [];
+        
+        // Add current hour as "Now"
+        if (forecasts.isNotEmpty) {
+          final firstForecast = forecasts[0];
+          hourlyData.add({
+            'time': DateTime.now().toIso8601String(),
+            'temp': firstForecast['main']['temp'],
+            'icon': firstForecast['weather'][0]['icon'],
+            'humidity': firstForecast['main']['humidity'],
+            'wind_speed': firstForecast['wind']['speed'] ?? 0.0,
+          });
+        }
+        
+        // Generate 23 more hours of data by interpolating between 3-hour forecasts
+        final available3HourForecasts = forecasts.take(8).toList();
+        
+        for (int hour = 1; hour <= 23; hour++) {
+          final forecastIndex = (hour / 3).floor();
+          final nextForecastIndex = ((hour / 3).floor() + 1).clamp(0, available3HourForecasts.length - 1);
+          
+          if (forecastIndex < available3HourForecasts.length) {
+            final currentForecast = available3HourForecasts[forecastIndex];
+            final nextForecast = available3HourForecasts[nextForecastIndex];
+            
+            // Interpolate temperature between forecasts
+            final progress = (hour % 3) / 3.0;
+            final currentTemp = currentForecast['main']['temp'].toDouble();
+            final nextTemp = nextForecast['main']['temp'].toDouble();
+            final interpolatedTemp = currentTemp + (nextTemp - currentTemp) * progress;
+            
+            // Interpolate wind speed between forecasts
+            final currentWindSpeed = (currentForecast['wind']['speed'] ?? 0.0).toDouble();
+            final nextWindSpeed = (nextForecast['wind']['speed'] ?? 0.0).toDouble();
+            final interpolatedWindSpeed = currentWindSpeed + (nextWindSpeed - currentWindSpeed) * progress;
+            
+            hourlyData.add({
+              'time': DateTime.now().add(Duration(hours: hour)).toIso8601String(),
+              'temp': interpolatedTemp,
+              'icon': currentForecast['weather'][0]['icon'],
+              'humidity': currentForecast['main']['humidity'],
+              'wind_speed': interpolatedWindSpeed,
+            });
+          }
+        }
+        
+        return hourlyData;
       } else {
         throw Exception('Failed to load hourly forecast');
       }

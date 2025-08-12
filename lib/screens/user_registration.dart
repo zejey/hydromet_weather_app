@@ -10,12 +10,16 @@ class UserRegistrationScreen extends StatefulWidget {
 
 class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _middleNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _suffixController = TextEditingController();
   final TextEditingController _houseAddressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   
   final FocusNode _firstNameFocusNode = FocusNode();
+  final FocusNode _middleNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
+  final FocusNode _suffixFocusNode = FocusNode();
   final FocusNode _houseAddressFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
   
@@ -153,8 +157,10 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
+  _firstNameController.dispose();
+  _middleNameController.dispose();
+  _lastNameController.dispose();
+  _suffixController.dispose();
     _houseAddressController.dispose();
     _phoneController.dispose();
     _firstNameFocusNode.dispose();
@@ -170,7 +176,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       _showSnackBar('Please enter your first name');
       return;
     }
-    
     if (_lastNameController.text.trim().isEmpty) {
       _showSnackBar('Please enter your last name');
       return;
@@ -309,10 +314,18 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               color: Colors.green,
             ),
           ),
+          const SizedBox(height: 8),
+          const Text(
+            'Your future, forecasted — sign up to begin.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 20),
           
-          const SizedBox(height: 24),
-          
-          // First Name and Last Name Row
+          // Name Fields
           Row(
             children: [
               Expanded(
@@ -321,7 +334,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   focusNode: _firstNameFocusNode,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'First',
+                    hintText: 'First Name *',
                     hintStyle: TextStyle(color: Colors.grey.shade500),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -341,11 +354,63 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
+                  controller: _middleNameController,
+                  focusNode: _middleNameFocusNode,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    hintText: 'Middle Name (optional)',
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
                   controller: _lastNameController,
                   focusNode: _lastNameFocusNode,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'Last',
+                    hintText: 'Last Name *',
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _suffixController,
+                  focusNode: _suffixFocusNode,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    hintText: 'Suffix (optional)',
                     hintStyle: TextStyle(color: Colors.grey.shade500),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -494,7 +559,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
           
           // Terms and Conditions Checkbox
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Checkbox(
                 value: _agreeToTerms,
@@ -504,6 +569,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   });
                 },
                 activeColor: Colors.green,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -511,32 +578,35 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   onTap: () {
                     _showTermsAndConditions();
                   },
-                  child: RichText(
-                    text: const TextSpan(
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2.0),
+                    child: RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
+                        ),
+                        children: [
+                          TextSpan(text: 'I agree to the '),
+                          TextSpan(
+                            text: 'Terms and Condition',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w500,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                          TextSpan(text: ' and '),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w500,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
                       ),
-                      children: [
-                        TextSpan(text: 'I agree to the '),
-                        TextSpan(
-                          text: 'Terms and Condition',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                        TextSpan(text: ' and '),
-                        TextSpan(
-                          text: 'Privacy Policy',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
