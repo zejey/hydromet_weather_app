@@ -483,18 +483,30 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   Widget buildHourlyForecast() {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade800.withOpacity(0.92), // Darker grey for contrast
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.10)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.13),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Section Title with Updated badge
           Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 12),
+            padding: const EdgeInsets.only(left: 16, bottom: 12, top: 16, right: 16),
             child: Row(
               children: [
                 const Text(
                   '24-Hour Forecast',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.black87,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -535,10 +547,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.55), // increased opacity
-              borderRadius: BorderRadius.circular(14),
-            ),
+            // No color here, inherit from parent
             child: _buildTemperatureGraph(),
           ),
         ],
@@ -1049,8 +1058,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       const sanPedroLon = 121.0417;
 
       // Fetch weather data with timeout
-      final weather = await _weatherService.fetchWeatherByCoords(sanPedroLat, sanPedroLon)
-          .timeout(const Duration(seconds: 10));
+    final weather = await _weatherService.fetchCurrentWeatherByCoords(sanPedroLat, sanPedroLon)
+      .timeout(const Duration(seconds: 10));
       
       // Fetch air pollution data (optional, continue if fails)
       Map<String, dynamic>? air;
@@ -1868,8 +1877,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   Future<void> _fetchWeatherForLocation(LatLng point) async {
     try {
-      final weather = await _weatherService.fetchWeatherByCoords(
-          point.latitude, point.longitude);
+    final weather = await _weatherService.fetchCurrentWeatherByCoords(
+      point.latitude, point.longitude);
       final air = await _weatherService.fetchAirPollution(
           point.latitude, point.longitude);
       final forecast = await _weatherService.fetchHourlyForecast(
