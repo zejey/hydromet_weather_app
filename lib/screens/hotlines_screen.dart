@@ -690,100 +690,100 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
     );
   }
 
-  Widget _buildHotlineItem(BuildContext context, String serviceName,
-      String phoneNumber, IconData icon,
-      {bool isLast = false, Color? iconColor}) {
-    // Set default color scheme based on service type
-    Color serviceIconColor = iconColor ?? Colors.green.shade700;
+  // Widget _buildHotlineItem(BuildContext context, String serviceName,
+  //     String phoneNumber, IconData icon,
+  //     {bool isLast = false, Color? iconColor}) {
+  //   // Set default color scheme based on service type
+  //   Color serviceIconColor = iconColor ?? Colors.green.shade700;
 
-    return Column(
-      children: [
-        Row(
-          children: [
-            // Service Icon/Logo
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Icon(
-                icon,
-                color: serviceIconColor,
-                size: 20,
-              ),
-            ),
+  //   return Column(
+  //     children: [
+  //       Row(
+  //         children: [
+  //           // Service Icon/Logo
+  //           Container(
+  //             width: 40,
+  //             height: 40,
+  //             decoration: BoxDecoration(
+  //               color: Colors.grey.shade100,
+  //               borderRadius: BorderRadius.circular(8),
+  //               border: Border.all(color: Colors.grey.shade300),
+  //             ),
+  //             child: Icon(
+  //               icon,
+  //               color: serviceIconColor,
+  //               size: 20,
+  //             ),
+  //           ),
 
-            const SizedBox(width: 12),
+  //           const SizedBox(width: 12),
 
-            // Service Name and Phone Button
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Service Name
-                  Container(
-                    width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      serviceName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+  //           // Service Name and Phone Button
+  //           Expanded(
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 // Service Name
+  //                 Container(
+  //                   width: double.infinity,
+  //                   padding:
+  //                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  //                   decoration: BoxDecoration(
+  //                     color: Colors.green,
+  //                     borderRadius: BorderRadius.circular(8),
+  //                   ),
+  //                   child: Text(
+  //                     serviceName,
+  //                     style: const TextStyle(
+  //                       color: Colors.white,
+  //                       fontSize: 11,
+  //                       fontWeight: FontWeight.bold,
+  //                     ),
+  //                     textAlign: TextAlign.center,
+  //                   ),
+  //                 ),
 
-                  const SizedBox(height: 6),
+  //                 const SizedBox(height: 6),
 
-                  // Phone Number Button
-                  GestureDetector(
-                    onTap: () => _makePhoneCall(context, phoneNumber),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Text(
-                        phoneNumber,
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (!isLast) ...[
-          const SizedBox(height: 16),
-          Container(
-            height: 1,
-            color: Colors.grey.shade200,
-          ),
-          const SizedBox(height: 16),
-        ],
-      ],
-    );
-  }
+  //                 // Phone Number Button
+  //                 GestureDetector(
+  //                   onTap: () => _makePhoneCall(context, phoneNumber),
+  //                   child: Container(
+  //                     width: double.infinity,
+  //                     padding: const EdgeInsets.symmetric(
+  //                         horizontal: 12, vertical: 10),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.white,
+  //                       borderRadius: BorderRadius.circular(8),
+  //                       border: Border.all(color: Colors.grey.shade300),
+  //                     ),
+  //                     child: Text(
+  //                       phoneNumber,
+  //                       style: const TextStyle(
+  //                         color: Colors.black87,
+  //                         fontSize: 12,
+  //                         fontWeight: FontWeight.w600,
+  //                       ),
+  //                       textAlign: TextAlign.center,
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //       if (!isLast) ...[
+  //         const SizedBox(height: 16),
+  //         Container(
+  //           height: 1,
+  //           color: Colors.grey.shade200,
+  //         ),
+  //         const SizedBox(height: 16),
+  //       ],
+  //     ],
+  //   );
+  // }
 
   Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
     // Clean the phone number for copying (remove extra text)
@@ -905,8 +905,9 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
   }
 
   List<Color> _getWeatherGradient() {
-    if (weatherData == null)
+    if (weatherData == null) {
       return [Colors.grey.shade600, Colors.grey.shade800];
+    }
 
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
     final isDay = _isDayTime();

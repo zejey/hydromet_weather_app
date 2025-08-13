@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/weather_service.dart';
 import '../services/user_registration_service.dart';
 import 'log_in.dart';
@@ -508,9 +508,9 @@ class _WeatherScreenState extends State<WeatherScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'AI HAZARD ALERT',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -548,16 +548,16 @@ class _WeatherScreenState extends State<WeatherScreen>
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.psychology, color: Colors.white70, size: 16),
+              const Icon(Icons.psychology, color: Colors.white70, size: 16),
               const SizedBox(width: 6),
               Text(
                 'AI Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               const Spacer(),
-              Text(
+              const Text(
                 'San Pedro Model',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
           ),
