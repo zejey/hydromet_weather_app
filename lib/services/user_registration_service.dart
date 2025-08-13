@@ -78,6 +78,7 @@ class UserRegistrationService {
         'house_address': houseAddress.trim(),
         'barangay': barangay.trim(),
         'phone_number': phoneNumber.trim(),
+        'role': 'user',
         'created_at': FieldValue.serverTimestamp(),
         'is_verified': false, // For future OTP verification
       });
