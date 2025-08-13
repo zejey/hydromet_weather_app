@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/weather_service.dart';
+import '../services/hotlines_service.dart';
 
 class HotlinesScreen extends StatefulWidget {
   const HotlinesScreen({super.key});
@@ -11,6 +12,8 @@ class HotlinesScreen extends StatefulWidget {
 
 class _HotlinesScreenState extends State<HotlinesScreen> {
   final WeatherService _weatherService = WeatherService();
+  final HotlinesService _hotlinesService = HotlinesService();
+
   Map<String, dynamic>? weatherData;
   bool isLoadingWeather = true;
 
@@ -22,7 +25,8 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
 
   Future<void> _loadWeatherData() async {
     try {
-      final weather = await _weatherService.fetchCurrentWeather('San Pedro, Laguna, PH');
+      final weather =
+          await _weatherService.fetchCurrentWeather('San Pedro, Laguna, PH');
       if (mounted) {
         setState(() {
           weatherData = weather;
@@ -53,7 +57,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header
+              // Header (keep the same)
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -90,15 +94,15 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 48), // Balance the row
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
-              
-              // Weather Condition Banner
+
+              // Weather Banner (keep the same)
               _buildWeatherBanner(),
-              
-              // Content with better readability
+
+              // 🆕 Dynamic Content from Database
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -118,7 +122,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Emergency Icon Header
+                      // Emergency Icon Header (keep the same)
                       Container(
                         margin: const EdgeInsets.all(20),
                         padding: const EdgeInsets.all(20),
@@ -160,7 +164,8 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                                   Text(
                                     'Emergency Services',
                                     style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
                                       fontSize: 14,
                                     ),
                                   ),
@@ -170,19 +175,19 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                           ],
                         ),
                       ),
-                      
-                      // Weather and Emergency content area
+
+                      // 🆕 Dynamic content from database
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Weather Information
+                              // Weather Information (keep the same)
                               _buildWeatherInfoCard(),
-                              
+
                               const SizedBox(height: 16),
-                              
+
                               const Text(
                                 'In case of an emergency, please contact:',
                                 style: TextStyle(
@@ -192,109 +197,131 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
-                              // Emergency Services List
-                              _buildHotlineItem(
-                                context,
-                                'OFFICE OF THE MAYOR',
-                                '(02) 8808-2020',
-                                Icons.account_balance,
-                                iconColor: Colors.blue.shade700,
-                              ),
-                              
-                              _buildHotlineItem(
-                                context,
-                                'CITY DISASTER RISK REDUCTION AND\nMANAGEMENT OFFICE',
-                                '(02) 8403-2648/0998 594 1743',
-                                Icons.warning_amber,
-                                iconColor: Colors.orange.shade700,
-                              ),
-                              
-                              _buildHotlineItem(
-                                context,
-                                'SAN PEDRO AKTIBO\nRESCUE CREW',
-                                '(02) 8403-2648/0998 594 1743',
-                                Icons.local_hospital,
-                                iconColor: Colors.red.shade600,
-                              ),
-                              
-                              _buildHotlineItem(
-                                context,
-                                'PHILIPPINE NATIONAL\nPOLICE',
-                                '(02) 8567-3381/8864-1548',
-                                Icons.local_police,
-                                iconColor: Colors.blue.shade800,
-                              ),
-                              
-                              _buildHotlineItem(
-                                context,
-                                'CITY OF SAN PEDRO LAGUNA\nBUREAU OF FIRE PROTECTION',
-                                '(02) 8808-0617/0936 470 2158',
-                                Icons.local_fire_department,
-                                iconColor: Colors.red.shade700,
-                              ),
-                              
-                              _buildHotlineItem(
-                                context,
-                                'CITY FIRE AUXILIARY UNIT',
-                                '(02) 8363 9392',
-                                Icons.fire_truck,
-                                iconColor: Colors.red.shade600,
-                              ),
-                              
-                              _buildHotlineItem(
-                                context,
-                                'MERALCO',
-                                '(02) 16211\nFor SMS  09209716211(SMART)\n09175516211 (GLOBE)',
-                                Icons.electrical_services,
-                                iconColor: Colors.yellow.shade700,
-                                isLast: true,
-                              ),
-                              
-                              const SizedBox(height: 24),
-                              
-                              // Emergency Call 911
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Colors.red.shade600, Colors.red.shade800],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.red.withValues(alpha: 0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.phone_in_talk,
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        '🚨 For immediate life-threatening emergencies, call 911',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+
+                              // 🆕 StreamBuilder for dynamic hotlines
+                              StreamBuilder<List<HotlineItem>>(
+                                stream: _hotlinesService.getActiveHotlines(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(32.0),
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  }
+
+                                  if (snapshot.hasError) {
+                                    return Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(32.0),
+                                        child: Column(
+                                          children: [
+                                            const Icon(
+                                              Icons.error_outline,
+                                              size: 48,
+                                              color: Colors.red,
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'Error loading hotlines: ${snapshot.error}',
+                                              style: const TextStyle(
+                                                  color: Colors.red),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    );
+                                  }
+
+                                  final hotlines = snapshot.data ?? [];
+
+                                  if (hotlines.isEmpty) {
+                                    return const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(32.0),
+                                        child: Text(
+                                          'No emergency hotlines available',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+
+                                  return Column(
+                                    children: [
+                                      // Build hotline items dynamically
+                                      ...hotlines.asMap().entries.map((entry) {
+                                        final index = entry.key;
+                                        final hotline = entry.value;
+                                        final isLast =
+                                            index == hotlines.length - 1;
+
+                                        return _buildDynamicHotlineItem(
+                                          context,
+                                          hotline,
+                                          isLast: isLast,
+                                        );
+                                      }).toList(),
+
+                                      const SizedBox(height: 24),
+
+                                      // Emergency Call 911 (keep the same)
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.red.shade600,
+                                              Colors.red.shade800
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.red
+                                                  .withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Row(
+                                          children: [
+                                            Icon(
+                                              Icons.phone_in_talk,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                            SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                '🚨 For immediate life-threatening emergencies, call 911',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 20),
+                                    ],
+                                  );
+                                },
                               ),
-                              
-                              const SizedBox(height: 20),
                             ],
                           ),
                         ),
@@ -307,6 +334,97 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDynamicHotlineItem(BuildContext context, HotlineItem hotline,
+      {bool isLast = false}) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            // Service Icon/Logo
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Icon(
+                hotline.icon, // 👈 Dynamic icon from database
+                color: hotline.color, // 👈 Dynamic color from database
+                size: 20,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Service Name and Phone Button
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Service Name
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      hotline.serviceName, // 👈 Dynamic service name
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Phone Number Button
+                  GestureDetector(
+                    onTap: () => _makePhoneCall(context, hotline.phoneNumber),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        hotline.phoneNumber, // 👈 Dynamic phone number
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (!isLast) ...[
+          const SizedBox(height: 16),
+          Container(
+            height: 1,
+            color: Colors.grey.shade200,
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
     );
   }
 
@@ -343,7 +461,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
         ),
       );
     }
-    
+
     if (weatherData == null) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -380,14 +498,14 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
         ),
       );
     }
-    
+
     // Weather data available - show rain/precipitation info
     String temperature = weatherData!['main']['temp'].toStringAsFixed(1);
     String weatherDescription = weatherData!['weather'][0]['description'];
     String windSpeed = weatherData!['wind']['speed'].toStringAsFixed(1);
     bool isRaining = _isRainingCondition();
     String rainInfo = _getRainInfo();
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -426,9 +544,9 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                   size: 32,
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Weather Details
               Expanded(
                 child: Column(
@@ -458,7 +576,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    
+
                     // Location
                     Text(
                       'San Pedro, Laguna',
@@ -473,7 +591,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
               ),
             ],
           ),
-          
+
           // Rain/Weather Condition Info
           if (isRaining) ...[
             const SizedBox(height: 12),
@@ -505,7 +623,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
               ),
             ),
           ],
-          
+
           // Emergency weather warning
           if (_isEmergencyWeather()) ...[
             const SizedBox(height: 12),
@@ -533,7 +651,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
               ),
             ),
           ],
-          
+
           // Additional weather details
           const SizedBox(height: 12),
           Row(
@@ -572,10 +690,12 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
     );
   }
 
-  Widget _buildHotlineItem(BuildContext context, String serviceName, String phoneNumber, IconData icon, {bool isLast = false, Color? iconColor}) {
+  Widget _buildHotlineItem(BuildContext context, String serviceName,
+      String phoneNumber, IconData icon,
+      {bool isLast = false, Color? iconColor}) {
     // Set default color scheme based on service type
     Color serviceIconColor = iconColor ?? Colors.green.shade700;
-    
+
     return Column(
       children: [
         Row(
@@ -595,9 +715,9 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                 size: 20,
               ),
             ),
-            
+
             const SizedBox(width: 12),
-            
+
             // Service Name and Phone Button
             Expanded(
               child: Column(
@@ -606,7 +726,8 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                   // Service Name
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.green,
                       borderRadius: BorderRadius.circular(8),
@@ -621,15 +742,16 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 6),
-                  
+
                   // Phone Number Button
                   GestureDetector(
                     onTap: () => _makePhoneCall(context, phoneNumber),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
@@ -651,7 +773,6 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
             ),
           ],
         ),
-        
         if (!isLast) ...[
           const SizedBox(height: 16),
           Container(
@@ -670,10 +791,10 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
     if (cleanNumber.contains('/')) {
       cleanNumber = cleanNumber.split('/').first;
     }
-    
+
     // Copy phone number to clipboard and show snackbar
     await Clipboard.setData(ClipboardData(text: cleanNumber.trim()));
-    
+
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -784,14 +905,15 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
   }
 
   List<Color> _getWeatherGradient() {
-    if (weatherData == null) return [Colors.grey.shade600, Colors.grey.shade800];
-    
+    if (weatherData == null)
+      return [Colors.grey.shade600, Colors.grey.shade800];
+
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
     final isDay = _isDayTime();
-    
+
     switch (condition) {
       case 'clear':
-        return isDay 
+        return isDay
             ? [Colors.orange.shade400, Colors.orange.shade600]
             : [Colors.indigo.shade600, Colors.indigo.shade800];
       case 'clouds':
@@ -813,10 +935,10 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
 
   IconData _getWeatherIcon() {
     if (weatherData == null) return Icons.cloud;
-    
+
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
     final isDay = _isDayTime();
-    
+
     switch (condition) {
       case 'clear':
         return isDay ? Icons.wb_sunny : Icons.nights_stay;
@@ -840,17 +962,19 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
 
   bool _isRainingCondition() {
     if (weatherData == null) return false;
-    
+
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
-    return condition == 'rain' || condition == 'drizzle' || condition == 'thunderstorm';
+    return condition == 'rain' ||
+        condition == 'drizzle' ||
+        condition == 'thunderstorm';
   }
 
   String _getRainInfo() {
     if (weatherData == null) return '';
-    
+
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
     final description = weatherData!['weather'][0]['description'];
-    
+
     if (condition == 'rain') {
       // Check if rain data is available
       if (weatherData!['rain'] != null) {
@@ -864,28 +988,28 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
     } else if (condition == 'thunderstorm') {
       return 'THUNDERSTORM - $description';
     }
-    
+
     return '';
   }
 
   bool _isEmergencyWeather() {
     if (weatherData == null) return false;
-    
+
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
     final windSpeed = weatherData!['wind']['speed'] ?? 0;
-    
-    return condition == 'thunderstorm' || 
-           condition == 'tornado' || 
-           windSpeed > 15; // Strong wind alert
+
+    return condition == 'thunderstorm' ||
+        condition == 'tornado' ||
+        windSpeed > 15; // Strong wind alert
   }
 
   bool _isDayTime() {
     if (weatherData == null) return true;
-    
+
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final sunrise = weatherData!['sys']['sunrise'] ?? 0;
     final sunset = weatherData!['sys']['sunset'] ?? 0;
-    
+
     return now >= sunrise && now <= sunset;
   }
 }
