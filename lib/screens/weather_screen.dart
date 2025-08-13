@@ -72,7 +72,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.air, color: Colors.white, size: 28),
+              const Icon(Icons.air, color: Colors.white, size: 28),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -469,11 +469,11 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   final MapController _mapController = MapController();
   double _currentZoom = 14.0;
   String _currentMapStyle = 'satellite';
-  bool _showSatelliteLayer = false;
+  final bool _showSatelliteLayer = false;
   bool _showRainAnimation = false;
   bool _showHazardLocations = false;
   bool _showAirQualityIndicator = false;
-  bool _showSafetyIndicator = false;
+  final bool _showSafetyIndicator = false;
   // --- END ALL REQUIRED FIELDS ---
 
   // --- BEGIN CLEAN FORECAST SECTION (single version) ---
@@ -484,14 +484,14 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.grey.shade800.withOpacity(0.92), // Darker grey for contrast
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.10)),
+  color: const Color(0xFF388E3C), // Use app's main green for strong branding
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.18)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.13),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -506,7 +506,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 const Text(
                   '24-Hour Forecast',
                   style: TextStyle(
-                    color: Colors.black87,
+                    color: ui.Color.fromARGB(221, 255, 255, 255),
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -574,7 +574,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            child: Container(
+            child: SizedBox(
               width: displayData.length * 85.0,
               child: CustomPaint(
                 size: Size(displayData.length * 85.0, 135),
@@ -591,7 +591,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         const SizedBox(height: 12),
         // Weather Icons Row (no wind speed)
         SizedBox(
-          height: 48,
+          height: 64,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -609,24 +609,24 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                   child: Column(
                     children: [
                       Container(
-                        width: 36,
-                        height: 36,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.3),
                           ),
                         ),
                         child: Image.network(
                           "https://openweathermap.org/img/wn/$icon.png",
-                          width: 30,
-                          height: 30,
+                          width: 40,
+                          height: 40,
                           errorBuilder: (context, error, stackTrace) {
                             return const Icon(
                               Icons.wb_cloudy,
                               color: Colors.white,
-                              size: 28,
+                              size: 36,
                             );
                           },
                         ),
@@ -652,17 +652,17 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 final time = forecast['time'] ?? '';
                 String displayTime = "N/A";
                 bool isNow = index == 0;
-                try {
-                  if (time.isNotEmpty) {
+                if (time.isNotEmpty) {
+                  try {
                     final dateTime = DateTime.parse(time);
                     if (isNow) {
                       displayTime = "Now";
                     } else {
                       displayTime = "${dateTime.hour.toString().padLeft(2, '0')}:00";
                     }
+                  } catch (e) {
+                    displayTime = "${index}h";
                   }
-                } catch (e) {
-                  displayTime = "${index}h";
                 }
                 return Container(
                   width: 85,
@@ -1218,9 +1218,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
               borderRadius: BorderRadius.circular(25),
               border: Border.all(color: Colors.white.withOpacity(0.3)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 20),
                   child: Icon(
                     Icons.location_pin, // Pinpoint icon
@@ -1228,8 +1228,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'San Pedro, Laguna, Philippines', // Fixed location text
                     style: TextStyle(
@@ -1525,36 +1525,62 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   if (weatherData != null) ...[
-                                    // Main weather info
+                                    // Main weather info - Highlighted
                                     Text(
                                       weatherData!['name'],
                                       style: const TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white),
+                                        fontSize: 44, // Much bigger
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        fontFamily: 'Montserrat',
+                                        letterSpacing: 1.2,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black54,
+                                            blurRadius: 8,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    const SizedBox(height: 5),
+                                    const SizedBox(height: 8),
                                     Image.network(
                                       "https://openweathermap.org/img/wn/${weatherData!['weather'][0]['icon']}@2x.png",
-                                      width: 80,
+                                      width: 100,
                                     ),
-                                    const SizedBox(height: 5),
+                                    const SizedBox(height: 8),
                                     Text(
                                       "${weatherData!['main']['temp'].round()}°C",
                                       style: const TextStyle(
-                                          fontSize: 48,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white),
+                                        fontSize: 64, // Much bigger
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        fontFamily: 'Montserrat',
+                                        letterSpacing: 1.5,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black54,
+                                            blurRadius: 10,
+                                            offset: Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    const SizedBox(height: 5),
+                                    const SizedBox(height: 8),
                                     Text(
-                                      weatherData!['weather'][0]['description'],
+                                      weatherData!['weather'][0]['description'].toString().toUpperCase(),
                                       style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.white70,
+                                        fontFamily: 'Montserrat',
+                                        letterSpacing: 1.1,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 24),
 
                                     // 24-Hour Forecast - Now properly sized for scrolling
                                     if (hourlyForecast.isNotEmpty)
@@ -3254,7 +3280,7 @@ class TemperatureGraphPainter extends CustomPainter {
       canvas.drawCircle(point, 5.0, dotPaint);
       // Show temperature label for every hour
       textPainter.text = TextSpan(
-        text: '${temp}°',
+        text: '$temp°',
         style: const TextStyle(
           color: Colors.white,
           fontSize: 13,
@@ -3285,18 +3311,15 @@ class TemperatureGraphPainter extends CustomPainter {
       canvas.drawRRect(
         labelBg,
         Paint()
-          ..color = Colors.black.withOpacity(0.85)
-          ..style = PaintingStyle.fill,
+          ..color = Colors.black.withOpacity(0.18),
       );
       textPainter.paint(canvas, labelOffset);
     }
 
-    // ULTIMATE visibility grid lines
+    // Optionally, draw horizontal grid lines for temperature reference
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.25) // MAXIMUM opacity!
-      ..strokeWidth = 1.0; // MAXIMUM width!
-
-    // 4 horizontal grid lines for MAXIMUM reference
+      ..color = Colors.white.withOpacity(0.13)
+      ..strokeWidth = 1.0;
     for (int i = 0; i <= 4; i++) {
       final y = (size.height * 0.75 / 4) * i + size.height * 0.12;
       canvas.drawLine(
