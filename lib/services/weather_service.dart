@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart'; // 🆕 ADD THIS IMPORT for Color class
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 const apiKey = '98b876bdda3ba2bbf68d26d48a26b4b9';
 
@@ -32,6 +33,29 @@ class WeatherService {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to load air quality data');
+    }
+  }
+
+  // Add this method to your WeatherService class
+  Future<void> saveWeatherToDatabase(Map<String, dynamic> weatherData) async {
+    try {
+      await FirebaseFirestore.instance.collection('weather_data').add({
+        'location': weatherData['name'] ?? 'Unknown',
+        'temperature': weatherData['main']['temp'],
+        'humidity': weatherData['main']['humidity'],
+        'description': weatherData['weather'][0]['description'],
+        'timestamp': FieldValue.serverTimestamp(),
+        'coordinates': {
+          'lat': weatherData['coord']['lat'],
+          'lon': weatherData['coord']['lon'],
+        },
+        'pressure': weatherData['main']['pressure'],
+        'wind_speed': weatherData['wind']['speed'],
+        'saved_by': 'weather_screen', // To track where data comes from
+      });
+      print('Weather data saved successfully');
+    } catch (e) {
+      print('Error saving weather data: $e');
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/weather_service.dart';
 import '../services/user_registration_service.dart';
 import 'log_in.dart';
@@ -130,7 +131,9 @@ class _WeatherScreenState extends State<WeatherScreen>
     _cityController.dispose();
     _animationController.dispose();
     super.dispose();
-  }  Future<void> loadWeather() async {
+  }
+
+  Future<void> loadWeather() async {
     try {
       setState(() => isLoading = true);
 
@@ -144,6 +147,9 @@ class _WeatherScreenState extends State<WeatherScreen>
           await _weatherService.fetchAirPollution(sanPedroLat, sanPedroLon);
       final forecast =
           await _weatherService.fetchHourlyForecast(sanPedroLat, sanPedroLon);
+
+      // 🆕 Save weather data to database
+      await _weatherService.saveWeatherToDatabase(weather);
 
       // AI integration
       final apiAvailable = await _weatherService.checkLocalApiHealth();
@@ -166,6 +172,7 @@ class _WeatherScreenState extends State<WeatherScreen>
       });
     } catch (e) {
       setState(() => isLoading = false);
+      print('Error loading weather: $e'); // Add error logging
     }
   }
 
