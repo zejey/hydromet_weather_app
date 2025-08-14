@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/settings_storage.dart';
 
 class UserSettingsScreen extends StatefulWidget {
   const UserSettingsScreen({Key? key}) : super(key: key);
@@ -19,10 +20,26 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
   double _alertRadius = 5.0;
   final AuthManager _authManager = AuthManager();
 
+
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await SettingsStorage.loadSettings();
+    setState(() {
+      _notificationsEnabled = settings['notificationsEnabled'] ?? true;
+      _locationEnabled = settings['locationEnabled'] ?? true;
+      _darkModeEnabled = settings['darkModeEnabled'] ?? false;
+      _weatherAlertsEnabled = settings['weatherAlertsEnabled'] ?? true;
+      _emergencyAlertsEnabled = settings['emergencyAlertsEnabled'] ?? true;
+      _temperatureUnit = settings['temperatureUnit'] ?? 'Celsius';
+      _language = settings['language'] ?? 'English';
+      _alertRadius = settings['alertRadius'] ?? 5.0;
+    });
   }
 
   void _checkLoginStatus() {
@@ -555,7 +572,17 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     );
   }
 
-  void _saveSettings() {
+  Future<void> _saveSettings() async {
+    await SettingsStorage.saveSettings(
+      notificationsEnabled: _notificationsEnabled,
+      locationEnabled: _locationEnabled,
+      darkModeEnabled: _darkModeEnabled,
+      weatherAlertsEnabled: _weatherAlertsEnabled,
+      emergencyAlertsEnabled: _emergencyAlertsEnabled,
+      temperatureUnit: _temperatureUnit,
+      language: _language,
+      alertRadius: _alertRadius,
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Settings saved successfully!'),
@@ -577,7 +604,8 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                await SettingsStorage.resetSettings();
                 setState(() {
                   _notificationsEnabled = true;
                   _locationEnabled = true;
