@@ -10,7 +10,7 @@ import 'screens/user_settings_screen.dart';
 // import 'screens/community_forum_screen.dart';
 import 'services/user_registration_service.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
