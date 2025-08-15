@@ -459,7 +459,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pop(context);
-                _showSnackBar('Settings coming soon!');
+                Navigator.pushNamed(context, '/settings');
               },
             ),
             

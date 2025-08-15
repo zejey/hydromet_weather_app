@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/user_registration_service.dart';
+import '../services/auth_service.dart';
+import '../services/settings_storage.dart';
 
 class UserSettingsScreen extends StatefulWidget {
   const UserSettingsScreen({Key? key}) : super(key: key);
@@ -17,13 +18,28 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
   String _temperatureUnit = 'Celsius';
   String _language = 'English';
   double _alertRadius = 5.0;
-  final UserRegistrationService _userRegistrationService =
-      UserRegistrationService();
+  final AuthManager _authManager = AuthManager();
+
 
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await SettingsStorage.loadSettings();
+    setState(() {
+      _notificationsEnabled = settings['notificationsEnabled'] ?? true;
+      _locationEnabled = settings['locationEnabled'] ?? true;
+      _darkModeEnabled = settings['darkModeEnabled'] ?? false;
+      _weatherAlertsEnabled = settings['weatherAlertsEnabled'] ?? true;
+      _emergencyAlertsEnabled = settings['emergencyAlertsEnabled'] ?? true;
+      _temperatureUnit = settings['temperatureUnit'] ?? 'Celsius';
+      _language = settings['language'] ?? 'English';
+      _alertRadius = settings['alertRadius'] ?? 5.0;
+    });
   }
 
   void _checkLoginStatus() {
@@ -36,7 +52,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     // If user is not logged in, show login prompt
-    if (!_userRegistrationService.isLoggedIn) {
+    if (!_authManager.isLoggedIn) {
       return Scaffold(
         body: Container(
           decoration: const BoxDecoration(
@@ -55,7 +71,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: IconButton(
@@ -138,14 +154,12 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                             const SizedBox(height: 32),
                             ElevatedButton(
                               onPressed: () {
-                                Navigator.pushNamedAndRemoveUntil(
-                                    context, '/', (route) => false);
+                                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 32, vertical: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -172,215 +186,203 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     }
 
     // Show normal settings screen if logged in
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/b.jpg'),
-            fit: BoxFit.cover,
+    return Theme(
+      data: _darkModeEnabled
+          ? ThemeData.dark().copyWith(scaffoldBackgroundColor: Colors.black)
+          : ThemeData.light(),
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/b.jpg'),
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 28,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'User Settings',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black45,
-                              offset: Offset(1, 1),
-                              blurRadius: 2,
-                            ),
-                          ],
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          onPressed: () => Navigator.pop(context),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-              ),
-
-              // Settings Content
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                      const Expanded(
+                        child: Text(
+                          'User Settings',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black45,
+                                offset: Offset(1, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 48),
                     ],
                   ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Notifications Section
-                        _buildSectionHeader('🔔 Notifications'),
-                        _buildSwitchTile(
-                          'Enable Notifications',
-                          'Receive weather updates and alerts',
-                          _notificationsEnabled,
-                          (value) =>
-                              setState(() => _notificationsEnabled = value),
+                ),
+
+                // Settings Content
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: _darkModeEnabled ? Colors.grey[850]!.withOpacity(0.95) : Colors.white.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        _buildSwitchTile(
-                          'Weather Alerts',
-                          'Get notified about severe weather conditions',
-                          _weatherAlertsEnabled,
-                          (value) =>
-                              setState(() => _weatherAlertsEnabled = value),
-                        ),
-                        _buildSwitchTile(
-                          'Emergency Alerts',
-                          'Critical emergency notifications',
-                          _emergencyAlertsEnabled,
-                          (value) =>
-                              setState(() => _emergencyAlertsEnabled = value),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Location Section
-                        _buildSectionHeader('📍 Location'),
-                        _buildSwitchTile(
-                          'Location Services',
-                          'Allow app to access your location',
-                          _locationEnabled,
-                          (value) => setState(() => _locationEnabled = value),
-                        ),
-
-                        // Alert Radius Slider
-                        _buildSliderTile(
-                          'Alert Radius',
-                          'Receive alerts within ${_alertRadius.toInt()} km',
-                          _alertRadius,
-                          1.0,
-                          20.0,
-                          (value) => setState(() => _alertRadius = value),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Display Section
-                        _buildSectionHeader('🎨 Display'),
-                        _buildSwitchTile(
-                          'Dark Mode',
-                          'Use dark theme for better viewing',
-                          _darkModeEnabled,
-                          (value) => setState(() => _darkModeEnabled = value),
-                        ),
-
-                        // Temperature Unit Dropdown
-                        _buildDropdownTile(
-                          'Temperature Unit',
-                          _temperatureUnit,
-                          ['Celsius', 'Fahrenheit'],
-                          (value) => setState(() => _temperatureUnit = value!),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Language Section
-                        _buildSectionHeader('🌐 Language'),
-                        _buildDropdownTile(
-                          'Language',
-                          _language,
-                          ['English', 'Filipino', 'Tagalog'],
-                          (value) => setState(() => _language = value!),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Action Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _saveSettings,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Save Settings',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _resetSettings(),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.red,
-                                  side: const BorderSide(color: Colors.red),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Reset to Default',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // About Section
-                        _buildInfoCard(),
                       ],
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Notifications Section
+                          _buildSectionHeader('🔔 Notifications'),
+                          _buildSwitchTile(
+                            'Enable Notifications',
+                            'Receive weather updates and alerts',
+                            _notificationsEnabled,
+                            (value) => setState(() => _notificationsEnabled = value),
+                          ),
+                          _buildSwitchTile(
+                            'Weather Alerts',
+                            'Get notified about severe weather conditions',
+                            _weatherAlertsEnabled,
+                            (value) => setState(() => _weatherAlertsEnabled = value),
+                          ),
+                          _buildSwitchTile(
+                            'Emergency Alerts',
+                            'Critical emergency notifications',
+                            _emergencyAlertsEnabled,
+                            (value) => setState(() => _emergencyAlertsEnabled = value),
+                          ),
+                          const SizedBox(height: 24),
+                          // Location Section
+                          _buildSectionHeader('📍 Location'),
+                          _buildSwitchTile(
+                            'Location Services',
+                            'Allow app to access your location',
+                            _locationEnabled,
+                            (value) => setState(() => _locationEnabled = value),
+                          ),
+                          // Alert Radius Slider
+                          _buildSliderTile(
+                            'Alert Radius',
+                            'Receive alerts within ${_alertRadius.toInt()} km',
+                            _alertRadius,
+                            1.0,
+                            20.0,
+                            (value) => setState(() => _alertRadius = value),
+                          ),
+                          const SizedBox(height: 24),
+                          // Display Section
+                          _buildSectionHeader('🎨 Display'),
+                          _buildSwitchTile(
+                            'Dark Mode',
+                            'Use dark theme for better visibility at night',
+                            _darkModeEnabled,
+                            (value) => setState(() => _darkModeEnabled = value),
+                          ),
+                          // Temperature Unit Dropdown
+                          _buildDropdownTile(
+                            'Temperature Unit',
+                            _temperatureUnit,
+                            ['Celsius', 'Fahrenheit'],
+                            (value) => setState(() => _temperatureUnit = value!),
+                          ),
+                          const SizedBox(height: 24),
+                          // Language Section
+                          _buildSectionHeader('🌐 Language'),
+                          _buildDropdownTile(
+                            'Language',
+                            _language,
+                            ['English', 'Filipino', 'Tagalog'],
+                            (value) => setState(() => _language = value!),
+                          ),
+                          const SizedBox(height: 32),
+                          // Action Buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: _saveSettings,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Save Settings',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => _resetSettings(),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                    side: const BorderSide(color: Colors.red),
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Reset to Default',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // About Section
+                          _buildInfoCard(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -392,36 +394,38 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: _darkModeEnabled ? Colors.white : Colors.black87,
         ),
       ),
     );
   }
 
-  Widget _buildSwitchTile(
-      String title, String subtitle, bool value, Function(bool) onChanged) {
+  Widget _buildSwitchTile(String title, String subtitle, bool value, Function(bool) onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: _darkModeEnabled ? Colors.grey[900] : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: _darkModeEnabled ? Colors.grey[800]! : Colors.grey.shade200,
+        ),
       ),
       child: SwitchListTile(
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
+            color: _darkModeEnabled ? Colors.white : Colors.black87,
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            color: Colors.grey.shade600,
+            color: _darkModeEnabled ? Colors.grey[400] : Colors.grey.shade600,
             fontSize: 14,
           ),
         ),
@@ -433,31 +437,33 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     );
   }
 
-  Widget _buildSliderTile(String title, String subtitle, double value,
-      double min, double max, Function(double) onChanged) {
+  Widget _buildSliderTile(String title, String subtitle, double value, double min, double max, Function(double) onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: _darkModeEnabled ? Colors.grey[900] : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: _darkModeEnabled ? Colors.grey[800]! : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 16,
+              color: _darkModeEnabled ? Colors.white : Colors.black87,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: _darkModeEnabled ? Colors.grey[400] : Colors.grey.shade600,
               fontSize: 14,
             ),
           ),
@@ -465,9 +471,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: Colors.green,
-              inactiveTrackColor: Colors.grey.shade300,
+              inactiveTrackColor: _darkModeEnabled ? Colors.grey[700] : Colors.grey.shade300,
               thumbColor: Colors.green,
-              overlayColor: Colors.green.withValues(alpha: 0.2),
+              overlayColor: Colors.green.withOpacity(0.2),
             ),
             child: Slider(
               value: value,
@@ -482,36 +488,43 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     );
   }
 
-  Widget _buildDropdownTile(String title, String value, List<String> items,
-      Function(String?) onChanged) {
+  Widget _buildDropdownTile(String title, String value, List<String> items, Function(String?) onChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: _darkModeEnabled ? Colors.grey[900] : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: _darkModeEnabled ? Colors.grey[800]! : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 16,
+              color: _darkModeEnabled ? Colors.white : Colors.black87,
             ),
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: value,
+            dropdownColor: _darkModeEnabled ? Colors.grey[900] : Colors.white,
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+                borderSide: BorderSide(
+                  color: _darkModeEnabled ? Colors.grey[800]! : Colors.grey.shade300,
+                ),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            style: TextStyle(
+              color: _darkModeEnabled ? Colors.white : Colors.black87,
             ),
             items: items.map((String item) {
               return DropdownMenuItem<String>(
@@ -559,7 +572,17 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     );
   }
 
-  void _saveSettings() {
+  Future<void> _saveSettings() async {
+    await SettingsStorage.saveSettings(
+      notificationsEnabled: _notificationsEnabled,
+      locationEnabled: _locationEnabled,
+      darkModeEnabled: _darkModeEnabled,
+      weatherAlertsEnabled: _weatherAlertsEnabled,
+      emergencyAlertsEnabled: _emergencyAlertsEnabled,
+      temperatureUnit: _temperatureUnit,
+      language: _language,
+      alertRadius: _alertRadius,
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Settings saved successfully!'),
@@ -574,15 +597,15 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Reset Settings'),
-          content: const Text(
-              'Are you sure you want to reset all settings to default values?'),
+          content: const Text('Are you sure you want to reset all settings to default values?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                await SettingsStorage.resetSettings();
                 setState(() {
                   _notificationsEnabled = true;
                   _locationEnabled = true;
