@@ -1,19 +1,29 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart'; // 🆕 ADD THIS IMPORT for Color class
-import 'package:cloud_firestore/cloud_firestore.dart';
 
+// using hardcoded API key for testing purposes
 const apiKey = '98b876bdda3ba2bbf68d26d48a26b4b9';
 
 class WeatherService {
+  // Fetch Current Weather by Coordinates
+  Future<Map<String, dynamic>> fetchCurrentWeatherByCoords(double lat, double lon) async {
+    final url = '$baseUrl/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric';
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load current weather by coordinates');
+    }
+  }
+  // Use this for Web version - Flutter Web
+  //final String apiKey = dotenv.env['OPENWEATHER_API_KEY']!;
+  // This is for Netlify version - Flutter not supported
+  //final String apiKey = EnvConfig.weatherApiKey;
   final String baseUrl = 'https://api.openweathermap.org/data/2.5';
   final String geoUrl = 'https://api.openweathermap.org/geo/1.0/direct';
 
-  // Your local REST API URL
-  final String localApiUrl =
-      'http://10.0.2.2:5000'; // Change to your server IP for mobile
-
-  // Existing OpenWeatherMap methods...
+  // Fetch Current Weather
   Future<Map<String, dynamic>> fetchCurrentWeather(String city) async {
     final url = '$baseUrl/weather?q=$city&appid=$apiKey&units=metric';
     final response = await http.get(Uri.parse(url));
@@ -25,6 +35,7 @@ class WeatherService {
     }
   }
 
+  // Fetch Air Quality Data
   Future<Map<String, dynamic>> fetchAirPollution(double lat, double lon) async {
     final url = '$baseUrl/air_pollution?lat=$lat&lon=$lon&appid=$apiKey';
     final response = await http.get(Uri.parse(url));
@@ -36,29 +47,7 @@ class WeatherService {
     }
   }
 
-  // Add this method to your WeatherService class
-  Future<void> saveWeatherToDatabase(Map<String, dynamic> weatherData) async {
-    try {
-      await FirebaseFirestore.instance.collection('weather_data').add({
-        'location': weatherData['name'] ?? 'Unknown',
-        'temperature': weatherData['main']['temp'],
-        'humidity': weatherData['main']['humidity'],
-        'description': weatherData['weather'][0]['description'],
-        'timestamp': FieldValue.serverTimestamp(),
-        'coordinates': {
-          'lat': weatherData['coord']['lat'],
-          'lon': weatherData['coord']['lon'],
-        },
-        'pressure': weatherData['main']['pressure'],
-        'wind_speed': weatherData['wind']['speed'],
-        'saved_by': 'weather_screen', // To track where data comes from
-      });
-      print('Weather data saved successfully');
-    } catch (e) {
-      print('Error saving weather data: $e');
-    }
-  }
-
+  // Fetch Location Suggestions
   Future<List<Map<String, dynamic>>> fetchLocationSuggestions(
       String city) async {
     final url = '$geoUrl?q=$city&limit=5&appid=$apiKey';
@@ -72,262 +61,67 @@ class WeatherService {
     }
   }
 
-  Future<Map<String, dynamic>> fetchWeatherByCoords(
-      double lat, double lon) async {
-    final url = '$baseUrl/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric';
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load weather by coordinates');
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> fetchHourlyForecast(
-      double lat, double lon) async {
-    final response = await http.get(Uri.parse(
-      'https://api.openweathermap.org/data/2.5/forecast?lat=$lat&lon=$lon&appid=$apiKey&units=metric',
-    ));
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final List forecasts = data['list'];
-      return forecasts
-          .take(8)
-          .map<Map<String, dynamic>>((item) => {
-                'time': item['dt_txt'],
-                'temp': item['main']['temp'],
-                'icon': item['weather'][0]['icon'],
-                'humidity': item['main']['humidity'],
-              })
-          .toList();
-    } else {
-      throw Exception('Failed to load hourly forecast');
-    }
-  }
-
-  // 🆕 NEW: Hazard Prediction Methods
-
-  /// Check if local API is available
-  Future<bool> checkLocalApiHealth() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$localApiUrl/health'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 5)); // Add timeout
+    // Fetch 5-day / 3-hour forecast (24 hours worth of data)
+    Future<List<Map<String, dynamic>>> fetchHourlyForecast(double lat, double lon) async {
+      final response = await http.get(Uri.parse(
+        'https://api.openweathermap.org/data/2.5/forecast?lat=$lat&lon=$lon&appid=$apiKey&units=metric',
+      ));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['status'] == 'healthy';
-      }
-      return false;
-    } catch (e) {
-      print('Local API not available: $e');
-      return false;
-    }
-  }
-
-  /// Get current hazard level prediction
-  Future<Map<String, dynamic>?> fetchHazardPrediction(
-      Map<String, dynamic> weatherData) async {
-    try {
-      // Convert OpenWeatherMap data to your API format
-      final requestData = {
-        'date': DateTime.now().toIso8601String().substring(0, 10), // YYYY-MM-DD
-        'tavg': weatherData['main']['temp'].toDouble(),
-        'tmin': weatherData['main']['temp_min']?.toDouble() ??
-            weatherData['main']['temp'].toDouble() - 5,
-        'tmax': weatherData['main']['temp_max']?.toDouble() ??
-            weatherData['main']['temp'].toDouble() + 5,
-        'prcp': _getPrecipitation(weatherData),
-        'wspd': _convertWindSpeed(
-            weatherData['wind']['speed']), // Convert m/s to km/h
-        'pres': weatherData['main']['pressure'].toDouble(),
-        'wdir': weatherData['wind']['deg']?.toDouble() ?? 180.0,
-        'wpgt': _getWindGust(weatherData),
-      };
-
-      print('Sending hazard prediction request: $requestData'); // Debug log
-
-      final response = await http
-          .post(
-            Uri.parse('$localApiUrl/predict/single'),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(requestData),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final result = json.decode(response.body);
-        print('Hazard prediction response: $result'); // Debug log
-        return result;
-      } else {
-        print(
-            'Hazard prediction failed: ${response.statusCode} - ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Error fetching hazard prediction: $e');
-      return null;
-    }
-  }
-
-  /// Get 7-day hazard forecast
-  Future<Map<String, dynamic>?> fetchHazardForecast(
-      Map<String, dynamic> currentWeather) async {
-    try {
-      final requestData = {
-        'days_ahead': 7,
-        'current_weather': {
-          'date': DateTime.now().toIso8601String().substring(0, 10),
-          'tavg': currentWeather['main']['temp'].toDouble(),
-          'tmin': currentWeather['main']['temp_min']?.toDouble() ??
-              currentWeather['main']['temp'].toDouble() - 5,
-          'tmax': currentWeather['main']['temp_max']?.toDouble() ??
-              currentWeather['main']['temp'].toDouble() + 5,
-          'prcp': _getPrecipitation(currentWeather),
-          'wspd': _convertWindSpeed(currentWeather['wind']['speed']),
-          'pres': currentWeather['main']['pressure'].toDouble(),
-          'wdir': currentWeather['wind']['deg']?.toDouble() ?? 180.0,
-          'wpgt': _getWindGust(currentWeather),
+        final data = jsonDecode(response.body);
+        final List forecasts = data['list'];
+      
+        // Take first 8 forecasts (24 hours with 3-hour intervals)
+        // Then create hourly interpolated data for smooth graph
+        List<Map<String, dynamic>> hourlyData = [];
+      
+        // Add current hour as "Now"
+        if (forecasts.isNotEmpty) {
+          final firstForecast = forecasts[0];
+          hourlyData.add({
+            'time': DateTime.now().toIso8601String(),
+            'temp': firstForecast['main']['temp'],
+            'icon': firstForecast['weather'][0]['icon'],
+            'humidity': firstForecast['main']['humidity'],
+            'wind_speed': firstForecast['wind']['speed'] ?? 0.0,
+          });
         }
-      };
-
-      print('Sending hazard forecast request: $requestData'); // Debug log
-
-      final response = await http
-          .post(
-            Uri.parse('$localApiUrl/predict/forecast'),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(requestData),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        final result = json.decode(response.body);
-        print('Hazard forecast response received'); // Debug log
-        return result;
+      
+        // Generate 23 more hours of data by interpolating between 3-hour forecasts
+        final available3HourForecasts = forecasts.take(8).toList();
+      
+        for (int hour = 1; hour <= 23; hour++) {
+          final forecastIndex = (hour / 3).floor();
+          final nextForecastIndex = ((hour / 3).floor() + 1).clamp(0, available3HourForecasts.length - 1);
+        
+          if (forecastIndex < available3HourForecasts.length) {
+            final currentForecast = available3HourForecasts[forecastIndex];
+            final nextForecast = available3HourForecasts[nextForecastIndex];
+          
+            // Interpolate temperature between forecasts
+            final progress = (hour % 3) / 3.0;
+            final currentTemp = currentForecast['main']['temp'].toDouble();
+            final nextTemp = nextForecast['main']['temp'].toDouble();
+            final interpolatedTemp = currentTemp + (nextTemp - currentTemp) * progress;
+          
+            // Interpolate wind speed between forecasts
+            final currentWindSpeed = (currentForecast['wind']['speed'] ?? 0.0).toDouble();
+            final nextWindSpeed = (nextForecast['wind']['speed'] ?? 0.0).toDouble();
+            final interpolatedWindSpeed = currentWindSpeed + (nextWindSpeed - currentWindSpeed) * progress;
+          
+            hourlyData.add({
+              'time': DateTime.now().add(Duration(hours: hour)).toIso8601String(),
+              'temp': interpolatedTemp,
+              'icon': currentForecast['weather'][0]['icon'],
+              'humidity': currentForecast['main']['humidity'],
+              'wind_speed': interpolatedWindSpeed,
+            });
+          }
+        }
+      
+        return hourlyData;
       } else {
-        print(
-            'Hazard forecast failed: ${response.statusCode} - ${response.body}');
-        return null;
+        throw Exception('Failed to load hourly forecast');
       }
-    } catch (e) {
-      print('Error fetching hazard forecast: $e');
-      return null;
     }
   }
-
-  /// Train model with local data (admin function)
-  Future<Map<String, dynamic>?> trainModel(String csvFilePath) async {
-    try {
-      var request =
-          http.MultipartRequest('POST', Uri.parse('$localApiUrl/train'));
-      request.files.add(await http.MultipartFile.fromPath('file', csvFilePath));
-
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-
-      if (response.statusCode == 200) {
-        return json.decode(responseData);
-      } else {
-        print('Model training failed: $responseData');
-        return null;
-      }
-    } catch (e) {
-      print('Error training model: $e');
-      return null;
-    }
-  }
-
-  // Helper methods for data conversion
-  double _getPrecipitation(Map<String, dynamic> weatherData) {
-    if (weatherData.containsKey('rain')) {
-      return weatherData['rain']['1h']?.toDouble() ?? 0.0;
-    } else if (weatherData.containsKey('snow')) {
-      return weatherData['snow']['1h']?.toDouble() ?? 0.0;
-    }
-    return 0.0;
-  }
-
-  double _convertWindSpeed(double windSpeedMs) {
-    // Convert m/s to km/h
-    return windSpeedMs * 3.6;
-  }
-
-  double _getWindGust(Map<String, dynamic> weatherData) {
-    if (weatherData['wind']?.containsKey('gust') == true) {
-      return _convertWindSpeed(weatherData['wind']['gust'].toDouble());
-    }
-    // If no gust data, estimate as 1.5x wind speed
-    return _convertWindSpeed(weatherData['wind']['speed'].toDouble()) * 1.5;
-  }
-
-  // Get hazard level color
-  Color getHazardColor(int hazardLevel) {
-    switch (hazardLevel) {
-      case 0:
-        return Colors.green; // No Risk
-      case 1:
-        return Colors.yellow; // Low Risk
-      case 2:
-        return Colors.orange; // Moderate Risk
-      case 3:
-        return Colors.red; // High Risk
-      case 4:
-        return Colors.purple; // Extreme Risk
-      default:
-        return Colors.grey;
-    }
-  }
-
-  // Get hazard level description
-  String getHazardDescription(int hazardLevel) {
-    switch (hazardLevel) {
-      case 0:
-        return 'No Risk';
-      case 1:
-        return 'Low Risk';
-      case 2:
-        return 'Moderate Risk';
-      case 3:
-        return 'High Risk';
-      case 4:
-        return 'Extreme Risk';
-      default:
-        return 'Unknown';
-    }
-  }
-
-  // Get hazard level icon
-  IconData getHazardIcon(int hazardLevel) {
-    switch (hazardLevel) {
-      case 0:
-        return Icons.check_circle;
-      case 1:
-        return Icons.info;
-      case 2:
-        return Icons.warning_amber;
-      case 3:
-        return Icons.warning;
-      case 4:
-        return Icons.dangerous;
-      default:
-        return Icons.help;
-    }
-  }
-
-  // Get risk factors text
-  String getHazardRiskFactors(Map<String, dynamic>? hazardData) {
-    if (hazardData == null) return 'No risk factors available';
-
-    // You can customize this based on your API response structure
-    final riskFactors = hazardData['risk_factors'] as List<dynamic>?;
-    if (riskFactors != null && riskFactors.isNotEmpty) {
-      return riskFactors.join(', ');
-    }
-
-    return 'Standard weather monitoring recommended';
-  }
-}
