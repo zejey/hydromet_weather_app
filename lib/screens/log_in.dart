@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-// import '../services/sign_in.dart';
+import 'package:flutter/services.dart';
+// import '../services/auth_service.dart';
 
+// Simple authentication state management (keeping for backward compatibility)
 class AuthService {
   static bool _isSignedIn = false;
   static String _userPhone = '';
@@ -54,22 +56,30 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         children: [
           const SizedBox(height: 10),
+          // Header with Tips and Hotlines buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                onPressed: _showMenu,
-                icon: const Icon(
-                  Icons.menu,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                tooltip: 'Menu',
+              // Tips Button (left)
+              TextButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/tips'),
+                icon: const Icon(Icons.lightbulb, color: Colors.green),
+                label:
+                    const Text('Tips', style: TextStyle(color: Colors.green)),
+                style: TextButton.styleFrom(foregroundColor: Colors.green),
               ),
-              const Spacer(),
+              // Hotlines Button (right)
+              TextButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/hotlines'),
+                icon: const Icon(Icons.phone, color: Colors.green),
+                label: const Text('Hotlines',
+                    style: TextStyle(color: Colors.green)),
+                style: TextButton.styleFrom(foregroundColor: Colors.green),
+              ),
             ],
           ),
           const SizedBox(height: 20),
+          // Main Welcome Card
           Expanded(
             child: Container(
               width: double.infinity,
@@ -79,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -88,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Welcome Text
                   const Text(
                     'Welcome',
                     style: TextStyle(
@@ -96,7 +107,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.green,
                     ),
                   ),
+
                   const SizedBox(height: 40),
+
+                  // Logo Section
                   Container(
                     width: 300,
                     height: 300,
@@ -106,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: Transform.rotate(
-                        angle: -1.5708,
+                        angle: -1.5708, // -90 degrees in radians
                         child: Image.asset(
                           'assets/logo.png',
                           fit: BoxFit.contain,
@@ -133,12 +147,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 50),
+
+                  // Sign In Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/login-form');
+                        Navigator.pushReplacementNamed(context, '/login-form');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
@@ -158,7 +175,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
+                  // Skip to Weather button
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
@@ -175,7 +195,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
+                  // Register Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -207,6 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+
           const SizedBox(height: 10),
         ],
       ),
@@ -219,11 +243,17 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         children: [
           const SizedBox(height: 10),
+
+          // Header with hamburger menu and Logout
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Hamburger Menu Button
               IconButton(
-                onPressed: _showMenu,
+                onPressed: () {
+                  // Add your menu functionality here
+                  _showMenu();
+                },
                 icon: const Icon(
                   Icons.menu,
                   color: Colors.white,
@@ -231,6 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 tooltip: 'Menu',
               ),
+              // Logout Button
               TextButton(
                 onPressed: () {
                   setState(() {
@@ -248,7 +279,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
+
           const SizedBox(height: 20),
+
+          // User Profile Card
           Expanded(
             child: Container(
               width: double.infinity,
@@ -258,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -266,6 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               child: Column(
                 children: [
+                  // Profile Header
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -286,20 +321,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 30),
+
+                  // Profile Form
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
+                          // First Name
                           _buildProfileField(
                               'First Name:', 'First Name', Icons.person),
                           const SizedBox(height: 16),
+
+                          // Middle Name
                           _buildProfileField('Middle Name:', 'Middle Name',
                               Icons.person_outline),
                           const SizedBox(height: 16),
+
+                          // Last Name
                           _buildProfileField(
                               'Last Name:', 'Last Name', Icons.person),
                           const SizedBox(height: 16),
+
+                          // Mobile Number
                           _buildProfileField(
                               'Mobile Number:',
                               AuthService.userPhone.isNotEmpty
@@ -308,9 +353,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               Icons.phone,
                               enabled: false),
                           const SizedBox(height: 16),
+
+                          // Address
                           _buildProfileField(
                               'Address:', 'Address', Icons.location_on),
                           const SizedBox(height: 30),
+
+                          // Edit Button
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -336,7 +385,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
+
                           const SizedBox(height: 16),
+
+                          // Back to Weather button
                           SizedBox(
                             width: double.infinity,
                             child: TextButton(
@@ -362,6 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+
           const SizedBox(height: 10),
         ],
       ),
