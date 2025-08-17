@@ -38,6 +38,8 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateMixin {
+  // Controller to sync forecast graph, icons, and time labels
+  final ScrollController _forecastScrollController = ScrollController();
   // Build aligned weather tiles in a 2-column grid
   Widget buildWeatherTilesGrid() {
     if (weatherData == null) return const SizedBox();
@@ -483,15 +485,16 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   Widget buildHourlyForecast() {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       decoration: BoxDecoration(
-  color: const Color(0xFF388E3C), // Use app's main green for strong branding
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.18)),
+        color: Colors.grey.shade200.withOpacity(0.85), // Match tile color
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.13)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.10),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -506,7 +509,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 const Text(
                   '24-Hour Forecast',
                   style: TextStyle(
-                    color: ui.Color.fromARGB(221, 255, 255, 255),
+                    color: Colors.black87,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -515,7 +518,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.8),
+                    color: Colors.white.withOpacity(0.85), // More visible tile-like color
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -525,7 +528,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                         width: 6,
                         height: 6,
                         decoration: const BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.green,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -533,7 +536,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                       Text(
                         'Updated ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Colors.black87,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -548,7 +551,16 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
             // No color here, inherit from parent
-            child: _buildTemperatureGraph(),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                textTheme: Theme.of(context).textTheme.apply(
+                  bodyColor: Colors.blueGrey,
+                  displayColor: Colors.blueGrey,
+                ),
+                iconTheme: IconThemeData(color: Colors.blueGrey.shade600),
+              ),
+              child: _buildTemperatureGraph(),
+            ),
           ),
         ],
       ),
@@ -572,6 +584,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         SizedBox(
           height: 135,
           child: SingleChildScrollView(
+            controller: _forecastScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: SizedBox(
@@ -593,6 +606,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         SizedBox(
           height: 64,
           child: SingleChildScrollView(
+            controller: _forecastScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Row(
@@ -612,7 +626,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.black.withOpacity(0.13), // Slightly darker for better icon visibility
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.3),
@@ -643,6 +657,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         SizedBox(
           height: 27,
           child: SingleChildScrollView(
+            controller: _forecastScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Row(
@@ -673,7 +688,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                   child: Text(
                     displayTime,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Colors.black54,
                       fontSize: isNow ? 16 : 14,
                       fontWeight: isNow ? FontWeight.bold : FontWeight.w600,
                     ),
@@ -1043,10 +1058,11 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   @override
   void dispose() {
-    _cityController.dispose();
-    _animationController.dispose();
-    _rainAnimationController.dispose();
-    super.dispose();
+  _forecastScrollController.dispose();
+  _cityController.dispose();
+  _animationController.dispose();
+  _rainAnimationController.dispose();
+  super.dispose();
   }
 
   Future<void> loadWeather() async {
@@ -3179,8 +3195,8 @@ class TemperatureGraphPainter extends CustomPainter {
     if (data.isEmpty) return;
 
     final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 4.0 // MASSIVE stroke from 3.5 to 4.0 - ultimate bold!
+      ..color = Colors.blueAccent // Blue accent for the line
+      ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
@@ -3196,7 +3212,7 @@ class TemperatureGraphPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final dotPaint = Paint()
-      ..color = Colors.white
+      ..color = Colors.blueAccent // Blue accent for dots
       ..style = PaintingStyle.fill;
 
     // Temperature scaling for MASSIVE graph
@@ -3281,15 +3297,15 @@ class TemperatureGraphPainter extends CustomPainter {
       // Show temperature label for every hour
       textPainter.text = TextSpan(
         text: '$temp°',
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: Colors.blueGrey.shade800, // Blue-grey for temp labels
           fontSize: 13,
           fontWeight: FontWeight.bold,
-          shadows: [
+          shadows: const [
             Shadow(
               offset: Offset(0.8, 0.8),
               blurRadius: 2.0,
-              color: Colors.black87,
+              color: Colors.white,
             ),
           ],
         ),
@@ -3316,12 +3332,13 @@ class TemperatureGraphPainter extends CustomPainter {
       textPainter.paint(canvas, labelOffset);
     }
 
-    // Optionally, draw horizontal grid lines for temperature reference
+    // Draw more visible horizontal grid lines for temperature reference
+    final gridLineCount = 5;
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.13)
+      ..color = Colors.grey.withOpacity(0.35)
       ..strokeWidth = 1.0;
-    for (int i = 0; i <= 4; i++) {
-      final y = (size.height * 0.75 / 4) * i + size.height * 0.12;
+    for (int i = 0; i <= gridLineCount; i++) {
+      final y = size.height * i / gridLineCount;
       canvas.drawLine(
         Offset(0, y),
         Offset(size.width, y),

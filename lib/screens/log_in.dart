@@ -63,16 +63,16 @@ class _LoginScreenState extends State<LoginScreen> {
               // Tips Button (left)
               TextButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/tips'),
-                icon: const Icon(Icons.lightbulb, color: Colors.green),
-                label: const Text('Tips', style: TextStyle(color: Colors.green)),
-                style: TextButton.styleFrom(foregroundColor: Colors.green),
+                icon: const Icon(Icons.lightbulb, color: Color.fromARGB(255, 255, 255, 255)),
+                label: const Text('Tips', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
               ),
               // Hotlines Button (right)
               TextButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/hotlines'),
-                icon: const Icon(Icons.phone, color: Colors.green),
-                label: const Text('Hotlines', style: TextStyle(color: Colors.green)),
-                style: TextButton.styleFrom(foregroundColor: Colors.green),
+                icon: const Icon(Icons.phone, color: Color.fromARGB(255, 255, 255, 255)),
+                label: const Text('Hotlines', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
               ),
             ],
           ),
