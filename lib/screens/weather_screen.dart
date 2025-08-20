@@ -264,9 +264,33 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     {
       'title': 'Weather Alert: Heavy Rainfall',
       'body': 'A heavy rainfall warning is in effect for San Pedro, Laguna. Please stay indoors and monitor local advisories.',
-      'timestamp': '2025-08-13 14:30'
+      'timestamp': '2025-08-13 14:30',
+      'type': 'Emergency',
     },
-    // Add more alerts here or fetch from backend
+    {
+      'title': 'Flood Warning',
+      'body': 'Flooding is possible in low-lying areas. Move to higher ground if necessary.',
+      'timestamp': '2025-08-13 13:00',
+      'type': 'Warning',
+    },
+    {
+      'title': 'Heat Index Advisory',
+      'body': 'High heat index expected this afternoon. Stay hydrated and avoid outdoor activities.',
+      'timestamp': '2025-08-13 11:00',
+      'type': 'Info',
+    },
+    {
+      'title': 'Strong Winds Expected',
+      'body': 'Gusty winds are forecasted for the evening. Secure loose outdoor items.',
+      'timestamp': '2025-08-13 09:00',
+      'type': 'Warning',
+    },
+    {
+      'title': 'All Clear',
+      'body': 'No current weather hazards. Enjoy your day!',
+      'timestamp': '2025-08-13 07:00',
+      'type': 'Info',
+    },
   ];
   double _getTemperatureIntensity(double temperature) {
     // Normalize temperature to 0-1 scale for heat map intensity
@@ -484,10 +508,10 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   Widget buildHourlyForecast() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+      margin: const EdgeInsets.only(bottom: 10), // Reduced bottom margin
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), // Slightly reduced padding
       decoration: BoxDecoration(
-        color: Colors.grey.shade200.withOpacity(0.85), // Match tile color
+        color: Colors.grey.shade200.withOpacity(0.85),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withOpacity(0.13)),
         boxShadow: [
@@ -503,7 +527,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         children: [
           // Section Title with Updated badge
           Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 12, top: 16, right: 16),
+            padding: const EdgeInsets.only(left: 0, bottom: 8, top: 0, right: 0), // Less bottom padding
             child: Row(
               children: [
                 const Text(
@@ -518,7 +542,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85), // More visible tile-like color
+                    color: Colors.white.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -548,9 +572,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
             ),
           ),
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-            // No color here, inherit from parent
+            margin: const EdgeInsets.symmetric(vertical: 4), // Less vertical margin
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 0), // Less vertical padding
             child: Theme(
               data: Theme.of(context).copyWith(
                 textTheme: Theme.of(context).textTheme.apply(
@@ -726,6 +749,29 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   final GlobalKey _profileButtonKey = GlobalKey();
 
   // Notification dialog handler with sample admin-posted notifications
+  // Helper methods for notification icon and color
+  IconData _getNotificationIcon(String? type) {
+    switch (type) {
+      case 'Emergency':
+        return Icons.priority_high_rounded;
+      case 'Warning':
+        return Icons.warning_amber_rounded;
+      default:
+        return Icons.info_rounded;
+    }
+  }
+
+  Color _getNotificationColor(String? type) {
+    switch (type) {
+      case 'Emergency':
+        return Colors.red;
+      case 'Warning':
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
+  }
+
   void _showNotifications() {
     showDialog(
       context: context,
@@ -743,6 +789,11 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                     itemBuilder: (context, index) {
                       final notif = notifications[index];
                       return ListTile(
+                        leading: Icon(
+                          _getNotificationIcon(notif['type']),
+                          color: _getNotificationColor(notif['type']),
+                          size: 28,
+                        ),
                         title: Text(
                           notif['title'] ?? '',
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -3333,7 +3384,7 @@ class TemperatureGraphPainter extends CustomPainter {
     }
 
     // Draw more visible horizontal grid lines for temperature reference
-    final gridLineCount = 5;
+    const gridLineCount = 5;
     final gridPaint = Paint()
       ..color = Colors.grey.withOpacity(0.35)
       ..strokeWidth = 1.0;
