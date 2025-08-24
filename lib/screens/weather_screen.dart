@@ -352,22 +352,36 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   // Build animated rain particles
   List<Marker> _buildRainParticles() {
+    final random = Random();
     return _rainParticleLocations.map((location) {
+      final dropHeight = 12.0 + random.nextDouble() * 8.0; // 12-20 px
+      final tilt = (random.nextDouble() - 0.5) * 0.2; // -0.1 to 0.1 radians
       return Marker(
-        width: 20.0,
-        height: 20.0,
+        width: 18.0,
+        height: 24.0,
         point: location,
         builder: (ctx) => AnimatedBuilder(
           animation: _rainAnimation,
           builder: (context, child) {
             return Transform.translate(
               offset: Offset(0, _rainAnimation.value * 10),
-              child: Container(
-                width: 4,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(2),
+              child: Transform.rotate(
+                angle: tilt,
+                child: Container(
+                  width: 4,
+                  height: dropHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8), // More rounded for raindrop
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blueAccent.withOpacity(0.25),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
