@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'dart:ui' as ui;
+
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -45,13 +49,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.dispose();
   }
 
-  void _loadUserProfile() {
-    // Simulate loading user data from storage/API
-    _firstNameController.text = "Juan";
-    _middleNameController.text = "Dela";
-    _lastNameController.text = "Cruz";
-    _mobileController.text = "09123456789";
-    _addressController.text = "123 Maharlika St., San Pedro, Laguna";
+  void _loadUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _firstNameController.text = prefs.getString('firstName') ?? "Juan";
+      _middleNameController.text = prefs.getString('middleName') ?? "Dela";
+      _lastNameController.text = prefs.getString('lastName') ?? "Cruz";
+      _mobileController.text = prefs.getString('mobile') ?? "09123456789";
+      _addressController.text = prefs.getString('address') ?? "123 Maharlika St., San Pedro, Laguna";
+    });
   }
 
   Future<void> _saveProfile() async {
@@ -59,22 +65,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       _showSnackBar('Please enter your first name');
       return;
     }
-
     if (_lastNameController.text.trim().isEmpty) {
       _showSnackBar('Please enter your last name');
       return;
     }
-
     if (_mobileController.text.trim().isEmpty) {
       _showSnackBar('Please enter your mobile number');
       return;
     }
-
     if (_mobileController.text.trim().length < 10) {
       _showSnackBar('Please enter a valid mobile number');
       return;
     }
-
     if (_addressController.text.trim().isEmpty) {
       _showSnackBar('Please enter your address');
       return;
@@ -82,14 +84,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     setState(() => _isLoading = true);
 
-    // Simulate API call to save profile
-    await Future.delayed(const Duration(seconds: 2));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('firstName', _firstNameController.text.trim());
+    await prefs.setString('middleName', _middleNameController.text.trim());
+    await prefs.setString('lastName', _lastNameController.text.trim());
+    await prefs.setString('mobile', _mobileController.text.trim());
+    await prefs.setString('address', _addressController.text.trim());
 
+    await Future.delayed(const Duration(seconds: 2));
     setState(() {
       _isLoading = false;
       _isEditing = false;
     });
-
     _showSnackBar('Profile updated successfully!');
   }
 
@@ -109,314 +115,243 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.green, // Fallback color if image doesn't load
-          image: DecorationImage(
-            image: AssetImage('assets/b.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header with back button and menu
-              _buildHeader(),
-              
-              // Profile Content
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 20),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(24),
-                      topRight: Radius.circular(24),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(24),
-                      topRight: Radius.circular(24),
-                    ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: _buildProfileContent(),
-                    ),
+      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF6FBF7),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Material(
+                color: Colors.black.withOpacity(0.18),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => Navigator.pop(context),
+                  child: const SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Icon(Icons.arrow_back, color: Colors.white),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          // Back button
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios,
-              color: Colors.white,
-              size: 24,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 40,
-              minHeight: 40,
             ),
           ),
-          
-          const Spacer(),
-          
-          // Menu button
-          IconButton(
-            onPressed: () {
-              // Show profile menu options
-              _showProfileMenu();
-            },
-            icon: const Icon(
-              Icons.more_horiz,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileContent() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.green.shade200,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Title
-          const Text(
+          title: const Text(
             'User Profile',
-            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.green,
+              color: Colors.white,
+              fontSize: 22,
             ),
           ),
-          
-          const SizedBox(height: 32),
-          
-          // Profile Fields
-          _buildProfileField(
-            label: 'First Name:',
-            placeholder: 'First Name',
-            controller: _firstNameController,
-            focusNode: _firstNameFocusNode,
-            textCapitalization: TextCapitalization.words,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildProfileField(
-            label: 'Middle Name:',
-            placeholder: 'Middle Name',
-            controller: _middleNameController,
-            focusNode: _middleNameFocusNode,
-            textCapitalization: TextCapitalization.words,
-            isRequired: false,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildProfileField(
-            label: 'Last Name:',
-            placeholder: 'Last Name',
-            controller: _lastNameController,
-            focusNode: _lastNameFocusNode,
-            textCapitalization: TextCapitalization.words,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildProfileField(
-            label: 'Mobile Number:',
-            placeholder: '09XXXXXXXXX',
-            controller: _mobileController,
-            focusNode: _mobileFocusNode,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(11),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildProfileField(
-            label: 'Address:',
-            placeholder: 'Address',
-            controller: _addressController,
-            focusNode: _addressFocusNode,
-            textCapitalization: TextCapitalization.words,
-            maxLines: 2,
-          ),
-          
-          const SizedBox(height: 32),
-          
-          // Edit/Save Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : (_isEditing ? _saveProfile : () => setState(() => _isEditing = true)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 2,
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Text(
-                      _isEditing ? 'Save Changes' : 'Edit',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-            ),
-          ),
-          
-          if (_isEditing) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () {
-                  setState(() => _isEditing = false);
-                  _loadUserProfile(); // Reset to original values
-                },
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.more_horiz, color: Colors.white),
+              onPressed: _showProfileMenu,
             ),
           ],
+        ),
+      ),
+      body: Stack(
+        children: [
+          // Background image with blur
+          SizedBox.expand(
+            child: Image.asset(
+              'assets/b.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+          SizedBox.expand(
+            child: Container(
+              color: Colors.black.withOpacity(0.25),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(
+                  maxWidth: 600,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.07),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.person, color: Color(0xFF13b464)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Profile Information',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF13b464),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _profileFieldCard('First Name', _firstNameController, enabled: _isEditing),
+                    const SizedBox(height: 12),
+                    _profileFieldCard('Middle Name', _middleNameController, enabled: _isEditing),
+                    const SizedBox(height: 12),
+                    _profileFieldCard('Last Name', _lastNameController, enabled: _isEditing),
+                    const SizedBox(height: 12),
+                    _profileFieldCard('Mobile Number', _mobileController, enabled: _isEditing, keyboardType: TextInputType.phone, inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ]),
+                    const SizedBox(height: 12),
+                    _profileFieldCard('Address', _addressController, enabled: _isEditing, maxLines: 2),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF13b464),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: _isLoading
+                                ? null
+                                : (_isEditing ? _saveProfile : () => setState(() => _isEditing = true)),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    _isEditing ? 'Save Changes' : 'Edit',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_isEditing) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                setState(() => _isEditing = false);
+                                _loadUserProfile();
+                              },
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-
-  Widget _buildProfileField({
-    required String label,
-    required String placeholder,
-    required TextEditingController controller,
-    required FocusNode focusNode,
+  Widget _profileFieldCard(
+    String label,
+    TextEditingController controller, {
+    bool enabled = false,
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
-    TextCapitalization textCapitalization = TextCapitalization.none,
     int maxLines = 1,
-    bool isRequired = true,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.green,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6FBF7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        maxLines: maxLines,
+        style: TextStyle(
+          fontSize: 16,
+          color: enabled ? Colors.black87 : Colors.grey.shade600,
         ),
-        
-        const SizedBox(height: 8),
-        
-        // Input Field
-        TextField(
-          controller: controller,
-          focusNode: focusNode,
-          enabled: _isEditing,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          textCapitalization: textCapitalization,
-          maxLines: maxLines,
-          style: TextStyle(
-            fontSize: 16,
-            color: _isEditing ? Colors.black87 : Colors.grey.shade600,
-          ),
-          decoration: InputDecoration(
-            hintText: placeholder,
-            hintStyle: TextStyle(
-              color: Colors.grey.shade400,
-              fontSize: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: _isEditing ? Colors.grey.shade300 : Colors.grey.shade200,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: Colors.grey.shade200,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: Colors.green,
-                width: 2,
-              ),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: Colors.grey.shade200,
-              ),
-            ),
-            filled: true,
-            fillColor: _isEditing ? Colors.white : Colors.grey.shade50,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
+        decoration: InputDecoration(
+          labelText: label,
+          border: InputBorder.none,
         ),
-      ],
+      ),
     );
   }
+
+  Widget _buildProfileField(
+    String label,
+    TextEditingController controller, {
+    bool enabled = false,
+    TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        maxLines: maxLines,
+        style: TextStyle(
+          fontSize: 16,
+          color: enabled ? Colors.black87 : Colors.grey.shade600,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _divider() => const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0));
 
   void _showProfileMenu() {
     showModalBottomSheet(
@@ -442,18 +377,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
             const SizedBox(height: 20),
-            
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Logout'),
               onTap: () {
-                Navigator.pop(context); // Close bottom sheet
+                Navigator.pop(context);
                 _showLogoutDialog();
               },
             ),
-            
             ListTile(
               leading: const Icon(Icons.settings, color: Colors.grey),
               title: const Text('Settings'),
@@ -462,7 +394,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Navigator.pushNamed(context, '/settings');
               },
             ),
-            
             const SizedBox(height: 20),
           ],
         ),
@@ -483,7 +414,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
+              Navigator.pop(context);
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 '/',
