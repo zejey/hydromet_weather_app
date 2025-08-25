@@ -378,7 +378,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                         color: Colors.blueAccent.withOpacity(0.25),
                         blurRadius: 6,
                         spreadRadius: 1,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
