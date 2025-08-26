@@ -38,6 +38,8 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateMixin {
+  // Controller to sync forecast graph, icons, and time labels
+  final ScrollController _forecastScrollController = ScrollController();
   // Build aligned weather tiles in a 2-column grid
   Widget buildWeatherTilesGrid() {
     if (weatherData == null) return const SizedBox();
@@ -262,9 +264,33 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     {
       'title': 'Weather Alert: Heavy Rainfall',
       'body': 'A heavy rainfall warning is in effect for San Pedro, Laguna. Please stay indoors and monitor local advisories.',
-      'timestamp': '2025-08-13 14:30'
+      'timestamp': '2025-08-13 14:30',
+      'type': 'Emergency',
     },
-    // Add more alerts here or fetch from backend
+    {
+      'title': 'Flood Warning',
+      'body': 'Flooding is possible in low-lying areas. Move to higher ground if necessary.',
+      'timestamp': '2025-08-13 13:00',
+      'type': 'Warning',
+    },
+    {
+      'title': 'Heat Index Advisory',
+      'body': 'High heat index expected this afternoon. Stay hydrated and avoid outdoor activities.',
+      'timestamp': '2025-08-13 11:00',
+      'type': 'Info',
+    },
+    {
+      'title': 'Strong Winds Expected',
+      'body': 'Gusty winds are forecasted for the evening. Secure loose outdoor items.',
+      'timestamp': '2025-08-13 09:00',
+      'type': 'Warning',
+    },
+    {
+      'title': 'All Clear',
+      'body': 'No current weather hazards. Enjoy your day!',
+      'timestamp': '2025-08-13 07:00',
+      'type': 'Info',
+    },
   ];
   double _getTemperatureIntensity(double temperature) {
     // Normalize temperature to 0-1 scale for heat map intensity
@@ -326,22 +352,36 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   // Build animated rain particles
   List<Marker> _buildRainParticles() {
+    final random = Random();
     return _rainParticleLocations.map((location) {
+      final dropHeight = 12.0 + random.nextDouble() * 8.0; // 12-20 px
+      final tilt = (random.nextDouble() - 0.5) * 0.2; // -0.1 to 0.1 radians
       return Marker(
-        width: 20.0,
-        height: 20.0,
+        width: 18.0,
+        height: 24.0,
         point: location,
         builder: (ctx) => AnimatedBuilder(
           animation: _rainAnimation,
           builder: (context, child) {
             return Transform.translate(
               offset: Offset(0, _rainAnimation.value * 10),
-              child: Container(
-                width: 4,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(2),
+              child: Transform.rotate(
+                angle: tilt,
+                child: Container(
+                  width: 4,
+                  height: dropHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8), // More rounded for raindrop
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blueAccent.withOpacity(0.25),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -482,16 +522,17 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   Widget buildHourlyForecast() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 10), // Reduced bottom margin
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), // Slightly reduced padding
       decoration: BoxDecoration(
-  color: const Color(0xFF388E3C), // Use app's main green for strong branding
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.18)),
+        color: Colors.grey.shade200.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.13)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.10),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -500,13 +541,13 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         children: [
           // Section Title with Updated badge
           Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 12, top: 16, right: 16),
+            padding: const EdgeInsets.only(left: 0, bottom: 8, top: 0, right: 0), // Less bottom padding
             child: Row(
               children: [
                 const Text(
                   '24-Hour Forecast',
                   style: TextStyle(
-                    color: ui.Color.fromARGB(221, 255, 255, 255),
+                    color: Colors.black87,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -515,7 +556,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.8),
+                    color: Colors.white.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -525,7 +566,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                         width: 6,
                         height: 6,
                         decoration: const BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.green,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -533,7 +574,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                       Text(
                         'Updated ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Colors.black87,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -545,10 +586,18 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
             ),
           ),
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-            // No color here, inherit from parent
-            child: _buildTemperatureGraph(),
+            margin: const EdgeInsets.symmetric(vertical: 4), // Less vertical margin
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 0), // Less vertical padding
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                textTheme: Theme.of(context).textTheme.apply(
+                  bodyColor: Colors.blueGrey,
+                  displayColor: Colors.blueGrey,
+                ),
+                iconTheme: IconThemeData(color: Colors.blueGrey.shade600),
+              ),
+              child: _buildTemperatureGraph(),
+            ),
           ),
         ],
       ),
@@ -572,6 +621,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         SizedBox(
           height: 135,
           child: SingleChildScrollView(
+            controller: _forecastScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: SizedBox(
@@ -593,6 +643,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         SizedBox(
           height: 64,
           child: SingleChildScrollView(
+            controller: _forecastScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Row(
@@ -612,7 +663,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.black.withOpacity(0.13), // Slightly darker for better icon visibility
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.3),
@@ -643,6 +694,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         SizedBox(
           height: 27,
           child: SingleChildScrollView(
+            controller: _forecastScrollController,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Row(
@@ -673,7 +725,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                   child: Text(
                     displayTime,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Colors.black54,
                       fontSize: isNow ? 16 : 14,
                       fontWeight: isNow ? FontWeight.bold : FontWeight.w600,
                     ),
@@ -711,6 +763,29 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   final GlobalKey _profileButtonKey = GlobalKey();
 
   // Notification dialog handler with sample admin-posted notifications
+  // Helper methods for notification icon and color
+  IconData _getNotificationIcon(String? type) {
+    switch (type) {
+      case 'Emergency':
+        return Icons.priority_high_rounded;
+      case 'Warning':
+        return Icons.warning_amber_rounded;
+      default:
+        return Icons.info_rounded;
+    }
+  }
+
+  Color _getNotificationColor(String? type) {
+    switch (type) {
+      case 'Emergency':
+        return Colors.red;
+      case 'Warning':
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
+  }
+
   void _showNotifications() {
     showDialog(
       context: context,
@@ -728,6 +803,11 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                     itemBuilder: (context, index) {
                       final notif = notifications[index];
                       return ListTile(
+                        leading: Icon(
+                          _getNotificationIcon(notif['type']),
+                          color: _getNotificationColor(notif['type']),
+                          size: 28,
+                        ),
                         title: Text(
                           notif['title'] ?? '',
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -1043,10 +1123,11 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   @override
   void dispose() {
-    _cityController.dispose();
-    _animationController.dispose();
-    _rainAnimationController.dispose();
-    super.dispose();
+  _forecastScrollController.dispose();
+  _cityController.dispose();
+  _animationController.dispose();
+  _rainAnimationController.dispose();
+  super.dispose();
   }
 
   Future<void> loadWeather() async {
@@ -3179,8 +3260,8 @@ class TemperatureGraphPainter extends CustomPainter {
     if (data.isEmpty) return;
 
     final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 4.0 // MASSIVE stroke from 3.5 to 4.0 - ultimate bold!
+      ..color = Colors.blueAccent // Blue accent for the line
+      ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
@@ -3196,7 +3277,7 @@ class TemperatureGraphPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final dotPaint = Paint()
-      ..color = Colors.white
+      ..color = Colors.blueAccent // Blue accent for dots
       ..style = PaintingStyle.fill;
 
     // Temperature scaling for MASSIVE graph
@@ -3281,15 +3362,15 @@ class TemperatureGraphPainter extends CustomPainter {
       // Show temperature label for every hour
       textPainter.text = TextSpan(
         text: '$temp°',
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: Colors.blueGrey.shade800, // Blue-grey for temp labels
           fontSize: 13,
           fontWeight: FontWeight.bold,
-          shadows: [
+          shadows: const [
             Shadow(
               offset: Offset(0.8, 0.8),
               blurRadius: 2.0,
-              color: Colors.black87,
+              color: Colors.white,
             ),
           ],
         ),
@@ -3316,12 +3397,13 @@ class TemperatureGraphPainter extends CustomPainter {
       textPainter.paint(canvas, labelOffset);
     }
 
-    // Optionally, draw horizontal grid lines for temperature reference
+    // Draw more visible horizontal grid lines for temperature reference
+    const gridLineCount = 5;
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.13)
+      ..color = Colors.grey.withOpacity(0.35)
       ..strokeWidth = 1.0;
-    for (int i = 0; i <= 4; i++) {
-      final y = (size.height * 0.75 / 4) * i + size.height * 0.12;
+    for (int i = 0; i <= gridLineCount; i++) {
+      final y = size.height * i / gridLineCount;
       canvas.drawLine(
         Offset(0, y),
         Offset(size.width, y),

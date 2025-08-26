@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import '../services/auth_service.dart';
+import '../services/auth_service.dart';
 
 // Simple authentication state management (keeping for backward compatibility)
 class AuthService {
@@ -63,18 +63,22 @@ class _LoginScreenState extends State<LoginScreen> {
               // Tips Button (left)
               TextButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/tips'),
-                icon: const Icon(Icons.lightbulb, color: Colors.green),
-                label:
-                    const Text('Tips', style: TextStyle(color: Colors.green)),
-                style: TextButton.styleFrom(foregroundColor: Colors.green),
+                icon: const Icon(Icons.lightbulb,
+                    color: Color.fromARGB(255, 255, 255, 255)),
+                label: const Text('Tips',
+                    style:
+                        TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
               ),
               // Hotlines Button (right)
               TextButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/hotlines'),
-                icon: const Icon(Icons.phone, color: Colors.green),
+                icon: const Icon(Icons.phone,
+                    color: Color.fromARGB(255, 255, 255, 255)),
                 label: const Text('Hotlines',
-                    style: TextStyle(color: Colors.green)),
-                style: TextButton.styleFrom(foregroundColor: Colors.green),
+                    style:
+                        TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
               ),
             ],
           ),
@@ -155,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, '/login-form');
+                        Navigator.pushNamed(context, '/login-form');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
@@ -551,3 +555,375 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 }
+
+// New dedicated login form screen with logo
+// class LoginFormScreen extends StatefulWidget {
+//   const LoginFormScreen({super.key});
+
+//   @override
+//   State<LoginFormScreen> createState() => _LoginFormScreenState();
+// }
+
+// class _LoginFormScreenState extends State<LoginFormScreen> {
+//   final TextEditingController _phoneController = TextEditingController();
+//   final TextEditingController _smsCodeController = TextEditingController();
+//   final FocusNode _phoneFocusNode = FocusNode();
+//   final FocusNode _smsCodeFocusNode = FocusNode();
+//   final AuthManager _authManager = AuthManager();
+  
+//   bool _isLoading = false;
+//   bool _isResendingCode = false;
+
+//   @override
+//   void dispose() {
+//     _phoneController.dispose();
+//     _smsCodeController.dispose();
+//     _phoneFocusNode.dispose();
+//     _smsCodeFocusNode.dispose();
+//     super.dispose();
+//   }
+
+//   Future<void> _signIn() async {
+//     // Validate phone number
+//     String phone = _phoneController.text.trim();
+//     if (phone.isEmpty) {
+//       _showSnackBar('Please enter your phone number');
+//       return;
+//     }
+//     if (!RegExp(r'^09\d{9} $|^09\d{9}$').hasMatch(phone)) {
+//       _showSnackBar('Please enter a valid mobile number starting with 09');
+//       return;
+//     }
+
+//     // Validate SMS code
+//     String smsCode = _smsCodeController.text.trim();
+//     if (smsCode.isEmpty) {
+//       _showSnackBar('Please enter the SMS code');
+//       return;
+//     }
+//     if (smsCode.length != 6) {
+//       _showSnackBar('Please enter a valid 6-digit SMS code');
+//       return;
+//     }
+//     if (!RegExp(r'^\d{6}$').hasMatch(smsCode)) {
+//       _showSnackBar('SMS code must contain only numbers');
+//       return;
+//     }
+
+//     setState(() => _isLoading = true);
+    
+//     // Simulate API call for verification
+//     await Future.delayed(const Duration(seconds: 2));
+    
+//     setState(() => _isLoading = false);
+    
+//     // Sign in the user with both systems
+//     AuthService.signIn(_phoneController.text.trim());
+    
+//     // Also login with our AuthManager for persistent state
+//     await _authManager.login('User', phone.isNotEmpty ? phone : 'user@example.com');
+    
+//     // Navigate back to weather screen
+//     if (mounted) {
+//       Navigator.pushNamedAndRemoveUntil(context, '/weather', (route) => false);
+//     }
+//   }
+
+//   Future<void> _resendCode() async {
+//     setState(() => _isResendingCode = true);
+    
+//     // Simulate resending SMS code
+//     await Future.delayed(const Duration(seconds: 2));
+    
+//     setState(() => _isResendingCode = false);
+    
+//     _showSnackBar('SMS code resent successfully');
+//   }
+
+//   void _showSnackBar(String message) {
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       SnackBar(
+//         content: Text(message),
+//         backgroundColor: Colors.green.shade700,
+//       ),
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return WillPopScope(
+//       onWillPop: () async {
+//         Navigator.pushReplacementNamed(context, '/login');
+//         return false;
+//       },
+//       child: Scaffold(
+//         body: Container(
+//           width: double.infinity,
+//           height: double.infinity,
+//           decoration: const BoxDecoration(
+//             color: Colors.green,
+//             image: DecorationImage(
+//               image: AssetImage('assets/b.jpg'),
+//               fit: BoxFit.cover,
+//             ),
+//           ),
+//           child: SafeArea(
+//             child: SingleChildScrollView(
+//               padding: const EdgeInsets.symmetric(horizontal: 24.0),
+//               child: Column(
+//                 children: [
+//                   const SizedBox(height: 20),
+//                   // Header with back button
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       IconButton(
+//                         onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+//                         icon: const Icon(
+//                           Icons.arrow_back,
+//                           color: Colors.white,
+//                         ),
+//                       ),
+//                       const Text(
+//                         'Sign In',
+//                         style: TextStyle(
+//                           color: Colors.white,
+//                           fontSize: 20,
+//                           fontWeight: FontWeight.bold,
+//                         ),
+//                       ),
+//                       const SizedBox(width: 48), // Balance the row
+//                     ],
+//                   ),
+//                   const SizedBox(height: 20),
+//                   // Logo Section
+//                   Container(
+//                     width: 400,
+//                     height: 400,
+//                     decoration: BoxDecoration(
+//                       borderRadius: BorderRadius.circular(20),
+//                     ),
+//                     child: ClipRRect(
+//                       borderRadius: BorderRadius.circular(20),
+//                       child: Transform.rotate(
+//                         angle: -1.5708, // -90 degrees in radians
+//                         child: Image.asset(
+//                           'assets/logo.png',
+//                           fit: BoxFit.contain,
+//                           errorBuilder: (context, error, stackTrace) {
+//                             return Container(
+//                               decoration: BoxDecoration(
+//                                 color: Colors.transparent,
+//                                 borderRadius: BorderRadius.circular(20),
+//                               ),
+//                               child: const Center(
+//                                 child: Text(
+//                                   'HYDROMET',
+//                                   style: TextStyle(
+//                                     color: Colors.green,
+//                                     fontSize: 24,
+//                                     fontWeight: FontWeight.bold,
+//                                     letterSpacing: 2,
+//                                   ),
+//                                 ),
+//                               ),
+//                             );
+//                           },
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+//                   const SizedBox(height: 20),
+//                   // Login Form Card
+//                   Container(
+//                     width: double.infinity,
+//                     padding: const EdgeInsets.all(24),
+//                     decoration: BoxDecoration(
+//                       color: Colors.white,
+//                       borderRadius: BorderRadius.circular(20),
+//                       boxShadow: [
+//                         BoxShadow(
+//                           color: Colors.black.withAlpha(38),
+//                           blurRadius: 15,
+//                           offset: const Offset(0, 8),
+//                         ),
+//                       ],
+//                     ),
+//                     child: Column(
+//                       crossAxisAlignment: CrossAxisAlignment.stretch,
+//                       children: [
+//                         // Form Title
+//                         const Text(
+//                           'Welcome!',
+//                           textAlign: TextAlign.center,
+//                           style: TextStyle(
+//                             fontSize: 24,
+//                             fontWeight: FontWeight.bold,
+//                             color: Colors.green,
+//                           ),
+//                         ),
+//                         const SizedBox(height: 8),
+//                         const Text(
+//                           'Access your forecasts — anytime, anywhere.',
+//                           textAlign: TextAlign.center,
+//                           style: TextStyle(
+//                             fontSize: 14,
+//                             color: Colors.grey,
+//                           ),
+//                         ),
+//                         const SizedBox(height: 30),
+//                         // Phone Number Input
+//                         TextField(
+//                           controller: _phoneController,
+//                           focusNode: _phoneFocusNode,
+//                           keyboardType: TextInputType.phone,
+//                           maxLength: 11,
+//                           inputFormatters: [
+//                             FilteringTextInputFormatter.digitsOnly,
+//                           ],
+//                           decoration: InputDecoration(
+//                             hintText: 'Enter your 11-digit phone number',
+//                             hintStyle: TextStyle(color: Colors.grey.shade500),
+//                             border: OutlineInputBorder(
+//                               borderRadius: BorderRadius.circular(12),
+//                               borderSide: BorderSide(color: Colors.grey.shade300),
+//                             ),
+//                             focusedBorder: OutlineInputBorder(
+//                               borderRadius: BorderRadius.circular(12),
+//                               borderSide: const BorderSide(color: Colors.green, width: 2),
+//                             ),
+//                             contentPadding: const EdgeInsets.symmetric(
+//                               horizontal: 20,
+//                               vertical: 15,
+//                             ),
+//                             prefixIcon: const Icon(Icons.phone, color: Colors.green),
+//                             counterText: '',
+//                           ),
+//                         ),
+//                         const SizedBox(height: 20),
+//                         // SMS Code Input
+//                         TextField(
+//                           controller: _smsCodeController,
+//                           focusNode: _smsCodeFocusNode,
+//                           keyboardType: TextInputType.number,
+//                           maxLength: 6,
+//                           inputFormatters: [
+//                             FilteringTextInputFormatter.digitsOnly,
+//                           ],
+//                           decoration: InputDecoration(
+//                             hintText: 'Enter 6-digit SMS code',
+//                             hintStyle: TextStyle(color: Colors.grey.shade500),
+//                             border: OutlineInputBorder(
+//                               borderRadius: BorderRadius.circular(12),
+//                               borderSide: BorderSide(color: Colors.grey.shade300),
+//                             ),
+//                             focusedBorder: OutlineInputBorder(
+//                               borderRadius: BorderRadius.circular(12),
+//                               borderSide: const BorderSide(color: Colors.green, width: 2),
+//                             ),
+//                             contentPadding: const EdgeInsets.symmetric(
+//                               horizontal: 20,
+//                               vertical: 15,
+//                             ),
+//                             prefixIcon: const Icon(Icons.sms, color: Colors.green),
+//                             counterText: '',
+//                           ),
+//                         ),
+//                         const SizedBox(height: 12),
+//                         // Get SMS Code Button
+//                         Row(
+//                           mainAxisAlignment: MainAxisAlignment.end,
+//                           children: [
+//                             TextButton(
+//                               onPressed: _isResendingCode ? null : _resendCode,
+//                               child: _isResendingCode
+//                                   ? const SizedBox(
+//                                       height: 12,
+//                                       width: 12,
+//                                       child: CircularProgressIndicator(
+//                                         strokeWidth: 2,
+//                                         color: Colors.green,
+//                                       ),
+//                                     )
+//                                   : const Text(
+//                                       'Get SMS Code',
+//                                       style: TextStyle(
+//                                         color: Colors.green,
+//                                         fontWeight: FontWeight.bold,
+//                                       ),
+//                                     ),
+//                             ),
+//                           ],
+//                         ),
+//                         const SizedBox(height: 20),
+//                         // Sign In Button
+//                         ElevatedButton(
+//                           onPressed: _isLoading ? null : _signIn,
+//                           style: ElevatedButton.styleFrom(
+//                             backgroundColor: Colors.green,
+//                             foregroundColor: Colors.white,
+//                             padding: const EdgeInsets.symmetric(vertical: 16),
+//                             shape: RoundedRectangleBorder(
+//                               borderRadius: BorderRadius.circular(12),
+//                             ),
+//                             elevation: 3,
+//                           ),
+//                           child: _isLoading
+//                               ? const SizedBox(
+//                                   height: 20,
+//                                   width: 20,
+//                                   child: CircularProgressIndicator(
+//                                     color: Colors.white,
+//                                     strokeWidth: 2,
+//                                   ),
+//                                 )
+//                               : const Text(
+//                                   'Sign In',
+//                                   style: TextStyle(
+//                                     fontSize: 18,
+//                                     fontWeight: FontWeight.bold,
+//                                   ),
+//                                 ),
+//                         ),
+//                         const SizedBox(height: 16),
+//                         // Register Link
+//                         Row(
+//                           mainAxisAlignment: MainAxisAlignment.center,
+//                           children: [
+//                             const Text(
+//                               'Not registered yet? ',
+//                               style: TextStyle(
+//                                 color: Colors.grey,
+//                                 fontSize: 14,
+//                               ),
+//                             ),
+//                             TextButton(
+//                               onPressed: () {
+//                                 Navigator.pushNamed(context, '/register');
+//                               },
+//                               child: const Text(
+//                                 'Register here',
+//                                 style: TextStyle(
+//                                   color: Colors.green,
+//                                   fontSize: 14,
+//                                   fontWeight: FontWeight.bold,
+//                                   decoration: TextDecoration.underline,
+//                                   decorationColor: Colors.green,
+//                                 ),
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                   const SizedBox(height: 30),
+//                 ],
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
