@@ -1,4 +1,3 @@
-
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -7,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import '../services/weather_service.dart';
 import '../services/auth_service.dart';
 import 'log_in.dart';
+import '../services/notification_service.dart';
 
 // Forecast overlay enum for map overlays
 enum ForecastLayer { none, precipitation, clouds, temp, wind }
@@ -37,19 +37,28 @@ class WeatherScreen extends StatefulWidget {
   State<WeatherScreen> createState() => _WeatherScreenState();
 }
 
-class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateMixin {
+class _WeatherScreenState extends State<WeatherScreen>
+    with TickerProviderStateMixin {
   // Controller to sync forecast graph, icons, and time labels
   final ScrollController _forecastScrollController = ScrollController();
   // Build aligned weather tiles in a 2-column grid
   Widget buildWeatherTilesGrid() {
     if (weatherData == null) return const SizedBox();
     final tiles = [
-      buildWeatherTile("Feels Like", "${weatherData!['main']['feels_like'].round()}°C", Icons.thermostat),
-      buildWeatherTile("Humidity", "${weatherData!['main']['humidity']}%", Icons.water_drop),
-      buildWeatherTile("Wind", "${weatherData!['wind']['speed']} m/s", Icons.air),
-      buildWeatherTile("Pressure", "${weatherData!['main']['pressure']} hPa", Icons.speed),
-      buildWeatherTile("Visibility", "${(weatherData!['visibility'] / 1000).toStringAsFixed(1)} km", Icons.remove_red_eye),
-      buildWeatherTile("Clouds", "${weatherData!['clouds']['all']}%", Icons.cloud),
+      buildWeatherTile("Feels Like",
+          "${weatherData!['main']['feels_like'].round()}°C", Icons.thermostat),
+      buildWeatherTile(
+          "Humidity", "${weatherData!['main']['humidity']}%", Icons.water_drop),
+      buildWeatherTile(
+          "Wind", "${weatherData!['wind']['speed']} m/s", Icons.air),
+      buildWeatherTile(
+          "Pressure", "${weatherData!['main']['pressure']} hPa", Icons.speed),
+      buildWeatherTile(
+          "Visibility",
+          "${(weatherData!['visibility'] / 1000).toStringAsFixed(1)} km",
+          Icons.remove_red_eye),
+      buildWeatherTile(
+          "Clouds", "${weatherData!['clouds']['all']}%", Icons.cloud),
     ];
     // Add Air Quality as a full-width tile if available
     if (airData != null) {
@@ -106,7 +115,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
               ),
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.18),
                   borderRadius: BorderRadius.circular(12),
@@ -163,25 +173,29 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         return {
           'label': 'Fair',
           'color': Colors.yellow,
-          'description': 'Air quality is acceptable. Sensitive individuals should take care.',
+          'description':
+              'Air quality is acceptable. Sensitive individuals should take care.',
         };
       case 3:
         return {
           'label': 'Moderate',
           'color': Colors.orange,
-          'description': 'Air quality is moderate. People with respiratory issues should limit outdoor exertion.',
+          'description':
+              'Air quality is moderate. People with respiratory issues should limit outdoor exertion.',
         };
       case 4:
         return {
           'label': 'Poor',
           'color': Colors.red,
-          'description': 'Air quality is poor. Limit outdoor activities, especially for sensitive groups.',
+          'description':
+              'Air quality is poor. Limit outdoor activities, especially for sensitive groups.',
         };
       case 5:
         return {
           'label': 'Very Poor',
           'color': Colors.purple,
-          'description': 'Air quality is very poor. Avoid outdoor activities and stay indoors.',
+          'description':
+              'Air quality is very poor. Avoid outdoor activities and stay indoors.',
         };
       default:
         return {
@@ -191,6 +205,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         };
     }
   }
+
   void _handleLogout() {
     showDialog(
       context: context,
@@ -244,7 +259,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
               SizedBox(height: 8),
               Text('Version: 1.0.0'),
               SizedBox(height: 8),
-              Text('A weather application specifically designed for San Pedro, Laguna, Philippines. Provides real-time weather updates, local hazard warnings, emergency hotlines, and safety tips for residents.'),
+              Text(
+                  'A weather application specifically designed for San Pedro, Laguna, Philippines. Provides real-time weather updates, local hazard warnings, emergency hotlines, and safety tips for residents.'),
               SizedBox(height: 16),
               Text('© 2025 City of San Pedro, Laguna'),
             ],
@@ -259,45 +275,18 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       },
     );
   }
+
   // Admin notifications (replace with backend data as needed)
-  List<Map<String, dynamic>> notifications = [
-    {
-      'title': 'Weather Alert: Heavy Rainfall',
-      'body': 'A heavy rainfall warning is in effect for San Pedro, Laguna. Please stay indoors and monitor local advisories.',
-      'timestamp': '2025-08-13 14:30',
-      'type': 'Emergency',
-    },
-    {
-      'title': 'Flood Warning',
-      'body': 'Flooding is possible in low-lying areas. Move to higher ground if necessary.',
-      'timestamp': '2025-08-13 13:00',
-      'type': 'Warning',
-    },
-    {
-      'title': 'Heat Index Advisory',
-      'body': 'High heat index expected this afternoon. Stay hydrated and avoid outdoor activities.',
-      'timestamp': '2025-08-13 11:00',
-      'type': 'Info',
-    },
-    {
-      'title': 'Strong Winds Expected',
-      'body': 'Gusty winds are forecasted for the evening. Secure loose outdoor items.',
-      'timestamp': '2025-08-13 09:00',
-      'type': 'Warning',
-    },
-    {
-      'title': 'All Clear',
-      'body': 'No current weather hazards. Enjoy your day!',
-      'timestamp': '2025-08-13 07:00',
-      'type': 'Info',
-    },
-  ];
+  List<Map<String, dynamic>> notifications = [];
+  bool _notificationsLoading = true;
+
   double _getTemperatureIntensity(double temperature) {
     // Normalize temperature to 0-1 scale for heat map intensity
     if (temperature <= 0) return 0.0;
     if (temperature >= 40) return 1.0;
     return temperature / 40.0;
   }
+
   // Generate temperature points for heatmap
   void _generateTemperaturePoints() {
     if (selectedLocation == null || weatherData == null) return;
@@ -331,15 +320,18 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       final distance = random.nextDouble() * 0.06; // ~6km radius
       final lat = selectedLocation!.latitude + (distance * cos(angle));
       final lng = selectedLocation!.longitude + (distance * sin(angle));
-      final directionVariation = (random.nextDouble() - 0.5) * 30; // ±15° variation
+      final directionVariation =
+          (random.nextDouble() - 0.5) * 30; // ±15° variation
       final pointDirection = windDirection + directionVariation;
       _windData.add({
         'location': LatLng(lat, lng),
-        'speed': windSpeed + (random.nextDouble() - 0.5) * 2, // ±1 m/s variation
+        'speed':
+            windSpeed + (random.nextDouble() - 0.5) * 2, // ±1 m/s variation
         'direction': pointDirection,
       });
     }
   }
+
   // Helper for temperature color (used in heatmap)
   Color _getTemperatureColor(double temperature) {
     if (temperature <= 10) return Colors.blue;
@@ -372,7 +364,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                   height: dropHeight,
                   decoration: BoxDecoration(
                     color: Colors.blueAccent.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(8), // More rounded for raindrop
+                    borderRadius:
+                        BorderRadius.circular(8), // More rounded for raindrop
                     boxShadow: [
                       BoxShadow(
                         color: Colors.blueAccent.withOpacity(0.25),
@@ -399,7 +392,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         height: 40.0,
         point: windPoint['location'],
         builder: (ctx) => Transform.rotate(
-          angle: (windPoint['direction'] * pi) / 180, // Convert degrees to radians
+          angle:
+              (windPoint['direction'] * pi) / 180, // Convert degrees to radians
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.9),
@@ -498,6 +492,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       ),
     );
   }
+
   // --- BEGIN ALL REQUIRED FIELDS (deduplicated) ---
   List<Map<String, dynamic>> hourlyForecast = [];
   Map<String, dynamic>? weatherData;
@@ -523,7 +518,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   Widget buildHourlyForecast() {
     return Container(
       margin: const EdgeInsets.only(bottom: 10), // Reduced bottom margin
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), // Slightly reduced padding
+      padding: const EdgeInsets.symmetric(
+          vertical: 12, horizontal: 12), // Slightly reduced padding
       decoration: BoxDecoration(
         color: Colors.grey.shade200.withOpacity(0.85),
         borderRadius: BorderRadius.circular(18),
@@ -541,7 +537,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         children: [
           // Section Title with Updated badge
           Padding(
-            padding: const EdgeInsets.only(left: 0, bottom: 8, top: 0, right: 0), // Less bottom padding
+            padding: const EdgeInsets.only(
+                left: 0, bottom: 8, top: 0, right: 0), // Less bottom padding
             child: Row(
               children: [
                 const Text(
@@ -554,7 +551,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(12),
@@ -586,14 +584,16 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
             ),
           ),
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 4), // Less vertical margin
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 0), // Less vertical padding
+            margin:
+                const EdgeInsets.symmetric(vertical: 4), // Less vertical margin
+            padding: const EdgeInsets.symmetric(
+                vertical: 6, horizontal: 0), // Less vertical padding
             child: Theme(
               data: Theme.of(context).copyWith(
                 textTheme: Theme.of(context).textTheme.apply(
-                  bodyColor: Colors.blueGrey,
-                  displayColor: Colors.blueGrey,
-                ),
+                      bodyColor: Colors.blueGrey,
+                      displayColor: Colors.blueGrey,
+                    ),
                 iconTheme: IconThemeData(color: Colors.blueGrey.shade600),
               ),
               child: _buildTemperatureGraph(),
@@ -610,7 +610,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     if (displayData.isEmpty) return const SizedBox();
 
     // Calculate temperature range
-    final temps = displayData.map((e) => (e['temp']?.toDouble() ?? 0.0)).toList();
+    final temps =
+        displayData.map((e) => (e['temp']?.toDouble() ?? 0.0)).toList();
     final minTemp = temps.reduce((a, b) => a < b ? a : b);
     final maxTemp = temps.reduce((a, b) => a > b ? a : b);
     final tempRange = maxTemp - minTemp;
@@ -663,7 +664,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.13), // Slightly darker for better icon visibility
+                          color: Colors.black.withOpacity(
+                              0.13), // Slightly darker for better icon visibility
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.3),
@@ -710,7 +712,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                     if (isNow) {
                       displayTime = "Now";
                     } else {
-                      displayTime = "${dateTime.hour.toString().padLeft(2, '0')}:00";
+                      displayTime =
+                          "${dateTime.hour.toString().padLeft(2, '0')}:00";
                     }
                   } catch (e) {
                     displayTime = "${index}h";
@@ -739,6 +742,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       ],
     );
   }
+
   // Helper for forecast overlay tile URLs
   String _getForecastTileUrl(ForecastLayer layer) {
     const apiKey = 'a62db0fee1e1de12a993982cece6a6bc'; // OpenWeatherMap API key
@@ -755,6 +759,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
         return '';
     }
   }
+
   ForecastLayer _forecastLayer = ForecastLayer.none;
   final WeatherService _weatherService = WeatherService();
   final TextEditingController _cityController =
@@ -792,47 +797,57 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Notifications'),
-          content: notifications.isEmpty
-              ? const Text('No new notifications.')
-              : SizedBox(
-                  width: double.maxFinite,
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: notifications.length,
-                    separatorBuilder: (_, __) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final notif = notifications[index];
-                      return ListTile(
-                        leading: Icon(
-                          _getNotificationIcon(notif['type']),
-                          color: _getNotificationColor(notif['type']),
-                          size: 28,
-                        ),
-                        title: Text(
-                          notif['title'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(notif['body'] ?? ''),
-                            if (notif['timestamp'] != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  notif['timestamp'],
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                  ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: NotificationService.instance.userNotificationsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Text('No new notifications.');
+                }
+                final notifications = snapshot.data!;
+                return ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: notifications.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final notif = notifications[index];
+                    return ListTile(
+                      leading: Icon(
+                        _getNotificationIcon(notif['type']),
+                        color: _getNotificationColor(notif['type']),
+                        size: 28,
+                      ),
+                      title: Text(
+                        notif['title'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(notif['body'] ?? ''),
+                          if (notif['timestamp'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                notif['timestamp'].toString(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
                                 ),
                               ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -843,6 +858,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       },
     );
   }
+
   bool _showTemperatureHeatmap = false;
   bool _showWindArrows = false;
   final List<LatLng> _rainParticleLocations = [];
@@ -856,7 +872,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     {
       'name': 'Barangay Riverside - Flood Risk',
       'type': 'flood',
-      'location': LatLng(14.3450, 121.0580), // Adjusted to better lakefront position
+      'location':
+          LatLng(14.3450, 121.0580), // Adjusted to better lakefront position
       'severity': 'high',
       'description':
           'High flood risk during heavy rainfall and typhoons due to proximity to Laguna de Bay',
@@ -872,7 +889,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     {
       'name': 'Pacita Complex - Heat Island',
       'type': 'heat',
-      'location': LatLng(14.3189, 121.0401), // Keep original position - this is correct
+      'location':
+          LatLng(14.3189, 121.0401), // Keep original position - this is correct
       'severity': 'medium',
       'description':
           'Urban heat island effect during summer months in dense residential area',
@@ -946,19 +964,20 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     if (weatherData != null) {
       final weatherCondition = weatherData!['weather'][0]['main'].toLowerCase();
       final temperature = weatherData!['main']['temp'] ?? 0.0;
-      
+
       // Enable rain animation for rainy conditions
-      if (weatherCondition.contains('rain') || weatherCondition.contains('thunderstorm')) {
+      if (weatherCondition.contains('rain') ||
+          weatherCondition.contains('thunderstorm')) {
         _showRainAnimation = true;
         _generateRainParticles();
       }
-      
+
       // Enable temperature heatmap for extreme temperatures
       if (temperature > 30 || temperature < 10) {
         _showTemperatureHeatmap = true;
         _generateTemperaturePoints();
       }
-      
+
       // Enable wind arrows if wind data available
       if (weatherData!['wind'] != null) {
         _showWindArrows = true;
@@ -987,31 +1006,34 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
     final temp = weatherData!['main']['temp'];
     final windSpeed = weatherData!['wind']['speed'] ?? 0.0;
-    
+
     // Check air quality if available
     bool airQualitySafe = true;
     if (airData != null) {
       final aqi = airData!['list'][0]['main']['aqi'];
       airQualitySafe = aqi <= 2; // Safe if AQI is Good or Fair
     }
-    
+
     // Not safe if: rain/storm, extreme temp, strong wind, or poor air quality
-    return !(condition.contains('rain') || 
-             condition.contains('thunderstorm') ||
-             temp > 38 || temp < 5 ||
-             windSpeed > 20 ||
-             !airQualitySafe);
+    return !(condition.contains('rain') ||
+        condition.contains('thunderstorm') ||
+        temp > 38 ||
+        temp < 5 ||
+        windSpeed > 20 ||
+        !airQualitySafe);
   }
 
   // Air Quality Index (AQI) indicator - positioned closer to safety indicator and hazard button
   Widget _buildAirQualityIndicator() {
-    if (airData == null || !_showAirQualityIndicator) return const SizedBox.shrink();
-    
+    if (airData == null || !_showAirQualityIndicator)
+      return const SizedBox.shrink();
+
     final aqi = airData!['list'][0]['main']['aqi'];
     final aqiInfo = _getAQIInfo(aqi);
-    
+
     return Positioned(
-      bottom: 220, // Moved even closer to safety indicator (only 40px gap from safety indicator at bottom: 180)
+      bottom:
+          220, // Moved even closer to safety indicator (only 40px gap from safety indicator at bottom: 180)
       left: 16,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1046,7 +1068,6 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     );
   }
 
-
   // Simplified weather emoji overlay - positioned at top-left
   Widget _buildWeatherEmojiOverlay() {
     return Positioned(
@@ -1080,14 +1101,20 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   String _getWeatherEmoji() {
     if (weatherData == null) return '🌤️';
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
-    
+
     switch (condition) {
-      case 'clear': return '☀️';
-      case 'clouds': return '☁️';
-      case 'rain': return '🌧️';
-      case 'thunderstorm': return '⛈️';
-      case 'drizzle': return '🌦️';
-      default: return '🌤️';
+      case 'clear':
+        return '☀️';
+      case 'clouds':
+        return '☁️';
+      case 'rain':
+        return '🌧️';
+      case 'thunderstorm':
+        return '⛈️';
+      case 'drizzle':
+        return '🌦️';
+      default:
+        return '🌤️';
     }
   }
 
@@ -1095,14 +1122,20 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   Color _getWeatherColor() {
     if (weatherData == null) return Colors.blue;
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
-    
+
     switch (condition) {
-      case 'clear': return Colors.orange;
-      case 'clouds': return Colors.grey;
-      case 'rain': return Colors.blue;
-      case 'thunderstorm': return Colors.purple;
-      case 'drizzle': return Colors.lightBlue;
-      default: return Colors.blue;
+      case 'clear':
+        return Colors.orange;
+      case 'clouds':
+        return Colors.grey;
+      case 'rain':
+        return Colors.blue;
+      case 'thunderstorm':
+        return Colors.purple;
+      case 'drizzle':
+        return Colors.lightBlue;
+      default:
+        return Colors.blue;
     }
   }
 
@@ -1110,24 +1143,30 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   IconData _getWeatherIconData() {
     if (weatherData == null) return Icons.wb_cloudy;
     final condition = weatherData!['weather'][0]['main'].toLowerCase();
-    
+
     switch (condition) {
-      case 'clear': return Icons.wb_sunny;
-      case 'clouds': return Icons.cloud;
-      case 'rain': return Icons.grain;
-      case 'thunderstorm': return Icons.flash_on;
-      case 'drizzle': return Icons.grain;
-      default: return Icons.wb_cloudy;
+      case 'clear':
+        return Icons.wb_sunny;
+      case 'clouds':
+        return Icons.cloud;
+      case 'rain':
+        return Icons.grain;
+      case 'thunderstorm':
+        return Icons.flash_on;
+      case 'drizzle':
+        return Icons.grain;
+      default:
+        return Icons.wb_cloudy;
     }
   }
 
   @override
   void dispose() {
-  _forecastScrollController.dispose();
-  _cityController.dispose();
-  _animationController.dispose();
-  _rainAnimationController.dispose();
-  super.dispose();
+    _forecastScrollController.dispose();
+    _cityController.dispose();
+    _animationController.dispose();
+    _rainAnimationController.dispose();
+    super.dispose();
   }
 
   Future<void> loadWeather() async {
@@ -1139,13 +1178,15 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       const sanPedroLon = 121.0417;
 
       // Fetch weather data with timeout
-    final weather = await _weatherService.fetchCurrentWeatherByCoords(sanPedroLat, sanPedroLon)
-      .timeout(const Duration(seconds: 10));
-      
+      final weather = await _weatherService
+          .fetchCurrentWeatherByCoords(sanPedroLat, sanPedroLon)
+          .timeout(const Duration(seconds: 10));
+
       // Fetch air pollution data (optional, continue if fails)
       Map<String, dynamic>? air;
       try {
-        air = await _weatherService.fetchAirPollution(sanPedroLat, sanPedroLon)
+        air = await _weatherService
+            .fetchAirPollution(sanPedroLat, sanPedroLon)
             .timeout(const Duration(seconds: 10));
       } catch (e) {
         print('Air pollution data fetch failed: $e');
@@ -1155,7 +1196,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       // Fetch hourly forecast (optional, continue if fails)
       List<Map<String, dynamic>> forecast = [];
       try {
-        forecast = await _weatherService.fetchHourlyForecast(sanPedroLat, sanPedroLon)
+        forecast = await _weatherService
+            .fetchHourlyForecast(sanPedroLat, sanPedroLon)
             .timeout(const Duration(seconds: 10));
       } catch (e) {
         print('Hourly forecast fetch failed: $e');
@@ -1170,7 +1212,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
           selectedLocation = LatLng(sanPedroLat, sanPedroLon);
           isLoading = false;
         });
-        
+
         // Update weather effects based on new data
         _initializeWeatherEffects();
       }
@@ -1178,7 +1220,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       print('Weather data fetch failed: $e');
       if (mounted) {
         setState(() => isLoading = false);
-        _showSnackBar('Failed to load weather data. Please check your internet connection.');
+        _showSnackBar(
+            'Failed to load weather data. Please check your internet connection.');
       }
     }
   }
@@ -1237,14 +1280,16 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     }
   }
 
-  Widget buildWeatherTile(String title, String value, IconData icon, {bool isFullWidth = false, Color? backgroundColor}) {
+  Widget buildWeatherTile(String title, String value, IconData icon,
+      {bool isFullWidth = false, Color? backgroundColor}) {
     return Container(
       width: isFullWidth
           ? double.infinity
           : MediaQuery.of(context).size.width * 0.42,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200.withOpacity(0.85), // Lighter grey for better contrast
+        color: Colors.grey.shade200
+            .withOpacity(0.85), // Lighter grey for better contrast
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.10)),
         boxShadow: [
@@ -1258,7 +1303,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.black87, size: 24), // Use dark icon for light background
+          Icon(icon,
+              color: Colors.black87,
+              size: 24), // Use dark icon for light background
           const SizedBox(height: 8),
           Text(title,
               style: const TextStyle(color: Colors.black54, fontSize: 14)),
@@ -1288,7 +1335,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
           onPressed: _showNotifications,
           icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
         ),
-        
+
         // Fixed location display bar (expanded to fill middle space)
         Expanded(
           child: Container(
@@ -1325,7 +1372,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
             ),
           ),
         ),
-        
+
         // Profile button
         IconButton(
           key: _profileButtonKey,
@@ -1508,7 +1555,6 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
     }
   }
 
-
   void _showHelpDialog() {
     showDialog(
       context: context,
@@ -1601,7 +1647,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                           : SingleChildScrollView(
                               // Enhanced scroll physics for better scrolling experience
                               physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
@@ -1651,7 +1698,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      weatherData!['weather'][0]['description'].toString().toUpperCase(),
+                                      weatherData!['weather'][0]['description']
+                                          .toString()
+                                          .toUpperCase(),
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w400,
@@ -1672,282 +1721,309 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                                     // Weather details grid (aligned)
                                     buildWeatherTilesGrid(),
 
-                                      const SizedBox(height: 20),
+                                    const SizedBox(height: 20),
 
-                                      // Enhanced Interactive Geospatial Map
-                                      if (selectedLocation != null)
-                                        Container(
-                                          height: 400,
-                                          margin: const EdgeInsets.symmetric(
-                                              vertical: 10),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withOpacity(0.1),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            child: Stack(
-                                              children: [
-                                                // Main Map
-                                                FlutterMap(
-                                                  mapController: _mapController,
-                                                  options: MapOptions(
-                                                    center: selectedLocation,
-                                                    zoom: _currentZoom,
-                                                    minZoom: 3.0,
-                                                    maxZoom: 18.0,
-                                                    interactiveFlags:
-                                                        InteractiveFlag.all,
-                                                    onTap:
-                                                        (tapPosition, point) {
-                                                      _onMapTap(point);
-                                                    },
-                                                    onPositionChanged:
-                                                        (position, hasGesture) {
-                                                      if (hasGesture) {
-                                                        setState(() {
-                                                          _currentZoom =
-                                                              position.zoom!;
-                                                        });
-                                                      }
-                                                    },
+                                    // Enhanced Interactive Geospatial Map
+                                    if (selectedLocation != null)
+                                      Container(
+                                        height: 400,
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 10),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.black.withOpacity(0.1),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          child: Stack(
+                                            children: [
+                                              // Main Map
+                                              FlutterMap(
+                                                mapController: _mapController,
+                                                options: MapOptions(
+                                                  center: selectedLocation,
+                                                  zoom: _currentZoom,
+                                                  minZoom: 3.0,
+                                                  maxZoom: 18.0,
+                                                  interactiveFlags:
+                                                      InteractiveFlag.all,
+                                                  onTap: (tapPosition, point) {
+                                                    _onMapTap(point);
+                                                  },
+                                                  onPositionChanged:
+                                                      (position, hasGesture) {
+                                                    if (hasGesture) {
+                                                      setState(() {
+                                                        _currentZoom =
+                                                            position.zoom!;
+                                                      });
+                                                    }
+                                                  },
+                                                ),
+                                                children: [
+                                                  // Base map layer
+                                                  TileLayer(
+                                                    urlTemplate:
+                                                        _getMapStyleUrl(),
+                                                    subdomains: const [
+                                                      'a',
+                                                      'b',
+                                                      'c'
+                                                    ],
+                                                    userAgentPackageName:
+                                                        'com.example.weather_app',
                                                   ),
-                                                  children: [
-                                                    // Base map layer
+
+                                                  // Forecast overlay layer
+                                                  if (_forecastLayer !=
+                                                      ForecastLayer.none)
                                                     TileLayer(
                                                       urlTemplate:
-                                                          _getMapStyleUrl(),
-                                                      subdomains: const [
-                                                        'a',
-                                                        'b',
-                                                        'c'
-                                                      ],
-                                                      userAgentPackageName:
-                                                          'com.example.weather_app',
+                                                          _getForecastTileUrl(
+                                                              _forecastLayer),
+                                                      backgroundColor:
+                                                          Colors.transparent,
                                                     ),
 
-                                                    // Forecast overlay layer
-                                                    if (_forecastLayer != ForecastLayer.none)
-                                                      TileLayer(
-                                                        urlTemplate: _getForecastTileUrl(_forecastLayer),
-                                                        backgroundColor: Colors.transparent,                                          
-                                                      ),
+                                                  // Satellite overlay
+                                                  if (_showSatelliteLayer)
+                                                    TileLayer(
+                                                      urlTemplate:
+                                                          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                                                    ),
 
-                                                    // Satellite overlay
-                                                    if (_showSatelliteLayer)
-                                                      TileLayer(
-                                                        urlTemplate:
-                                                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                                                      ),
-
-                                                    // Temperature heatmap circles
-                                                    if (_showTemperatureHeatmap)
-                                                      CircleLayer(
-                                                        circles: _temperaturePoints.map((point) {
-                                                          return CircleMarker(
-                                                            point: point['location'],
-                                                            radius: (800 + (point['intensity'] * 400)).toDouble(), // 800-1200m radius
-                                                            color: _getTemperatureColor(point['temperature']).withOpacity(0.15),
-                                                            borderColor: _getTemperatureColor(point['temperature']).withOpacity(0.5),
-                                                            borderStrokeWidth: 1,
-                                                          );
-                                                        }).toList(),
-                                                      ),
-
-                                                    // Rain particle effects
-                                                    if (_showRainAnimation)
-                                                      MarkerLayer(
-                                                        markers: _buildRainParticles(),
-                                                      ),
-
-                                                    // Wind direction arrows
-                                                    if (_showWindArrows)
-                                                      MarkerLayer(
-                                                        markers: _buildWindArrows(),
-                                                      ),
-
-                                                    // Markers layer
-                                                    MarkerLayer(
-                                                      markers: [
-                                                        // Current location marker
-                                                        Marker(
-                                                          width: 50.0,
-                                                          height: 50.0,
+                                                  // Temperature heatmap circles
+                                                  if (_showTemperatureHeatmap)
+                                                    CircleLayer(
+                                                      circles:
+                                                          _temperaturePoints
+                                                              .map((point) {
+                                                        return CircleMarker(
                                                           point:
-                                                              selectedLocation!,
-                                                          builder: (ctx) =>
-                                                              _buildWeatherMarker(),
-                                                        ),
-
-                                                        // Additional markers for nearby locations
-                                                        ..._buildNearbyLocationMarkers(),
-
-                                                        // Hazard location markers
-                                                        if (_showHazardLocations)
-                                                          ..._buildHazardMarkers(),
-                                                      ],
-                                                    ),
-
-                                                    // Enhanced weather coverage circle with pulsing effect
-                                                    CircleLayer(
-                                                      circles: [
-                                                        CircleMarker(
-                                                          point: selectedLocation!,
-                                                          radius: 5000, // 5km radius
-                                                          color: _getWeatherCircleColor().withOpacity(0.08),
-                                                          borderColor: _getWeatherCircleColor().withOpacity(0.3),
+                                                              point['location'],
+                                                          radius: (800 +
+                                                                  (point['intensity'] *
+                                                                      400))
+                                                              .toDouble(), // 800-1200m radius
+                                                          color: _getTemperatureColor(
+                                                                  point[
+                                                                      'temperature'])
+                                                              .withOpacity(
+                                                                  0.15),
+                                                          borderColor:
+                                                              _getTemperatureColor(
+                                                                      point[
+                                                                          'temperature'])
+                                                                  .withOpacity(
+                                                                      0.5),
                                                           borderStrokeWidth: 1,
-                                                        ),
-                                                      ],
+                                                        );
+                                                      }).toList(),
                                                     ),
 
-                                                    // Pulsing weather effect overlay
-                                                    CircleLayer(
-                                                      circles: [
-                                                        CircleMarker(
-                                                          point: selectedLocation!,
-                                                          radius: 3000,
-                                                          color: _getWeatherCircleColor().withOpacity(0.05),
-                                                          borderColor: Colors.transparent,
-                                                          borderStrokeWidth: 0,
-                                                        ),
-                                                      ],
+                                                  // Rain particle effects
+                                                  if (_showRainAnimation)
+                                                    MarkerLayer(
+                                                      markers:
+                                                          _buildRainParticles(),
                                                     ),
-                                                  ],
-                                                ),
 
-                                                // Map controls overlay
-                                                _buildMapControls(),
+                                                  // Wind direction arrows
+                                                  if (_showWindArrows)
+                                                    MarkerLayer(
+                                                      markers:
+                                                          _buildWindArrows(),
+                                                    ),
 
-                                                // Safety and weather emoji indicators
-                                                if (_showSafetyIndicator) _buildSafetyIndicator(),
-                                                _buildWeatherEmojiOverlay(),
-                                                _buildAirQualityIndicator(),
+                                                  // Markers layer
+                                                  MarkerLayer(
+                                                    markers: [
+                                                      // Current location marker
+                                                      Marker(
+                                                        width: 50.0,
+                                                        height: 50.0,
+                                                        point:
+                                                            selectedLocation!,
+                                                        builder: (ctx) =>
+                                                            _buildWeatherMarker(),
+                                                      ),
 
-                                                // Weather info overlay
-                                                _buildWeatherInfoOverlay(),
+                                                      // Additional markers for nearby locations
+                                                      ..._buildNearbyLocationMarkers(),
 
-                                                // Zoom controls
+                                                      // Hazard location markers
+                                                      if (_showHazardLocations)
+                                                        ..._buildHazardMarkers(),
+                                                    ],
+                                                  ),
 
-                                                // Floating hazard toggle button
-                                                Positioned(
-                                                  bottom: 120,
-                                                  left: 16,
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
+                                                  // Enhanced weather coverage circle with pulsing effect
+                                                  CircleLayer(
+                                                    circles: [
+                                                      CircleMarker(
+                                                        point:
+                                                            selectedLocation!,
+                                                        radius:
+                                                            5000, // 5km radius
+                                                        color:
+                                                            _getWeatherCircleColor()
+                                                                .withOpacity(
+                                                                    0.08),
+                                                        borderColor:
+                                                            _getWeatherCircleColor()
+                                                                .withOpacity(
+                                                                    0.3),
+                                                        borderStrokeWidth: 1,
+                                                      ),
+                                                    ],
+                                                  ),
+
+                                                  // Pulsing weather effect overlay
+                                                  CircleLayer(
+                                                    circles: [
+                                                      CircleMarker(
+                                                        point:
+                                                            selectedLocation!,
+                                                        radius: 3000,
+                                                        color:
+                                                            _getWeatherCircleColor()
+                                                                .withOpacity(
+                                                                    0.05),
+                                                        borderColor:
+                                                            Colors.transparent,
+                                                        borderStrokeWidth: 0,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+
+                                              // Map controls overlay
+                                              _buildMapControls(),
+
+                                              // Safety and weather emoji indicators
+                                              if (_showSafetyIndicator)
+                                                _buildSafetyIndicator(),
+                                              _buildWeatherEmojiOverlay(),
+                                              _buildAirQualityIndicator(),
+
+                                              // Weather info overlay
+                                              _buildWeatherInfoOverlay(),
+
+                                              // Zoom controls
+
+                                              // Floating hazard toggle button
+                                              Positioned(
+                                                bottom: 120,
+                                                left: 16,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: _showHazardLocations
+                                                        ? Colors.red.shade700
+                                                        : Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withValues(
+                                                                alpha: 0.2),
+                                                        blurRadius: 8,
+                                                        offset:
+                                                            const Offset(0, 4),
+                                                      ),
+                                                    ],
+                                                    border: Border.all(
                                                       color:
                                                           _showHazardLocations
                                                               ? Colors
-                                                                  .red.shade700
-                                                              : Colors.white,
+                                                                  .red.shade900
+                                                              : Colors.grey
+                                                                  .shade300,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Material(
+                                                    color: Colors.transparent,
+                                                    child: InkWell(
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               20),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Colors.black
-                                                              .withValues(
-                                                                  alpha: 0.2),
-                                                          blurRadius: 8,
-                                                          offset: const Offset(
-                                                              0, 4),
-                                                        ),
-                                                      ],
-                                                      border: Border.all(
-                                                        color:
+                                                      onTap: () {
+                                                        setState(() {
+                                                          _showHazardLocations =
+                                                              !_showHazardLocations;
+                                                        });
+                                                        _showSnackBar(
                                                             _showHazardLocations
-                                                                ? Colors.red
-                                                                    .shade900
-                                                                : Colors.grey
-                                                                    .shade300,
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                    child: Material(
-                                                      color: Colors.transparent,
-                                                      child: InkWell(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(20),
-                                                        onTap: () {
-                                                          setState(() {
-                                                            _showHazardLocations =
-                                                                !_showHazardLocations;
-                                                          });
-                                                          _showSnackBar(
+                                                                ? 'Hazard locations are now visible'
+                                                                : 'Hazard locations are now hidden');
+                                                      },
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 12,
+                                                                vertical: 8),
+                                                        child: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Icon(
+                                                              Icons
+                                                                  .warning_rounded,
+                                                              color: _showHazardLocations
+                                                                  ? Colors.white
+                                                                  : Colors.red
+                                                                      .shade700,
+                                                              size: 18,
+                                                            ),
+                                                            const SizedBox(
+                                                                width: 6),
+                                                            Text(
                                                               _showHazardLocations
-                                                                  ? 'Hazard locations are now visible'
-                                                                  : 'Hazard locations are now hidden');
-                                                        },
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal:
-                                                                      12,
-                                                                  vertical: 8),
-                                                          child: Row(
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .min,
-                                                            children: [
-                                                              Icon(
-                                                                Icons
-                                                                    .warning_rounded,
+                                                                  ? 'HAZARDS ON'
+                                                                  : 'HAZARDS OFF',
+                                                              style: TextStyle(
                                                                 color: _showHazardLocations
                                                                     ? Colors
                                                                         .white
                                                                     : Colors.red
                                                                         .shade700,
-                                                                size: 18,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 10,
                                                               ),
-                                                              const SizedBox(
-                                                                  width: 6),
-                                                              Text(
-                                                                _showHazardLocations
-                                                                    ? 'HAZARDS ON'
-                                                                    : 'HAZARDS OFF',
-                                                                style:
-                                                                    TextStyle(
-                                                                  color: _showHazardLocations
-                                                                      ? Colors
-                                                                          .white
-                                                                      : Colors
-                                                                          .red
-                                                                          .shade700,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize: 10,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
+                                                            ),
+                                                          ],
                                                         ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
                                         ),
+                                      ),
 
-                                        // Bottom padding for better scroll experience
-                                        const SizedBox(height: 40),
-                                      ]
-                                    ],
-                                  ),
-                                ),
+                                    // Bottom padding for better scroll experience
+                                    const SizedBox(height: 40),
+                                  ]
+                                ],
+                              ),
+                            ),
                 ),
               ],
             ),
@@ -1984,8 +2060,8 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 
   Future<void> _fetchWeatherForLocation(LatLng point) async {
     try {
-    final weather = await _weatherService.fetchCurrentWeatherByCoords(
-      point.latitude, point.longitude);
+      final weather = await _weatherService.fetchCurrentWeatherByCoords(
+          point.latitude, point.longitude);
       final air = await _weatherService.fetchAirPollution(
           point.latitude, point.longitude);
       final forecast = await _weatherService.fetchHourlyForecast(
@@ -1998,7 +2074,7 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
           hourlyForecast = forecast;
           selectedLocation = point;
         });
-        
+
         // Update weather effects for new location
         _initializeWeatherEffects();
       }
@@ -2079,14 +2155,38 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
   List<Marker> _buildNearbyLocationMarkers() {
     // Updated San Pedro, Laguna specific locations with more accurate coordinates
     final sanPedroLocations = [
-      {'name': 'San Pedro City Hall', 'coords': LatLng(14.3358, 121.0417)}, // Correct position
-      {'name': 'St. Peter the Apostle Cathedral', 'coords': LatLng(14.3364, 121.0423)}, // Correct position
-      {'name': 'Pacita Complex I', 'coords': LatLng(14.3189, 121.0401)}, // Correct position
-      {'name': 'SM City San Pedro', 'coords': LatLng(14.3320, 121.0440)}, // Slightly adjusted
-      {'name': 'Landayan Town Center', 'coords': LatLng(14.3390, 121.0460)}, // Better position
-      {'name': 'San Pedro Plaza', 'coords': LatLng(14.3361, 121.0419)}, // Correct position
-      {'name': 'Laguna de Bay Shoreline', 'coords': LatLng(14.3480, 121.0600)}, // Better lakefront position
-      {'name': 'San Pedro Sports Complex', 'coords': LatLng(14.3290, 121.0370)}, // Adjusted position
+      {
+        'name': 'San Pedro City Hall',
+        'coords': LatLng(14.3358, 121.0417)
+      }, // Correct position
+      {
+        'name': 'St. Peter the Apostle Cathedral',
+        'coords': LatLng(14.3364, 121.0423)
+      }, // Correct position
+      {
+        'name': 'Pacita Complex I',
+        'coords': LatLng(14.3189, 121.0401)
+      }, // Correct position
+      {
+        'name': 'SM City San Pedro',
+        'coords': LatLng(14.3320, 121.0440)
+      }, // Slightly adjusted
+      {
+        'name': 'Landayan Town Center',
+        'coords': LatLng(14.3390, 121.0460)
+      }, // Better position
+      {
+        'name': 'San Pedro Plaza',
+        'coords': LatLng(14.3361, 121.0419)
+      }, // Correct position
+      {
+        'name': 'Laguna de Bay Shoreline',
+        'coords': LatLng(14.3480, 121.0600)
+      }, // Better lakefront position
+      {
+        'name': 'San Pedro Sports Complex',
+        'coords': LatLng(14.3290, 121.0370)
+      }, // Adjusted position
     ];
 
     return sanPedroLocations.map((location) {
@@ -2433,7 +2533,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 children: [
                   Icon(
                     Icons.radio_button_checked,
-                    color: _currentMapStyle == 'street' ? Colors.blue : Colors.grey,
+                    color: _currentMapStyle == 'street'
+                        ? Colors.blue
+                        : Colors.grey,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -2447,7 +2549,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 children: [
                   Icon(
                     Icons.radio_button_checked,
-                    color: _currentMapStyle == 'satellite' ? Colors.blue : Colors.grey,
+                    color: _currentMapStyle == 'satellite'
+                        ? Colors.blue
+                        : Colors.grey,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -2455,9 +2559,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 ],
               ),
             ),
-            
+
             const PopupMenuDivider(),
-            
+
             // Weather Overlay
             PopupMenuItem<String>(
               value: 'weather_off',
@@ -2465,7 +2569,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 children: [
                   Icon(
                     Icons.radio_button_checked,
-                    color: _forecastLayer == ForecastLayer.none ? Colors.green : Colors.grey,
+                    color: _forecastLayer == ForecastLayer.none
+                        ? Colors.green
+                        : Colors.grey,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -2479,7 +2585,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 children: [
                   Icon(
                     Icons.radio_button_checked,
-                    color: _forecastLayer == ForecastLayer.precipitation ? Colors.green : Colors.grey,
+                    color: _forecastLayer == ForecastLayer.precipitation
+                        ? Colors.green
+                        : Colors.grey,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -2499,7 +2607,9 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 children: [
                   Icon(
                     Icons.radio_button_checked,
-                    color: _forecastLayer == ForecastLayer.temp ? Colors.green : Colors.grey,
+                    color: _forecastLayer == ForecastLayer.temp
+                        ? Colors.green
+                        : Colors.grey,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -2513,16 +2623,18 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 ],
               ),
             ),
-            
+
             const PopupMenuDivider(),
-            
+
             // Essential Features
             PopupMenuItem<String>(
               value: 'toggle_hazards',
               child: Row(
                 children: [
                   Icon(
-                    _showHazardLocations ? Icons.check_box : Icons.check_box_outline_blank,
+                    _showHazardLocations
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
                     color: _showHazardLocations ? Colors.red : Colors.grey,
                     size: 16,
                   ),
@@ -2542,8 +2654,11 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
               child: Row(
                 children: [
                   Icon(
-                    _showAirQualityIndicator ? Icons.check_box : Icons.check_box_outline_blank,
-                    color: _showAirQualityIndicator ? Colors.purple : Colors.grey,
+                    _showAirQualityIndicator
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color:
+                        _showAirQualityIndicator ? Colors.purple : Colors.grey,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -2557,15 +2672,16 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
                 ],
               ),
             ),
-            
+
             const PopupMenuDivider(),
-            
+
             // Quick Actions
             PopupMenuItem<String>(
               value: 'center_location',
               child: Row(
                 children: [
-                  Icon(Icons.my_location, color: Colors.green.shade600, size: 16),
+                  Icon(Icons.my_location,
+                      color: Colors.green.shade600, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     'Center Map',
@@ -3147,13 +3263,15 @@ class _WeatherScreenState extends State<WeatherScreen> with TickerProviderStateM
 // Animated legend widget for forecast overlays
 class _ForecastOverlayLegend extends StatefulWidget {
   final ForecastLayer layer;
-  const _ForecastOverlayLegend({Key? key, required this.layer}) : super(key: key);
+  const _ForecastOverlayLegend({Key? key, required this.layer})
+      : super(key: key);
 
   @override
   State<_ForecastOverlayLegend> createState() => _ForecastOverlayLegendState();
 }
 
-class _ForecastOverlayLegendState extends State<_ForecastOverlayLegend> with SingleTickerProviderStateMixin {
+class _ForecastOverlayLegendState extends State<_ForecastOverlayLegend>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -3293,20 +3411,22 @@ class TemperatureGraphPainter extends CustomPainter {
     // Calculate points with 85px width spacing - MASSIVE!
     final points = <Offset>[];
     final fillPath = ui.Path();
-    final hourWidth = size.width / data.length; // This will be 85px per hour - MASSIVE!
-    
+    final hourWidth =
+        size.width / data.length; // This will be 85px per hour - MASSIVE!
+
     for (int i = 0; i < data.length; i++) {
       final temp = data[i]['temp']?.toDouble() ?? 0.0;
       final x = (i * hourWidth) + (hourWidth / 2);
-      
-      final normalizedTemp = effectiveTempRange == 0 ? 0.5 : 
-          (temp - effectiveMinTemp) / effectiveTempRange;
-      
+
+      final normalizedTemp = effectiveTempRange == 0
+          ? 0.5
+          : (temp - effectiveMinTemp) / effectiveTempRange;
+
       // Use MASSIVE height (135px) with optimal padding for ultimate visualization
       final y = size.height * (1 - normalizedTemp) * 0.8 + size.height * 0.1;
-      
+
       points.add(Offset(x, y));
-      
+
       if (i == 0) {
         fillPath.moveTo(x, size.height);
         fillPath.lineTo(x, y);
@@ -3314,7 +3434,7 @@ class TemperatureGraphPainter extends CustomPainter {
         fillPath.lineTo(x, y);
       }
     }
-    
+
     if (points.isNotEmpty) {
       fillPath.lineTo(points.last.dx, size.height);
       fillPath.close();
@@ -3337,11 +3457,14 @@ class TemperatureGraphPainter extends CustomPainter {
           points[i].dx - (points[i].dx - points[i - 1].dx) / 3,
           points[i].dy,
         );
-        
+
         path.cubicTo(
-          controlPoint1.dx, controlPoint1.dy,
-          controlPoint2.dx, controlPoint2.dy,
-          points[i].dx, points[i].dy,
+          controlPoint1.dx,
+          controlPoint1.dy,
+          controlPoint2.dx,
+          controlPoint2.dy,
+          points[i].dx,
+          points[i].dy,
         );
       }
 
@@ -3391,8 +3514,7 @@ class TemperatureGraphPainter extends CustomPainter {
       );
       canvas.drawRRect(
         labelBg,
-        Paint()
-          ..color = Colors.black.withOpacity(0.18),
+        Paint()..color = Colors.black.withOpacity(0.18),
       );
       textPainter.paint(canvas, labelOffset);
     }
