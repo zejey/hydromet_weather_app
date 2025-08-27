@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:weather_hybrid_app/services/auth_service.dart';
 import '../services/user_registration_service.dart';
 import '../services/login_service.dart';
 
@@ -113,6 +114,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       if (result['success'] && mounted) {
         _showSnackBar('Login successful!');
         await UserRegistrationService().login(phone);
+        await AuthManager().initialize();
         Navigator.pushNamedAndRemoveUntil(
             context, '/weather', (route) => false);
       } else {
