@@ -792,6 +792,37 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   void _showNotifications() {
+    if (!_authManager.isLoggedIn) {
+      // User is not logged in, show a dialog/message with a Login button
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Notifications'),
+            content: const Text(
+                'Notifications are not available. Please log in first to view notifications.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.pushNamed(context, '/login');
+                },
+                child: const Text('Login'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (BuildContext context) {
