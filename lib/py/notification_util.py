@@ -21,8 +21,3 @@ def send_event_notification(title, message, notif_type="Warning", status="Active
         'sentTo': sent_to
     }
     db.collection('notifications').add(doc)
-
-title = "may bagyo"
-message = "takbo"
-
-send_event_notification(title, message)
