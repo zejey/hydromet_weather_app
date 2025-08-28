@@ -1,4 +1,3 @@
-// import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,7 +9,6 @@ class LoginService {
 
   static const String _loginKey = 'user_logged_in';
   static const String _usernameKey = 'username';
-  static const String _emailKey = 'email';
   static const String _tokenKey = 'user_token';
   static const String _phoneKey = 'user_phone';
 
@@ -20,7 +18,6 @@ class LoginService {
 
   bool _isLoggedIn = false;
   String _username = '';
-  String _email = '';
   String _token = '';
   String _phoneNumber = '';
   String? _verificationId;
@@ -28,7 +25,6 @@ class LoginService {
   // Getters
   bool get isLoggedIn => _isLoggedIn;
   String get username => _username;
-  String get email => _email;
   String get token => _token;
   String get phoneNumber => _phoneNumber;
   String? get verificationId => _verificationId;
@@ -38,7 +34,6 @@ class LoginService {
     final prefs = await SharedPreferences.getInstance();
     _isLoggedIn = prefs.getBool(_loginKey) ?? false;
     _username = prefs.getString(_usernameKey) ?? '';
-    _email = prefs.getString(_emailKey) ?? '';
     _token = prefs.getString(_tokenKey) ?? '';
     _phoneNumber = prefs.getString(_phoneKey) ?? '';
   }
@@ -172,11 +167,13 @@ class LoginService {
   /// Complete login process after OTP verification
   Future<Map<String, dynamic>> _completeLogin(String phoneNumber) async {
     try {
-      // Get user data from Firestore
-      final userDoc =
-          await _firestore.collection('users').doc(phoneNumber.trim()).get();
+      final query = await _firestore
+          .collection('users')
+          .where('phone_number', isEqualTo: phoneNumber.trim())
+          .limit(1)
+          .get();
 
-      if (!userDoc.exists) {
+      if (query.docs.isEmpty) {
         return {
           'success': false,
           'error': 'User data not found. Please register first.',
@@ -184,20 +181,20 @@ class LoginService {
         };
       }
 
-      final userData = userDoc.data()!;
+      final userDoc = query.docs.first;
+      final userData = userDoc.data();
       final firebaseUser = _auth.currentUser;
 
       // Set login state
       _isLoggedIn = true;
       _username = '${userData['first_name']} ${userData['last_name']}';
-      _email = userData['email'] ?? '';
       _token = firebaseUser?.uid ?? '';
       _phoneNumber = phoneNumber.trim();
 
       // Save to SharedPreferences
       await _saveLoginState();
 
-      // --- ADD THIS: Sync login state with UserRegistrationService ---
+      // Sync login state with UserRegistrationService
       await UserRegistrationService().login(phoneNumber);
 
       return {
@@ -205,12 +202,12 @@ class LoginService {
         'message': 'Login successful!',
         'user': {
           'username': _username,
-          'email': _email,
           'phone': _phoneNumber,
           'first_name': userData['first_name'],
           'last_name': userData['last_name'],
           'house_address': userData['house_address'],
           'barangay': userData['barangay'],
+          'role': userData['role'],
           'firebase_uid': firebaseUser?.uid,
         }
       };
@@ -262,9 +259,12 @@ class LoginService {
   /// Check if user exists by phone number
   Future<String?> findUserByPhone(String phoneNumber) async {
     try {
-      final docSnapshot =
-          await _firestore.collection('users').doc(phoneNumber.trim()).get();
-      return docSnapshot.exists ? phoneNumber.trim() : null;
+      final query = await _firestore
+          .collection('users')
+          .where('phone_number', isEqualTo: phoneNumber.trim())
+          .limit(1)
+          .get();
+      return query.docs.isNotEmpty ? query.docs.first.id : null;
     } catch (e) {
       print('Error finding user by phone: $e');
       return null;
@@ -284,12 +284,11 @@ class LoginService {
 
       _isLoggedIn = true;
       _username = '${userData['first_name']} ${userData['last_name']}';
-      _email = userData['email'] ?? '';
       _phoneNumber = uid; // In this case, uid is the phone number
 
       await _saveLoginState();
 
-      // --- ADD THIS: Sync login state with UserRegistrationService ---
+      // Sync login state with UserRegistrationService
       await UserRegistrationService().login(uid);
 
       return {
@@ -302,28 +301,6 @@ class LoginService {
     }
   }
 
-  /// Verify if current session is valid
-  Future<bool> verifySession() async {
-    if (!_isLoggedIn || _phoneNumber.isEmpty) {
-      return false;
-    }
-
-    try {
-      // Check both Firebase Auth and Firestore
-      final firebaseUser = _auth.currentUser;
-      if (firebaseUser == null) {
-        return false;
-      }
-
-      final userDoc =
-          await _firestore.collection('users').doc(_phoneNumber).get();
-      return userDoc.exists;
-    } catch (e) {
-      print('Error verifying session: $e');
-      return false;
-    }
-  }
-
   /// Refresh user data from Firestore
   Future<Map<String, dynamic>> refreshUserData() async {
     if (!_isLoggedIn || _phoneNumber.isEmpty) {
@@ -331,17 +308,19 @@ class LoginService {
     }
 
     try {
-      final userDoc =
-          await _firestore.collection('users').doc(_phoneNumber).get();
+      final query = await _firestore
+          .collection('users')
+          .where('phone_number', isEqualTo: _phoneNumber)
+          .limit(1)
+          .get();
 
-      if (!userDoc.exists) {
+      if (query.docs.isEmpty) {
         await logout(); // User was deleted, log them out
         return {'success': false, 'error': 'User account no longer exists'};
       }
 
-      final userData = userDoc.data()!;
+      final userData = query.docs.first.data();
       _username = '${userData['first_name']} ${userData['last_name']}';
-      _email = userData['email'] ?? '';
 
       await _saveLoginState();
 
@@ -363,18 +342,16 @@ class LoginService {
 
     _isLoggedIn = false;
     _username = '';
-    _email = '';
     _token = '';
     _phoneNumber = '';
     _verificationId = null;
 
     await prefs.remove(_loginKey);
     await prefs.remove(_usernameKey);
-    await prefs.remove(_emailKey);
     await prefs.remove(_tokenKey);
     await prefs.remove(_phoneKey);
 
-    // --- ADD THIS: Sync logout state with UserRegistrationService ---
+    // Sync logout state with UserRegistrationService
     await UserRegistrationService().logout();
   }
 
@@ -383,7 +360,6 @@ class LoginService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_loginKey, _isLoggedIn);
     await prefs.setString(_usernameKey, _username);
-    await prefs.setString(_emailKey, _email);
     await prefs.setString(_tokenKey, _token);
     await prefs.setString(_phoneKey, _phoneNumber);
   }
