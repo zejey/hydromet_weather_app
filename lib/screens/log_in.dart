@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../services/auth_service.dart';
 
 // Simple authentication state management (keeping for backward compatibility)
 class AuthService {

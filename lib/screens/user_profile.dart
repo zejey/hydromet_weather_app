@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'dart:ui' as ui;
+import 'splash_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -199,8 +198,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(Icons.person, color: Color(0xFF13b464)),
                         SizedBox(width: 8),
                         Text(
@@ -427,11 +426,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              Navigator.pushNamedAndRemoveUntil(
+              // Only clear session/token, NOT isFirstTime
+              // Example: clear your user token or session here
+              // final prefs = await SharedPreferences.getInstance();
+              // await prefs.remove('userToken');
+              Navigator.pushAndRemoveUntil(
                 context,
-                '/',
+                MaterialPageRoute(builder: (context) => SplashScreen()),
                 (route) => false,
               );
             },

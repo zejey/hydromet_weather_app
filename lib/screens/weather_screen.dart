@@ -278,7 +278,7 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // Admin notifications (replace with backend data as needed)
   List<Map<String, dynamic>> notifications = [];
-  bool _notificationsLoading = true;
+  final bool _notificationsLoading = true;
 
   double _getTemperatureIntensity(double temperature) {
     // Normalize temperature to 0-1 scale for heat map intensity
@@ -1056,8 +1056,9 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // Air Quality Index (AQI) indicator - positioned closer to safety indicator and hazard button
   Widget _buildAirQualityIndicator() {
-    if (airData == null || !_showAirQualityIndicator)
+    if (airData == null || !_showAirQualityIndicator) {
       return const SizedBox.shrink();
+    }
 
     final aqi = airData!['list'][0]['main']['aqi'];
     final aqiInfo = _getAQIInfo(aqi);

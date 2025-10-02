@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:weather_hybrid_app/services/auth_service.dart';
 import '../services/user_registration_service.dart';
 import '../services/login_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginFormScreen extends StatefulWidget {
   const LoginFormScreen({super.key});
@@ -22,6 +23,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   bool _isOtpSent = false;
   String _verificationId = '';
   int _resendTimer = 0;
+  String? _phoneErrorText;
+  String? _otpErrorText;
 
   @override
   void dispose() {
@@ -37,17 +40,26 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
     // Validate phone number
     if (phone.isEmpty) {
-      _showSnackBar('Please enter your phone number', isError: true);
+      setState(() {
+        _phoneErrorText = 'Please enter your phone number';
+      });
       return;
     }
     if (phone.length != 11) {
-      _showSnackBar('Phone number must be exactly 11 digits', isError: true);
+      setState(() {
+        _phoneErrorText = 'Phone number must be exactly 11 digits';
+      });
       return;
     }
     if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
-      _showSnackBar('Phone number must contain only digits', isError: true);
+      setState(() {
+        _phoneErrorText = 'Phone number must contain only digits';
+      });
       return;
     }
+    setState(() {
+      _phoneErrorText = null;
+    });
 
     setState(() => _isLoading = true);
 
@@ -96,13 +108,20 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
     // Validate SMS code
     if (code.isEmpty) {
-      _showSnackBar('Please enter the SMS code', isError: true);
+      setState(() {
+        _otpErrorText = 'Please enter the SMS code';
+      });
       return;
     }
     if (code.length != 6) {
-      _showSnackBar('Please enter a valid 6-digit SMS code', isError: true);
+      setState(() {
+        _otpErrorText = 'Please enter a valid 6-digit SMS code';
+      });
       return;
     }
+    setState(() {
+      _otpErrorText = null;
+    });
 
     setState(() => _isLoading = true);
 
@@ -115,6 +134,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
         _showSnackBar('Login successful!');
         await UserRegistrationService().login(phone);
         await AuthManager().initialize();
+        // Set isFirstTime to false after successful OTP verification
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isFirstTime', false);
         Navigator.pushNamedAndRemoveUntil(
             context, '/weather', (route) => false);
       } else {
@@ -378,6 +400,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           prefixIcon:
                               const Icon(Icons.phone, color: Colors.green),
                           counterText: '',
+                          errorText: _phoneErrorText,
                           suffixIcon: _isOtpSent
                               ? IconButton(
                                   icon: const Icon(Icons.edit,
@@ -387,6 +410,11 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                 )
                               : null,
                         ),
+                        onChanged: (_) {
+                          if (_phoneErrorText != null) {
+                            setState(() => _phoneErrorText = null);
+                          }
+                        },
                       ),
 
                       if (_isOtpSent) ...[
@@ -419,7 +447,13 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                             prefixIcon:
                                 const Icon(Icons.sms, color: Colors.green),
                             counterText: '',
+                            errorText: _otpErrorText,
                           ),
+                          onChanged: (_) {
+                            if (_otpErrorText != null) {
+                              setState(() => _otpErrorText = null);
+                            }
+                          },
                         ),
                         const SizedBox(height: 12),
                         Row(

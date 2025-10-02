@@ -7,12 +7,12 @@ import 'screens/user_profile.dart';
 import 'screens/tips_screen.dart';
 import 'screens/hotlines_screen.dart';
 import 'screens/user_settings_screen.dart';
-// import 'screens/community_forum_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/user_registration_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-
+import 'screens/login_form_pincode.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -34,18 +34,19 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
-      initialRoute: '/login',
+      initialRoute: '/mpin-login',
       routes: {
         '/': (context) => const WeatherScreen(),
+        '/splash': (context) => SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/login-form': (context) => const LoginFormScreen(),
+        '/mpin-login': (context) => LoginMPINScreen(),
         '/register': (context) => const UserRegistrationScreen(),
         '/weather': (context) => const WeatherScreen(),
         '/profile': (context) => const UserProfileScreen(),
         '/tips': (context) => const TipsScreen(),
         '/hotlines': (context) => const HotlinesScreen(),
         '/settings': (context) => const UserSettingsScreen(),
-        // '/forum': (context) => const CommunityForumScreen(),
       },
       debugShowCheckedModeBanner: false,
     );
