@@ -4,6 +4,8 @@ import 'login_form.dart';
 import 'login_form_pincode.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -22,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (isFirstTime) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginFormScreen()), // OTP login
+        MaterialPageRoute(builder: (context) => const LoginFormScreen()), // OTP login
       );
     } else {
       Navigator.pushReplacement(
@@ -34,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Center(child: CircularProgressIndicator()),
     );
   }

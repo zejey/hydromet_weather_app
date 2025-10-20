@@ -4,6 +4,8 @@ import '../services/auth_service.dart';
 
 
 class LoginMPINScreen extends StatefulWidget {
+  const LoginMPINScreen({super.key});
+
   @override
   State<LoginMPINScreen> createState() => _LoginMPINScreenState();
 }
@@ -56,7 +58,7 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
       final authManager = AuthManager();
       await authManager.login(_currentPhoneNumber, _currentPhoneNumber);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('MPIN Verified!'), backgroundColor: Colors.green),
+        const SnackBar(content: Text('MPIN Verified!'), backgroundColor: Colors.green),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/weather', (route) => false);
     } else {
@@ -74,7 +76,7 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(
+              title: const Text(
                 'Change Phone Number',
                 style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
               ),
@@ -85,16 +87,16 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
                     children: [
                       // Fixed +63 prefix
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.only(
+                          borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(10),
                             bottomLeft: Radius.circular(10),
                           ),
                         ),
-                        child: Text(
+                        child: const Text(
                           '+63',
                           style: TextStyle(
                             fontSize: 16,
@@ -113,13 +115,13 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
                             hintText: '9XXXXXXXXX',
                             hintStyle: TextStyle(color: Colors.grey.shade400),
                             counterText: '',
-                            border: OutlineInputBorder(
+                            border: const OutlineInputBorder(
                               borderRadius: BorderRadius.only(
                                 topRight: Radius.circular(10),
                                 bottomRight: Radius.circular(10),
                               ),
                             ),
-                            focusedBorder: OutlineInputBorder(
+                            focusedBorder: const OutlineInputBorder(
                               borderRadius: BorderRadius.only(
                                 topRight: Radius.circular(10),
                                 bottomRight: Radius.circular(10),
@@ -142,7 +144,7 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
                   onPressed: errorMessage == null && phoneController.text.length == 10
@@ -163,7 +165,7 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
                     backgroundColor: Colors.green,
                     disabledBackgroundColor: Colors.grey.shade300,
                   ),
-                  child: Text('Update', style: TextStyle(color: Colors.white)),
+                  child: const Text('Update', style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -218,70 +220,70 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NumberButton(
-                child: Text('1', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('1', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('1'),
               ),
               _NumberButton(
-                child: Text('2', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('2', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('2'),
               ),
               _NumberButton(
-                child: Text('3', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('3', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('3'),
               ),
             ],
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           // Row 2: 4, 5, 6
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NumberButton(
-                child: Text('4', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('4', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('4'),
               ),
               _NumberButton(
-                child: Text('5', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('5', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('5'),
               ),
               _NumberButton(
-                child: Text('6', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('6', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('6'),
               ),
             ],
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           // Row 3: 7, 8, 9
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NumberButton(
-                child: Text('7', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('7', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('7'),
               ),
               _NumberButton(
-                child: Text('8', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('8', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('8'),
               ),
               _NumberButton(
-                child: Text('9', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('9', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('9'),
               ),
             ],
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           // Row 4: empty, 0, backspace
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              SizedBox(width: 60, height: 60), // Empty space
+              const SizedBox(width: 60, height: 60), // Empty space
               _NumberButton(
-                child: Text('0', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
+                child: const Text('0', style: TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold)),
                 onTap: () => _onKeyTap('0'),
               ),
               _NumberButton(
-                child: Icon(Icons.backspace, color: Colors.green, size: 28),
                 onTap: _onBackspace,
+                child: Icon(Icons.backspace, color: Colors.green, size: 28),
               ),
             ],
           ),
@@ -409,20 +411,20 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.phone, color: Colors.green, size: 18),
-                            SizedBox(width: 8),
+                            const Icon(Icons.phone, color: Colors.green, size: 18),
+                            const SizedBox(width: 8),
                             Text(
                               _currentPhoneNumber,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.green,
                               ),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             GestureDetector(
                               onTap: _changePhoneNumber,
-                              child: Icon(Icons.edit, color: Colors.green, size: 16),
+                              child: const Icon(Icons.edit, color: Colors.green, size: 16),
                             ),
                           ],
                         ),
@@ -446,11 +448,11 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
                         Text(
                           _mpinErrorText!,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                         ),
                       ],
                       const SizedBox(height: 15),
-                      Container(
+                      SizedBox(
                         height: 320,
                         child: _buildNumberPad(),
                       ),

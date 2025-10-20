@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'log_in.dart'; // Import the LoginScreen
 
 class CreatePinPage extends StatefulWidget {
+  const CreatePinPage({super.key});
+
   @override
   _CreatePinPageState createState() => _CreatePinPageState();
 }
@@ -42,7 +44,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
     setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('PIN Created Successfully!'),
+        content: const Text('PIN Created Successfully!'),
         backgroundColor: Colors.green.shade700,
       ),
     );
@@ -51,7 +53,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
         (route) => false,
       );
     }
@@ -85,8 +87,8 @@ class _CreatePinPageState extends State<CreatePinPage> {
     ];
     return GridView.builder(
       shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
@@ -96,17 +98,17 @@ class _CreatePinPageState extends State<CreatePinPage> {
       itemBuilder: (context, index) {
         final key = keys[index];
         if (key == '') {
-          return SizedBox.shrink();
+          return const SizedBox.shrink();
         } else if (key == '<') {
           return _NumberButton(
-            child: Icon(Icons.backspace, color: Colors.green),
             onTap: _onBackspace,
+            child: Icon(Icons.backspace, color: Colors.green),
           );
         } else {
           return _NumberButton(
             child: Text(
               key,
-              style: TextStyle(fontSize: 24, color: Colors.green, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 24, color: Colors.green, fontWeight: FontWeight.bold),
             ),
             onTap: () => _onKeyTap(key),
           );
@@ -143,7 +145,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
                     color: Colors.white.withOpacity(0.8),
                     shape: BoxShape.circle,
                   ),
-                  child: Center(
+                  child: const Center(
                     child: Icon(Icons.lock, size: 40, color: Colors.green),
                   ),
                 ),
@@ -162,7 +164,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
                   const SizedBox(height: 12),
                   Text(
                     _errorText!,
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                   ),
                 ],
                 const SizedBox(height: 32),

@@ -507,6 +507,7 @@ class _WeatherScreenState extends State<WeatherScreen>
   final bool _showSatelliteLayer = false;
   bool _showRainAnimation = false;
   bool _showHazardLocations = false;
+  bool _showEvacuationCenters = false;
   bool _showAirQualityIndicator = false;
   final bool _showSafetyIndicator = false;
   // --- END ALL REQUIRED FIELDS ---
@@ -949,6 +950,928 @@ class _WeatherScreenState extends State<WeatherScreen>
       'severity': 'high',
       'description':
           'Near West Valley Fault line - earthquake preparedness required for all residents',
+    },
+  ];
+
+  // Evacuation centers in San Pedro, Laguna
+  final List<Map<String, dynamic>> _evacuationCenters = [
+    {
+      'name': 'Rosario Complex Multi-Purpose Evacuation',
+      'location': LatLng(14.336771, 121.048821),
+      'capacity': 400,
+      'families': 80,
+      'type': 'government',
+      'facilities': ['Multi-Purpose Hall', 'Medical', 'Kitchen', 'Communications'],
+      'description': 'Multi-purpose evacuation center with full facilities'
+    },
+    {
+      'name': 'San Pedro Town Center',
+      'location': LatLng(14.3675, 121.0507),
+      'capacity': 200,
+      'families': 40,
+      'type': 'commercial',
+      'facilities': ['Large Space', 'Restrooms', 'Security'],
+      'description': 'Commercial evacuation center in town center area'
+    },
+    {
+      'name': 'City Plaza',
+      'location': LatLng(14.364022, 121.056847),
+      'capacity': 200,
+      'families': 40,
+      'type': 'government',
+      'facilities': ['Open Space', 'Basic Shelter', 'Water'],
+      'description': 'City plaza evacuation area with basic facilities'
+    },
+    {
+      'name': 'CDRRM Complex',
+      'location': LatLng(14.365262, 121.057283),
+      'capacity': 200,
+      'families': 40,
+      'type': 'government',
+      'facilities': ['Emergency Operations', 'Communications', 'Medical', 'Supplies'],
+      'description': 'City Disaster Risk Reduction Management complex'
+    },
+    {
+      'name': 'City Sports Center',
+      'location': LatLng(14.3350, 121.0450),
+      'capacity': 400,
+      'families': 80,
+      'type': 'sports',
+      'facilities': ['Large Sports Hall', 'Restrooms', 'Parking', 'Kitchen'],
+      'description': 'Large capacity sports center for major emergencies'
+    },
+    {
+      'name': 'Barangay Bagong Silang Elementary School',
+      'location': LatLng(14.335576, 121.024305),
+      'capacity': 100,
+      'families': 20,
+      'type': 'school',
+      'facilities': ['Classrooms', 'Basic Shelter', 'Water', 'Restrooms'],
+      'description': 'Elementary school evacuation center in Bagong Silang'
+    },
+    {
+      'name': 'Madrigal Multi-purpose Hall',
+      'location': LatLng(14.335703, 121.026632),
+      'capacity': 40,
+      'families': 8,
+      'type': 'community',
+      'facilities': ['Hall Space', 'Basic Shelter', 'Water'],
+      'description': 'Multi-purpose hall for small group evacuations in Bagong Silang'
+    },
+    {
+      'name': 'Barangay Calendola Covered Court',
+      'location': LatLng(14.342129, 121.034627),
+      'capacity': 485,
+      'families': 83,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Large Space', 'Restrooms', 'Water'],
+      'description': 'Large covered court evacuation center in Calendola'
+    },
+    {
+      'name': 'St. Raymond Homes Club House',
+      'location': LatLng(14.338602, 121.032836),
+      'capacity': 335,
+      'families': 79,
+      'type': 'community',
+      'facilities': ['Club House', 'Meeting Rooms', 'Kitchen', 'Restrooms'],
+      'description': 'Residential club house evacuation center in Calendola'
+    },
+    {
+      'name': 'Chrysanthemum Village Elementary School',
+      'location': LatLng(14.341489, 121.043739),
+      'capacity': 328,
+      'families': 38,
+      'type': 'school',
+      'facilities': ['Classrooms', 'Playground', 'Water', 'Restrooms'],
+      'description': 'Elementary school evacuation center in Chrysanthemum Village'
+    },
+    {
+      'name': 'Pili Street Phase 3 Covered Court',
+      'location': LatLng(14.340336, 121.047576),
+      'capacity': 200,
+      'families': 50,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Basic Shelter', 'Water'],
+      'description': 'Covered court evacuation center in Pili Street Phase 3'
+    },
+    {
+      'name': 'Florentina Street Phase 2 Covered Court',
+      'location': LatLng(14.334357, 121.047518),
+      'capacity': 200,
+      'families': 50,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Basic Shelter', 'Water'],
+      'description': 'Covered court evacuation center in Florentina Street Phase 2'
+    },
+    {
+      'name': 'Cuyab Covered Court',
+      'location': LatLng(14.371669, 121.059093),
+      'capacity': 150,
+      'families': 50,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Basketball Court', 'Basic Shelter', 'Water'],
+      'description': 'Covered court evacuation center in Barangay Cuyab'
+    },
+    {
+      'name': 'Barangay Estrella Session Hall',
+      'location': LatLng(14.335198, 121.013571),
+      'capacity': 50,
+      'families': 20,
+      'type': 'government',
+      'facilities': ['Session Hall', 'Meeting Room', 'Basic Shelter', 'Water'],
+      'description': 'Barangay session hall evacuation center in Estrella'
+    },
+    {
+      'name': 'Estrella Multi-Purpose Hall',
+      'location': LatLng(14.333917, 121.018022),
+      'capacity': 30,
+      'families': 10,
+      'type': 'community',
+      'facilities': ['Multi-Purpose Hall', 'Basic Shelter', 'Water'],
+      'description': 'Community multi-purpose hall in Barangay Estrella'
+    },
+    {
+      'name': 'Barangay Estrella Covered Court',
+      'location': LatLng(14.335153, 121.019765),
+      'capacity': 200,
+      'families': 80,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Large Space', 'Restrooms', 'Water'],
+      'description': 'Large covered court evacuation center in Barangay Estrella'
+    },
+    {
+      'name': 'Elvind Village Covered Court',
+      'location': LatLng(14.311647, 121.032982),
+      'capacity': 48,
+      'families': 12,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Basic Shelter', 'Water'],
+      'description': 'Village covered court evacuation center in Barangay Fatima'
+    },
+    {
+      'name': 'Covered Court Phase 5 Olivarez Homes',
+      'location': LatLng(14.312645, 121.031130),
+      'capacity': 48,
+      'families': 12,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Residential Area', 'Water'],
+      'description': 'Residential covered court in Olivarez Homes Phase 5, Barangay Fatima'
+    },
+    {
+      'name': 'GSIS-HOA Multi-Purpose Center',
+      'location': LatLng(14.349783, 121.041388),
+      'capacity': 60,
+      'families': 20,
+      'type': 'community',
+      'facilities': ['Multi-Purpose Hall', 'Meeting Rooms', 'Kitchen', 'Water'],
+      'description': 'HOA multi-purpose center evacuation facility in Barangay GSIS'
+    },
+    {
+      'name': 'Independence Drive Covered Court',
+      'location': LatLng(14.349992, 121.041402),
+      'capacity': 120,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Large Space', 'Restrooms', 'Water'],
+      'description': 'Covered court evacuation center on Independence Drive, GSIS'
+    },
+    {
+      'name': 'Park View Subdivision Covered Court',
+      'location': LatLng(14.350033, 121.037597),
+      'capacity': 120,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Subdivision Facility', 'Water', 'Parking'],
+      'description': 'Subdivision covered court in Park View, Barangay GSIS'
+    },
+    {
+      'name': 'Easter Circle Ground',
+      'location': LatLng(14.349985, 121.041390),
+      'capacity': 100,
+      'families': 35,
+      'type': 'community',
+      'facilities': ['Open Ground', 'Emergency Assembly Area', 'Water Access'],
+      'description': 'Open ground emergency assembly area near Easter Circle, GSIS'
+    },
+    {
+      'name': 'Barangay Landayan Covered Court',
+      'location': LatLng(14.35226, 121.06768),
+      'capacity': 700,
+      'families': 150,
+      'type': 'sports',
+      'facilities': ['Large Covered Court', 'Restrooms', 'Water', 'Parking'],
+      'description': 'Major covered court evacuation center in Barangay Landayan'
+    },
+    {
+      'name': 'Barangay Landayan Evacuation Center',
+      'location': LatLng(14.35308, 121.06625),
+      'capacity': 250,
+      'families': 50,
+      'type': 'government',
+      'facilities': ['Evacuation Center', 'Medical Bay', 'Kitchen', 'Communications'],
+      'description': 'Dedicated evacuation center facility in Barangay Landayan'
+    },
+    {
+      'name': 'PEA 2A Covered Court',
+      'location': LatLng(14.330897, 121.021147),
+      'capacity': 120,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Basic Shelter', 'Water'],
+      'description': 'PEA subdivision covered court in Barangay Langgam'
+    },
+    {
+      'name': 'PEA 2B Covered Court',
+      'location': LatLng(14.330086, 121.020453),
+      'capacity': 90,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Basic Shelter', 'Water'],
+      'description': 'PEA 2B subdivision covered court in Barangay Langgam'
+    },
+    {
+      'name': 'Alitaptap Half Court',
+      'location': LatLng(14.330115, 121.01931),
+      'capacity': 30,
+      'families': 10,
+      'type': 'sports',
+      'facilities': ['Half Court', 'Basic Shelter', 'Water'],
+      'description': 'Alitaptap area half court evacuation point in Langgam'
+    },
+    {
+      'name': 'Saint Joseph Village 10 Phase 1 Covered Court',
+      'location': LatLng(14.32700, 121.01644),
+      'capacity': 120,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Center', 'Water', 'Restrooms'],
+      'description': 'Village covered court in Saint Joseph Village 10 Phase 1'
+    },
+    {
+      'name': 'Saint Joseph Village 10 Phase 2 Club House',
+      'location': LatLng(14.326996, 121.016323),
+      'capacity': 30,
+      'families': 10,
+      'type': 'community',
+      'facilities': ['Club House', 'Meeting Room', 'Basic Shelter'],
+      'description': 'Village club house in Saint Joseph Village 10 Phase 2'
+    },
+    {
+      'name': 'Saint Joseph Village 10 Phase 3 Club House',
+      'location': LatLng(14.325968, 121.012878),
+      'capacity': 60,
+      'families': 20,
+      'type': 'community',
+      'facilities': ['Club House', 'Meeting Room', 'Kitchen', 'Water'],
+      'description': 'Village club house in Saint Joseph Village 10 Phase 3'
+    },
+    {
+      'name': 'Saint Joseph Village 9 Phase 1 Club House',
+      'location': LatLng(14.328784, 121.017676),
+      'capacity': 15,
+      'families': 5,
+      'type': 'community',
+      'facilities': ['Small Club House', 'Meeting Room', 'Basic Shelter'],
+      'description': 'Village club house in Saint Joseph Village 9 Phase 1'
+    },
+    {
+      'name': 'Barangay Laram Covered Court',
+      'location': LatLng(14.329611, 121.023722),
+      'capacity': 225,
+      'families': 50,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Large Space', 'Restrooms', 'Water'],
+      'description': 'Main covered court evacuation center in Barangay Laram'
+    },
+    {
+      'name': 'Laram Parking Area',
+      'location': LatLng(14.328917, 121.022944),
+      'capacity': 225,
+      'families': 50,
+      'type': 'community',
+      'facilities': ['Open Parking Area', 'Emergency Assembly Point', 'Vehicle Access'],
+      'description': 'Large parking area for emergency assembly in Barangay Laram'
+    },
+    {
+      'name': 'Multi-Purpose Hall Near Argana Compound',
+      'location': LatLng(14.330056, 121.023139),
+      'capacity': 30,
+      'families': 6,
+      'type': 'community',
+      'facilities': ['Multi-Purpose Hall', 'Meeting Room', 'Basic Shelter'],
+      'description': 'Multi-purpose hall near Argana Compound in Barangay Laram'
+    },
+    {
+      'name': 'San Antonio de Padua Chapel',
+      'location': LatLng(14.19463, 121.01276),
+      'capacity': 40,
+      'families': 8,
+      'type': 'religious',
+      'facilities': ['Chapel', 'Shelter', 'Water', 'Community Space'],
+      'description': 'Religious facility evacuation center in Barangay Laram'
+    },
+    {
+      'name': 'Adelina 2 Covered Court Maharlika',
+      'location': LatLng(14.346413, 121.045933),
+      'capacity': 250,
+      'families': 50,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Large Space', 'Restrooms', 'Water'],
+      'description': 'Adelina 2 subdivision covered court in Barangay Maharlika'
+    },
+    {
+      'name': 'Villa Olympia 1A Covered Court',
+      'location': LatLng(14.342981, 121.043327),
+      'capacity': 250,
+      'families': 50,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Villa Complex', 'Water', 'Security'],
+      'description': 'Villa Olympia phase 1A covered court in Barangay Maharlika'
+    },
+    {
+      'name': 'Mercedes Homes Open Court',
+      'location': LatLng(14.349717, 121.046181),
+      'capacity': 150,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Community Space', 'Water', 'Basic Shelter'],
+      'description': 'Mercedes Homes open court evacuation area in Barangay Maharlika'
+    },
+    {
+      'name': 'Harmony Homes Court',
+      'location': LatLng(14.33905, 121.03952),
+      'capacity': 250,
+      'families': 50,
+      'type': 'sports',
+      'facilities': ['Court Facility', 'Residential Complex', 'Water', 'Restrooms'],
+      'description': 'Harmony Homes court evacuation center in Barangay Maharlika'
+    },
+    {
+      'name': 'Purok 2 Covered Court Magsaysay',
+      'location': LatLng(14.336508, 121.033557),
+      'capacity': 600,
+      'families': 200,
+      'type': 'sports',
+      'facilities': ['Large Covered Court', 'Restrooms', 'Water', 'Parking'],
+      'description': 'Major covered court evacuation center in Purok 2, Barangay Magsaysay'
+    },
+    {
+      'name': 'Purok 6 Court Magsaysay',
+      'location': LatLng(14.335962, 121.034522),
+      'capacity': 200,
+      'families': 100,
+      'type': 'sports',
+      'facilities': ['Court Facility', 'Basic Shelter', 'Water'],
+      'description': 'Court evacuation center in Purok 6, Barangay Magsaysay'
+    },
+    {
+      'name': 'Magsaysay Daycare Main',
+      'location': LatLng(14.337873, 121.032947),
+      'capacity': 25,
+      'families': 5,
+      'type': 'government',
+      'facilities': ['Daycare Center', 'Child-Friendly Space', 'Basic Shelter'],
+      'description': 'Main daycare center evacuation point in Barangay Magsaysay'
+    },
+    {
+      'name': 'Magsaysay Daycare Annex',
+      'location': LatLng(14.335735, 121.034522),
+      'capacity': 25,
+      'families': 5,
+      'type': 'government',
+      'facilities': ['Daycare Annex', 'Child-Friendly Space', 'Basic Shelter'],
+      'description': 'Daycare annex evacuation point in Barangay Magsaysay'
+    },
+    {
+      'name': 'BADAC Office Magsaysay',
+      'location': LatLng(14.335735, 121.028453),
+      'capacity': 15,
+      'families': 2,
+      'type': 'government',
+      'facilities': ['Government Office', 'Meeting Room', 'Communications'],
+      'description': 'BADAC office evacuation point in Barangay Magsaysay'
+    },
+    {
+      'name': 'SK Building Magsaysay',
+      'location': LatLng(14.336508, 121.033557),
+      'capacity': 50,
+      'families': 10,
+      'type': 'government',
+      'facilities': ['SK Office', 'Meeting Hall', 'Basic Shelter'],
+      'description': 'Sangguniang Kabataan building evacuation center in Barangay Magsaysay'
+    },
+    {
+      'name': 'Multi-Purpose Hall Purok 2 Magsaysay',
+      'location': LatLng(14.337119, 121.033535),
+      'capacity': 75,
+      'families': 25,
+      'type': 'community',
+      'facilities': ['Multi-Purpose Hall', 'Community Space', 'Kitchen', 'Water'],
+      'description': 'Multi-purpose hall evacuation center in Purok 2, Barangay Magsaysay'
+    },
+    {
+      'name': 'Church Main Road Narra',
+      'location': LatLng(14.331387, 121.026628),
+      'capacity': 300,
+      'families': 25,
+      'type': 'religious',
+      'facilities': ['Church Building', 'Large Hall', 'Kitchen', 'Restrooms'],
+      'description': 'Church evacuation center on Main Road in Barangay Narra'
+    },
+    {
+      'name': 'Narra Covered Court',
+      'location': LatLng(14.331396, 121.026247),
+      'capacity': 100,
+      'families': 15,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Basic Shelter', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Barangay Narra'
+    },
+    {
+      'name': 'Barangay Nueva Covered Court',
+      'location': LatLng(14.358283, 121.057762),
+      'capacity': 500,
+      'families': 20,
+      'type': 'sports',
+      'facilities': ['Large Covered Court', 'Multi-Purpose Space', 'Restrooms', 'Water', 'Parking'],
+      'description': 'Major covered court evacuation center in Barangay Nueva'
+    },
+    {
+      'name': 'Pacita 1 Convention Center',
+      'location': LatLng(14.345044, 121.056026),
+      'capacity': 150,
+      'families': 30,
+      'type': 'commercial',
+      'facilities': ['Convention Hall', 'Meeting Rooms', 'Kitchen', 'Restrooms', 'Parking'],
+      'description': 'Convention center evacuation facility in Barangay Pacita 1'
+    },
+    {
+      'name': 'Pacita 1 Covered Court',
+      'location': LatLng(14.340247, 121.0522),
+      'capacity': 150,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Barangay Pacita 1'
+    },
+    {
+      'name': 'Pacita 2 Multi-Purpose Evacuation Center',
+      'location': LatLng(14.3498, 121.0482),
+      'capacity': 120,
+      'families': 30,
+      'type': 'community',
+      'facilities': ['Multi-Purpose Hall', 'Meeting Rooms', 'Kitchen', 'Restrooms', 'Water'],
+      'description': 'Main multi-purpose evacuation facility in Barangay Pacita 2'
+    },
+    {
+      'name': 'Pacita 2 Covered Court',
+      'location': LatLng(14.3501, 121.0486),
+      'capacity': 160,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Barangay Pacita 2'
+    },
+    {
+      'name': 'South View Homes Open Space/Open Court',
+      'location': LatLng(14.3475, 121.0504),
+      'capacity': 160,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Community Space', 'Water Access'],
+      'description': 'Open space evacuation area in South View Homes, Barangay Pacita 2'
+    },
+    {
+      'name': 'Pacita Square Open Court',
+      'location': LatLng(14.3497, 121.0589),
+      'capacity': 160,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Public Square', 'Water Access'],
+      'description': 'Open court evacuation center at Pacita Square, Barangay Pacita 2'
+    },
+    {
+      'name': 'Pacita 2-C Open Court',
+      'location': LatLng(14.3475, 121.0567),
+      'capacity': 120,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Community Space', 'Water Access'],
+      'description': 'Open court evacuation center in Pacita 2-C area'
+    },
+    {
+      'name': 'Sto. Niño Open Court',
+      'location': LatLng(14.3537, 121.0563),
+      'capacity': 120,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Community Space', 'Water Access'],
+      'description': 'Open court evacuation center near Sto. Niño area, Barangay Pacita 2'
+    },
+    {
+      'name': 'Phase 1 Flamingo Open Court',
+      'location': LatLng(14.3503, 121.0515),
+      'capacity': 80,
+      'families': 20,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Community Space', 'Water Access'],
+      'description': 'Open court evacuation center in Phase 1 Flamingo area, Barangay Pacita 2'
+    },
+    {
+      'name': 'Pacita 2 Elementary School',
+      'location': LatLng(14.3496, 121.0478),
+      'capacity': 240,
+      'families': 60,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Elementary school evacuation center in Barangay Pacita 2'
+    },
+    {
+      'name': 'Poblacion Covered Court',
+      'location': LatLng(14.362926, 121.058856),
+      'capacity': 50,
+      'families': 10,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Barangay Poblacion'
+    },
+    {
+      'name': 'Central Elem School Covered Court Poblacion',
+      'location': LatLng(14.363018, 121.058759),
+      'capacity': 100,
+      'families': 20,
+      'type': 'educational',
+      'facilities': ['School Covered Court', 'Classrooms', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Central Elementary School covered court evacuation center in Barangay Poblacion'
+    },
+    {
+      'name': 'SM San Pedro',
+      'location': LatLng(14.333950, 121.028111),
+      'capacity': 120,
+      'families': 25,
+      'type': 'commercial',
+      'facilities': ['Shopping Mall', 'Large Spaces', 'Food Court', 'Restrooms', 'Water', 'Parking'],
+      'description': 'SM San Pedro shopping mall evacuation center in Barangay Riverside'
+    },
+    {
+      'name': 'Barangay Hall Covered Court Riverside',
+      'location': LatLng(14.335008, 121.028755),
+      'capacity': 75,
+      'families': 15,
+      'type': 'government',
+      'facilities': ['Covered Court', 'Barangay Office', 'Meeting Hall', 'Restrooms', 'Water'],
+      'description': 'Barangay Hall covered court evacuation center in Barangay Riverside'
+    },
+    {
+      'name': 'Roof Top Barangay Hall Riverside',
+      'location': LatLng(14.334936, 121.028569),
+      'capacity': 50,
+      'families': 10,
+      'type': 'government',
+      'facilities': ['Rooftop Space', 'Open Area', 'Water Access', 'Emergency Shelter'],
+      'description': 'Rooftop evacuation area at Barangay Hall in Barangay Riverside'
+    },
+    {
+      'name': 'Covered Court at Rosario Complex',
+      'location': LatLng(14.336360, 121.048521),
+      'capacity': 200,
+      'families': 150,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Complex Facilities', 'Restrooms', 'Water', 'Parking'],
+      'description': 'Covered court evacuation center at Rosario Complex in Barangay Rosario'
+    },
+    {
+      'name': 'Rosario Evacuation Center',
+      'location': LatLng(14.336771, 121.048821),
+      'capacity': 400,
+      'families': 150,
+      'type': 'community',
+      'facilities': ['Dedicated Evacuation Center', 'Large Hall', 'Kitchen', 'Restrooms', 'Water', 'Emergency Supplies'],
+      'description': 'Main evacuation center in Barangay Rosario'
+    },
+    {
+      'name': 'Rosario Elementary School',
+      'location': LatLng(14.336067, 121.048325),
+      'capacity': 400,
+      'families': 150,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Elementary school evacuation center in Barangay Rosario'
+    },
+    {
+      'name': 'Sampaguita Covered Court',
+      'location': LatLng(14.344471, 121.035574),
+      'capacity': 1000,
+      'families': 200,
+      'type': 'sports',
+      'facilities': ['Large Covered Court', 'Community Space', 'Restrooms', 'Water', 'Parking'],
+      'description': 'Major covered court evacuation center in Barangay Sampaguita'
+    },
+    {
+      'name': 'Villa Rita Basketball Court',
+      'location': LatLng(14.34214, 121.034064),
+      'capacity': 200,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Basketball Court', 'Open Space', 'Water Access'],
+      'description': 'Basketball court evacuation center in Villa Rita, Barangay Sampaguita'
+    },
+    {
+      'name': 'Filinvest South Peak Open Space',
+      'location': LatLng(14.345251, 121.034064),
+      'capacity': 20,
+      'families': 4,
+      'type': 'open',
+      'facilities': ['Open Space', 'Community Area'],
+      'description': 'Open space evacuation area in Filinvest South Peak, Barangay Sampaguita'
+    },
+    {
+      'name': 'Barangay Tennis Court Sampaguita',
+      'location': LatLng(14.344585, 121.035115),
+      'capacity': 200,
+      'families': 40,
+      'type': 'sports',
+      'facilities': ['Tennis Court', 'Sports Complex', 'Water Access'],
+      'description': 'Tennis court evacuation center in Barangay Sampaguita'
+    },
+    {
+      'name': 'Purok Manggahan Entrance',
+      'location': LatLng(14.343982, 121.033049),
+      'capacity': 200,
+      'families': 40,
+      'type': 'community',
+      'facilities': ['Community Entrance Area', 'Open Space', 'Water Access'],
+      'description': 'Evacuation center at Purok Manggahan entrance in Barangay Sampaguita'
+    },
+    {
+      'name': 'Villa Fatima Open Space',
+      'location': LatLng(14.347038, 121.037212),
+      'capacity': 200,
+      'families': 40,
+      'type': 'open',
+      'facilities': ['Open Space', 'Community Area', 'Water Access'],
+      'description': 'Open space evacuation area in Villa Fatima, Barangay Sampaguita'
+    },
+    {
+      'name': 'Jaka Basketball Covered Court',
+      'location': LatLng(14.342086, 121.03053),
+      'capacity': 350,
+      'families': 70,
+      'type': 'sports',
+      'facilities': ['Covered Basketball Court', 'Sports Facility', 'Restrooms', 'Water'],
+      'description': 'Covered basketball court evacuation center in Jaka area, Barangay Sampaguita'
+    },
+    {
+      'name': 'New Barangay Hall San Antonio',
+      'location': LatLng(14.36702, 121.056266),
+      'capacity': 100,
+      'families': 20,
+      'type': 'government',
+      'facilities': ['Barangay Hall', 'Meeting Rooms', 'Office Space', 'Restrooms', 'Water'],
+      'description': 'New Barangay Hall evacuation center in Barangay San Antonio'
+    },
+    {
+      'name': 'San Antonio Elementary School',
+      'location': LatLng(14.36752, 121.05674),
+      'capacity': 350,
+      'families': 70,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Elementary school evacuation center in Barangay San Antonio'
+    },
+    {
+      'name': 'Greatland Covered Court',
+      'location': LatLng(14.350823, 121.050964),
+      'capacity': 150,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Greatland area, Barangay San Lorenzo Ruiz'
+    },
+    {
+      'name': 'Compil 1 Covered Court',
+      'location': LatLng(14.350823, 121.050964),
+      'capacity': 150,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Compil 1 area, Barangay San Lorenzo Ruiz'
+    },
+    {
+      'name': 'Pacita 2B Covered Court',
+      'location': LatLng(14.350823, 121.050964),
+      'capacity': 150,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Pacita 2B area, Barangay San Lorenzo Ruiz'
+    },
+    {
+      'name': 'Pacita 2A Open Court',
+      'location': LatLng(14.351575, 121.052678),
+      'capacity': 150,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Community Space', 'Water Access'],
+      'description': 'Open court evacuation center in Pacita 2A area, Barangay San Lorenzo Ruiz'
+    },
+    {
+      'name': 'Guevarra Subdivision Open Court',
+      'location': LatLng(14.350856, 121.052949),
+      'capacity': 150,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Open Court', 'Community Space', 'Water Access'],
+      'description': 'Open court evacuation center in Guevarra Subdivision, Barangay San Lorenzo Ruiz'
+    },
+    {
+      'name': 'Covered Court at San Roque near Barangay Hall',
+      'location': LatLng(14.36648667, 121.06171000),
+      'capacity': 400,
+      'families': 80,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Near Barangay Hall', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center near Barangay Hall in Barangay San Roque'
+    },
+    {
+      'name': 'San Roque Elementary School',
+      'location': LatLng(14.36656167, 121.06183000),
+      'capacity': 400,
+      'families': 80,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Elementary school evacuation center in Barangay San Roque'
+    },
+    {
+      'name': 'Barangay Hall Sto. Niño',
+      'location': LatLng(14.36680, 121.05786),
+      'capacity': 32,
+      'families': 8,
+      'type': 'government',
+      'facilities': ['Barangay Hall', 'Meeting Rooms', 'Office Space', 'Restrooms', 'Water'],
+      'description': 'Barangay Hall evacuation center in Barangay Sto. Niño'
+    },
+    {
+      'name': 'Sto Niño Elementary School',
+      'location': LatLng(14.36783, 121.05929),
+      'capacity': 264,
+      'families': 66,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Elementary school evacuation center in Barangay Sto. Niño'
+    },
+    {
+      'name': 'Laguerta Covered Court',
+      'location': LatLng(14.361557, 121.052334),
+      'capacity': 60,
+      'families': 12,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Laguerta area, Barangay San Vicente'
+    },
+    {
+      'name': 'San Vicente Elementary School',
+      'location': LatLng(14.359762, 121.056009),
+      'capacity': 250,
+      'families': 50,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Elementary school evacuation center in Barangay San Vicente'
+    },
+    {
+      'name': 'Isolation Facility at Old Barangay Hall San Vicente',
+      'location': LatLng(14.357331, 121.048288),
+      'capacity': 50,
+      'families': 10,
+      'type': 'government',
+      'facilities': ['Isolation Facility', 'Old Barangay Hall', 'Medical Support', 'Restrooms', 'Water'],
+      'description': 'Isolation facility at old Barangay Hall in Barangay San Vicente'
+    },
+    {
+      'name': 'San Isidro Village Elementary School',
+      'location': LatLng(14.342375, 121.0235988),
+      'capacity': 200,
+      'families': 40,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Elementary school evacuation center in San Isidro Village, Barangay San Vicente'
+    },
+    {
+      'name': 'San Isidro Labrador Chapel',
+      'location': LatLng(14.323624, 121.0235766),
+      'capacity': 60,
+      'families': 12,
+      'type': 'religious',
+      'facilities': ['Chapel', 'Religious Hall', 'Community Space', 'Water'],
+      'description': 'Chapel evacuation center in San Isidro Labrador area, Barangay San Vicente'
+    },
+    {
+      'name': 'Sitio Bagong Pag-asa Covered Court',
+      'location': LatLng(14.33340, 121.03003),
+      'capacity': 50,
+      'families': 10,
+      'type': 'sports',
+      'facilities': ['Covered Court', 'Community Space', 'Water', 'Restrooms'],
+      'description': 'Covered court evacuation center in Sulo Bayang Pag-asa area, Barangay UB'
+    },
+    {
+      'name': 'Laguna Resettlement School',
+      'location': LatLng(14.33359, 121.03003),
+      'capacity': 350,
+      'families': 70,
+      'type': 'educational',
+      'facilities': ['Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water', 'Playground'],
+      'description': 'Resettlement school evacuation center in Barangay UB'
+    },
+    {
+      'name': 'Dreamland Heights Subdivision Court',
+      'location': LatLng(14.33611, 121.02971),
+      'capacity': 50,
+      'families': 10,
+      'type': 'sports',
+      'facilities': ['Subdivision Court', 'Community Space', 'Water Access'],
+      'description': 'Subdivision court evacuation center in Dreamland Heights, Barangay UB'
+    },
+    {
+      'name': 'PUP School UB',
+      'location': LatLng(14.33447, 121.02923),
+      'capacity': 250,
+      'families': 50,
+      'type': 'educational',
+      'facilities': ['University Facilities', 'Classrooms', 'Gymnasium', 'Cafeteria', 'Restrooms', 'Water'],
+      'description': 'PUP school evacuation center in Barangay UB'
+    },
+    {
+      'name': 'SM San Pedro UB',
+      'location': LatLng(14.33424, 121.02844),
+      'capacity': 500,
+      'families': 100,
+      'type': 'commercial',
+      'facilities': ['Shopping Mall', 'Large Spaces', 'Food Court', 'Restrooms', 'Water', 'Parking'],
+      'description': 'SM San Pedro shopping mall evacuation center in Barangay UB'
+    },
+    {
+      'name': 'Barangay UB Daycare',
+      'location': LatLng(14.33406, 121.02995),
+      'capacity': 20,
+      'families': 4,
+      'type': 'educational',
+      'facilities': ['Daycare Center', 'Childcare Facilities', 'Water', 'Restrooms'],
+      'description': 'Daycare center evacuation facility in Barangay UB'
+    },
+    {
+      'name': 'Rosa 1 Court',
+      'location': LatLng(14.33672, 121.02955),
+      'capacity': 30,
+      'families': 6,
+      'type': 'sports',
+      'facilities': ['Community Court', 'Open Space', 'Water Access'],
+      'description': 'Community court evacuation center in Roza 1 area, Barangay UB'
+    },
+    {
+      'name': 'Rosa 2 Court',
+      'location': LatLng(14.33716, 121.02916),
+      'capacity': 15,
+      'families': 3,
+      'type': 'sports',
+      'facilities': ['Community Court', 'Open Space', 'Water Access'],
+      'description': 'Community court evacuation center in Roza 2 area, Barangay UB'
+    },
+    {
+      'name': 'Zone 4 Multi-purpose Hall',
+      'location': LatLng(14.33365, 121.02916),
+      'capacity': 30,
+      'families': 6,
+      'type': 'community',
+      'facilities': ['Multi-purpose Hall', 'Community Space', 'Meeting Room', 'Water', 'Restrooms'],
+      'description': 'Multi-purpose hall evacuation center in Purok 4, Barangay UB'
+    },
+    {
+      'name': 'Barangay Basketball Court UBL',
+      'location': LatLng(14.337377, 121.023778),
+      'capacity': 100,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Basketball Court', 'Open Space', 'Water Access'],
+      'description': 'Basketball court evacuation center in Barangay United Better Living (UBL)'
+    },
+    {
+      'name': 'Southern Heights II Open Basketball Court',
+      'location': LatLng(14.337196, 121.023672),
+      'capacity': 100,
+      'families': 30,
+      'type': 'sports',
+      'facilities': ['Open Basketball Court', 'Block 3A Area', 'Community Space', 'Water Access'],
+      'description': 'Open basketball court evacuation center in Southern Heights II Blk 3A, Barangay UBL'
+    },
+    {
+      'name': 'Barangay Health Center/Day Care Center UBL',
+      'location': LatLng(14.337518, 121.02377),
+      'capacity': 25,
+      'families': 8,
+      'type': 'medical',
+      'facilities': ['Health Center', 'Day Care Center', 'Medical Facilities', 'Restrooms', 'Water'],
+      'description': 'Health center and day care evacuation facility in Barangay UBL'
     },
   ];
 
@@ -1895,6 +2818,10 @@ class _WeatherScreenState extends State<WeatherScreen>
                                                       // Hazard location markers
                                                       if (_showHazardLocations)
                                                         ..._buildHazardMarkers(),
+
+                                                      // Evacuation center markers
+                                                      if (_showEvacuationCenters)
+                                                        ..._buildEvacuationCenterMarkers(),
                                                     ],
                                                   ),
 
@@ -2527,6 +3454,169 @@ class _WeatherScreenState extends State<WeatherScreen>
     }
   }
 
+  List<Marker> _buildEvacuationCenterMarkers() {
+    if (!_showEvacuationCenters) return [];
+
+    return _evacuationCenters.map((center) {
+      return Marker(
+        width: 32.0,
+        height: 32.0,
+        point: center['location'] as LatLng,
+        builder: (ctx) => Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              _onEvacuationCenterTap(center);
+            },
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.green.shade600,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.home_work,
+                color: Colors.white,
+                size: 14,
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  Color _getEvacuationCenterColor(String type) {
+    // Use consistent green color for all evacuation centers
+    return Colors.green.shade600;
+  }
+
+  IconData _getEvacuationCenterIcon(String type) {
+    // Use consistent evacuation center icon for all types
+    return Icons.home_work;
+  }
+
+  void _onEvacuationCenterTap(Map<String, dynamic> center) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                _getEvacuationCenterIcon(center['type']),
+                color: _getEvacuationCenterColor(center['type']),
+                size: 28,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  center['name'],
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildInfoRow('Type', center['type'].toString().toUpperCase()),
+                const SizedBox(height: 8),
+                _buildInfoRow('Capacity', '${center['capacity']} individuals'),
+                const SizedBox(height: 8),
+                _buildInfoRow('Families', '${center['families']} families'),
+                const SizedBox(height: 8),
+                _buildInfoRow('Description', center['description']),
+                const SizedBox(height: 12),
+                const Text(
+                  'Available Facilities:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...center['facilities'].map<Widget>((facility) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(facility),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Add navigation functionality here if needed
+                _showSnackBar('Directions to ${center['name']} would open here');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _getEvacuationCenterColor(center['type']),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Get Directions'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(value),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMapControls() {
     return Positioned(
       top: 16,
@@ -2682,6 +3772,28 @@ class _WeatherScreenState extends State<WeatherScreen>
               ),
             ),
             PopupMenuItem<String>(
+              value: 'toggle_evacuation',
+              child: Row(
+                children: [
+                  Icon(
+                    _showEvacuationCenters
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color: _showEvacuationCenters ? Colors.green : Colors.grey,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Row(
+                    children: [
+                      Icon(Icons.home, size: 14, color: Colors.green),
+                      SizedBox(width: 4),
+                      Text('Evacuation Centers'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem<String>(
               value: 'toggle_air_quality',
               child: Row(
                 children: [
@@ -2745,6 +3857,13 @@ class _WeatherScreenState extends State<WeatherScreen>
                 _showSnackBar(_showHazardLocations
                     ? 'Hazard locations shown'
                     : 'Hazard locations hidden');
+              }
+              // Handle evacuation centers
+              else if (value == 'toggle_evacuation') {
+                _showEvacuationCenters = !_showEvacuationCenters;
+                _showSnackBar(_showEvacuationCenters
+                    ? 'Evacuation centers shown'
+                    : 'Evacuation centers hidden');
               }
               // Handle air quality
               else if (value == 'toggle_air_quality') {

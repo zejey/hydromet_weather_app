@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
-      initialRoute: '/mpin-login',
+      initialRoute: '/weather',
       routes: {
         '/': (context) => const WeatherScreen(),
         '/splash': (context) => SplashScreen(),
