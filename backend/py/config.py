@@ -1,5 +1,4 @@
 # config.py
-# Super demo-friendly hazard thresholds
 HAZARD_THRESHOLDS = {
     "precipitation_mm": [10, 30, 60, 100],     # More realistic for heavy/extreme in PH
     "wind_speed_ms": [10, 15, 20, 25],         # Strong/very strong/extr. wind
@@ -7,10 +6,10 @@ HAZARD_THRESHOLDS = {
     "pressure_hpa": [995, 1000, 1005, 1008]    # Cyclone-level is <1000, normal >1006
 }
 
-# Model config (unchanged)
+# Model config
 MODEL_CONFIG = {
     "random_state": 42,
-    "selector_k": 12,
+    "selector_k": 18,
     "test_size": 0.2,
     "cv_splits": 5,
     "nb_var_smoothing": 1e-9,
