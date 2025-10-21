@@ -17,6 +17,8 @@ migrate_working_dir/
 *.gitignore
 *android/app/build
 .env
+backend/py/model.pkl
+backend/py/model_metadata.json
 
 # IntelliJ related
 *.iml
