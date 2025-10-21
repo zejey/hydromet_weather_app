@@ -16,6 +16,7 @@ migrate_working_dir/
 *lib/py/balanced_training_data.csv
 *.gitignore
 *android/app/build
+.env
 
 # IntelliJ related
 *.iml
