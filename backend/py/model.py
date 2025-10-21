@@ -9,18 +9,19 @@ from sklearn.model_selection import train_test_split, TimeSeriesSplit, cross_val
 from sklearn.preprocessing import PowerTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest, mutual_info_classif, f_classif
+from sklearn.metrics import classification_report
+from imblearn.over_sampling import SMOTE
 
 from config import HAZARD_THRESHOLDS, MODEL_CONFIG, MODEL_PATH, METADATA_PATH
 from hazard_type_mapping import determine_hazard_type
 from notification_mapping import hazard_notification_templates
 from notification_util import send_event_notification
+
 # ----------- Feature Engineering & Hazard Scoring -----------
 
 def hazard_score(row, thresholds=HAZARD_THRESHOLDS, explain=False):
     score = 0.0
     hazards = []
-
-        
 
     # Precipitation
     prcp = (
@@ -29,7 +30,10 @@ def hazard_score(row, thresholds=HAZARD_THRESHOLDS, explain=False):
         else row.get("precipitation", row.get("prcp", 0)) or 0
     )
 
-    if prcp >= thresholds["precipitation_mm"][2]:
+    if prcp >= thresholds["precipitation_mm"][3]:  # Extreme
+        score += 4
+        hazards.append("extreme rain")
+    elif prcp >= thresholds["precipitation_mm"][2]:
         score += 3
         hazards.append("heavy rain")
     elif prcp >= thresholds["precipitation_mm"][1]:
@@ -43,7 +47,10 @@ def hazard_score(row, thresholds=HAZARD_THRESHOLDS, explain=False):
     wind = (
         row.get("wind_speed", row.get("wind", {}).get("speed", row.get("wspd", 0))) or 0
     )
-    if wind >= thresholds["wind_speed_ms"][2]:
+    if wind >= thresholds["wind_speed_ms"][3]:  # Extreme
+        score += 3
+        hazards.append("extreme wind")
+    elif wind >= thresholds["wind_speed_ms"][2]:
         score += 2.5
         hazards.append("very strong wind")
     elif wind >= thresholds["wind_speed_ms"][1]:
@@ -57,9 +64,12 @@ def hazard_score(row, thresholds=HAZARD_THRESHOLDS, explain=False):
     tmax = (
         row.get("temp_max", row.get("main", {}).get("temp_max", row.get("tmax", row.get("temperature", row.get("temp", 0)))))
     )
-    if tmax >= thresholds["temp_heat_c"][2]:
-        score += 2.5
+    if tmax >= thresholds["temp_heat_c"][3]:  # Extreme
+        score += 3
         hazards.append("extreme heat")
+    elif tmax >= thresholds["temp_heat_c"][2]:
+        score += 2.5
+        hazards.append("very extreme heat")
     elif tmax >= thresholds["temp_heat_c"][1]:
         score += 1.5
         hazards.append("very hot")
@@ -76,13 +86,18 @@ def hazard_score(row, thresholds=HAZARD_THRESHOLDS, explain=False):
     except:
         pres = 1013
 
-    print("DEBUG: pres value is", pres, "type:", type(pres))
-    if pres < thresholds["pressure_hpa"][0]:
-        score += 2
+    if pres < thresholds["pressure_hpa"][3]:  # Cyclone-level
+        score += 3
+        hazards.append("cyclone pressure")
+    elif pres < thresholds["pressure_hpa"][2]:
+        score += 2.5
         hazards.append("very low pressure")
     elif pres < thresholds["pressure_hpa"][1]:
-        score += 1
+        score += 1.5
         hazards.append("low pressure")
+    elif pres < thresholds["pressure_hpa"][0]:
+        score += 1
+        hazards.append("moderate low pressure")
 
     # Combination (storm)
     if prcp >= thresholds["precipitation_mm"][1] and wind >= thresholds["wind_speed_ms"][1]:
@@ -107,10 +122,10 @@ def engineer_features(df):
     df = df.rename(columns=col_map)
 
     # Ensure all expected columns exist and are numeric
-    for col in ["temperature", "temp_min", "temp_max", "precipitation", "wind_speed", "wind_gust", "wind_direction", "pressure"]:
+    for col in ["temperature", "temp_min", "temp_max", "precipitation", "wind_speed", "wind_gust", "wind_direction", "pressure", "humidity"]:
         if col not in df.columns:
-            df[col] = df["temperature"] if col in ["temp_max", "temp_min"] and "temperature" in df.columns else 0
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+            df[col] = df["temperature"] if col in ["temp_max", "temp_min"] and "temperature" in df.columns else (60 if col == "humidity" else 0)
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(60 if col == "humidity" else 0)
 
     # Robust timestamp handling
     if "date" in df.columns:
@@ -120,6 +135,9 @@ def engineer_features(df):
     else:
         df["timestamp"] = pd.Timestamp.now()
 
+    # Sort by timestamp for rolling features
+    df = df.sort_values("timestamp")
+
     # Derived features
     df["temp_range"] = df["temp_max"] - df["temp_min"]
     df["day_of_year"] = df["timestamp"].dt.dayofyear
@@ -127,10 +145,18 @@ def engineer_features(df):
     df["season"] = ((df["month"] % 12 + 3) // 3)
     df["is_weekend"] = (df["timestamp"].dt.weekday >= 5).astype(int)
 
+    # Use real humidity if available, else estimate
     df["humidity_est"] = np.clip(60 + (df["precipitation"] * 10) - (df["temperature"] - 20) * 2, 0, 100)
+    df["humidity"] = df.get("humidity", df["humidity_est"])  # Prefer real humidity
     df["heat_index"] = np.where(df["temperature"] > 25,
-                                df["temperature"] + 0.5 * (df["humidity_est"] - 10),
+                                df["temperature"] + 0.5 * (df["humidity"] - 10),
                                 df["temperature"])
+
+    # Rolling features for trends (3-day averages)
+    df["precip_rolling_3"] = df["precipitation"].rolling(3, min_periods=1).mean()
+    df["temp_rolling_3"] = df["temperature"].rolling(3, min_periods=1).mean()
+    df["wind_rolling_3"] = df["wind_speed"].rolling(3, min_periods=1).mean()
+
     return df
 
 def get_feature_columns(df):
@@ -160,13 +186,22 @@ def train_from_csv(csv_path):
     X = df[feature_cols].values
     y = df["event"].values
 
+    # Handle imbalance with SMOTE if events < 30%
+    event_rate = np.mean(y)
+    if event_rate < 0.3:
+        print(f"Dataset imbalanced (event rate: {event_rate:.2%}), applying SMOTE")
+        smote = SMOTE(random_state=MODEL_CONFIG["random_state"])
+        X, y = smote.fit_resample(X, y)
+
     # Adjust selector_k if needed
     selector_k = min(MODEL_CONFIG["selector_k"], X.shape[1])
     score_func = mutual_info_classif if MODEL_CONFIG["use_mutual_info"] else f_classif
+    # Set priors for NB to balance
+    priors = [1 - event_rate, event_rate] if event_rate > 0 else None
     pipeline = Pipeline([
         ("scaler", PowerTransformer(method="yeo-johnson", standardize=True)),
         ("selector", SelectKBest(score_func, k=selector_k)),
-        ("classifier", GaussianNB(var_smoothing=MODEL_CONFIG["nb_var_smoothing"]))
+        ("classifier", GaussianNB(var_smoothing=MODEL_CONFIG["nb_var_smoothing"], priors=priors))
     ])
 
     # Train/test split
@@ -177,18 +212,20 @@ def train_from_csv(csv_path):
     pipeline.fit(X_train, y_train)
 
     # Evaluation
-    acc = pipeline.score(X_test, y_test)
     y_pred = pipeline.predict(X_test)
+    acc = pipeline.score(X_test, y_test)
+    report = classification_report(y_test, y_pred, output_dict=True)
     confusion = pd.crosstab(y_test, y_pred, rownames=["Actual"], colnames=["Predicted"])
-    # Cross-validation
+    # Cross-validation with F1
     tscv = TimeSeriesSplit(n_splits=MODEL_CONFIG["cv_splits"])
-    cv_scores = cross_val_score(pipeline, X_train, y_train, cv=tscv, scoring="accuracy")
+    cv_scores = cross_val_score(pipeline, X_train, y_train, cv=tscv, scoring="f1")
 
     # Save model + metadata
     joblib.dump(pipeline, MODEL_PATH)
     meta = {
         "feature_columns": feature_cols,
         "accuracy": acc,
+        "classification_report": report,
         "confusion_matrix": confusion.to_dict(),
         "cv_mean": float(np.mean(cv_scores)),
         "cv_std": float(np.std(cv_scores)),
@@ -211,13 +248,12 @@ def predict_from_features(features_dict):
     df = engineer_features(df)
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0.0
+            df[col] = 60.0 if col == "humidity" else 0.0
     X = df[feature_cols].values
 
     pred = pipeline.predict(X)[0]
     proba = pipeline.predict_proba(X)[0].tolist()
 
-    print("DEBUG: hazard_score input dict:", df.iloc[0].to_dict())
     event, hazards = hazard_score(features_dict, explain=True)
     hazard_type = determine_hazard_type(hazards) if event else "None"
 
@@ -232,7 +268,7 @@ def predict_from_features(features_dict):
             message=template["message"],
             notif_type="Warning",
             status="Active",
-            sent_to=0 # Or set appropriately
+            sent_to=0
         )
 
     return {
@@ -258,6 +294,7 @@ def features_from_openweather_json(weather_json):
         "temp_min": main.get("temp_min", main.get("temp", 25)),
         "temp_max": main.get("temp_max", main.get("temp", 25)),
         "pressure": main.get("pressure", 1013),
+        "humidity": main.get("humidity", 60),  # Added for consistency
         "wind_speed": wind.get("speed", 0),
         "wind_gust": wind.get("gust", wind.get("speed", 0)),
         "wind_direction": wind.get("deg", 180),
@@ -265,4 +302,3 @@ def features_from_openweather_json(weather_json):
         "timestamp": timestamp
     }
     return features
-
