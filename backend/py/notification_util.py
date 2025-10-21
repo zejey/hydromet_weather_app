@@ -3,7 +3,7 @@ from datetime import datetime
 import pytz
 import os
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "weather-app-e40b4-9a892c181935.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-key.json"
 
 def send_event_notification(title, message, notif_type="Warning", status="Active", sent_to=0, dt=None):
     """
