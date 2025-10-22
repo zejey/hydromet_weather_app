@@ -508,6 +508,7 @@ class _WeatherScreenState extends State<WeatherScreen>
   bool _showRainAnimation = false;
   bool _showHazardLocations = false;
   bool _showEvacuationCenters = false;
+  bool _showGovernmentAgencies = false;
   bool _showAirQualityIndicator = false;
   final bool _showSafetyIndicator = false;
   // --- END ALL REQUIRED FIELDS ---
@@ -904,8 +905,7 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'Barangay Riverside - Flood Risk',
       'type': 'flood',
-      'location':
-          LatLng(14.3450, 121.0580), // Adjusted to better lakefront position
+      'location': LatLng(14.334500, 121.028400), // Aligned with SM San Pedro and Riverside evacuation centers
       'severity': 'high',
       'description':
           'High flood risk during heavy rainfall and typhoons due to proximity to Laguna de Bay',
@@ -913,7 +913,7 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'Barangay San Vicente - Landslide Risk',
       'type': 'landslide',
-      'location': LatLng(14.3300, 121.0380), // Moved to hillier area
+      'location': LatLng(14.357300, 121.048300), // Aligned with San Vicente Isolation Facility coordinates
       'severity': 'medium',
       'description':
           'Moderate landslide risk on steep slopes in hillside areas',
@@ -921,8 +921,7 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'Pacita Complex - Heat Island',
       'type': 'heat',
-      'location':
-          LatLng(14.3189, 121.0401), // Keep original position - this is correct
+      'location': LatLng(14.349700, 121.058900), // Aligned with Pacita Square area
       'severity': 'medium',
       'description':
           'Urban heat island effect during summer months in dense residential area',
@@ -930,7 +929,7 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'Barangay Landayan - Air Quality',
       'type': 'air_pollution',
-      'location': LatLng(14.3380, 121.0450), // Moved closer to main roads
+      'location': LatLng(14.352600, 121.067000), // Aligned with Landayan evacuation centers
       'severity': 'medium',
       'description':
           'Elevated air pollution levels from commercial activities and heavy traffic',
@@ -938,7 +937,7 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'Barangay Poblacion - Storm Surge',
       'type': 'storm_surge',
-      'location': LatLng(14.3364, 121.0423), // Keep original - city center
+      'location': LatLng(14.363000, 121.058800), // Aligned with Poblacion Covered Court
       'severity': 'high',
       'description':
           'High storm surge risk during typhoons affecting central low-lying areas',
@@ -946,7 +945,7 @@ class _WeatherScreenState extends State<WeatherScreen>
     {
       'name': 'West Valley Fault Zone - Earthquake Risk',
       'type': 'earthquake',
-      'location': LatLng(14.3280, 121.0350), // Adjusted to western fault area
+      'location': LatLng(14.344500, 121.035600), // Positioned in Sampaguita area along fault line
       'severity': 'high',
       'description':
           'Near West Valley Fault line - earthquake preparedness required for all residents',
@@ -1875,6 +1874,307 @@ class _WeatherScreenState extends State<WeatherScreen>
     },
   ];
 
+  // Government agencies in San Pedro, Laguna (Fire and Police Stations)
+  final List<Map<String, dynamic>> _governmentAgencies = [
+    {
+      'name': 'San Pedro City Fire Station - BFP',
+      'location': LatLng(14.34516839884017, 121.06266445864843),
+      'type': 'fire_station',
+      'contact': 'Emergency: 911',
+      'facilities': ['Fire Trucks', 'Emergency Response', '24/7 Service', 'Rescue Equipment'],
+      'description': 'Main Bureau of Fire Protection station serving San Pedro City'
+    },
+    {
+      'name': 'BFP San Pedro City Fire Station (North)',
+      'location': LatLng(14.364343096714173, 121.05738372854574),
+      'type': 'fire_station',
+      'contact': 'Emergency: 911',
+      'facilities': ['Fire Trucks', 'Emergency Response', '24/7 Service', 'First Aid'],
+      'description': 'Bureau of Fire Protection station serving northern San Pedro areas'
+    },
+    {
+      'name': 'BFP San Pedro City Fire Station (Central)',
+      'location': LatLng(14.365029061924009, 121.05759830525388),
+      'type': 'fire_station',
+      'contact': 'Emergency: 911',
+      'facilities': ['Fire Trucks', 'Emergency Response', '24/7 Service', 'Specialized Equipment'],
+      'description': 'Bureau of Fire Protection station serving central San Pedro areas'
+    },
+    {
+      'name': 'San Pedro City Police Station',
+      'location': LatLng(14.363131922911142, 121.05757373747483),
+      'type': 'police_station',
+      'contact': 'Emergency: 911',
+      'facilities': ['24/7 Police Service', 'Emergency Response', 'Crime Investigation', 'Traffic Enforcement'],
+      'description': 'Main San Pedro City Police Station providing law enforcement services'
+    },
+    {
+      'name': 'Police Station (Barangay Unit)',
+      'location': LatLng(14.329704212866993, 121.03463366815814),
+      'type': 'police_station',
+      'contact': 'Emergency: 911',
+      'facilities': ['Community Policing', 'Emergency Response', 'Local Security', 'Crime Prevention'],
+      'description': 'Barangay police unit providing local law enforcement services'
+    },
+    {
+      'name': 'San Pedro Police Station Head Quarters',
+      'location': LatLng(14.365352558890569, 121.05740279884132),
+      'type': 'police_station',
+      'contact': 'Emergency: 911',
+      'facilities': ['Police Headquarters', 'Administrative Services', 'Emergency Command', 'Investigation Units'],
+      'description': 'San Pedro Police Station Headquarters - main command center'
+    },
+    {
+      'name': 'San Pedro Police (Station 2)',
+      'location': LatLng(14.350430051543146, 121.02750894486623),
+      'type': 'police_station',
+      'contact': 'Emergency: 911',
+      'facilities': ['Police Services', 'Emergency Response', 'Community Safety', 'Crime Prevention'],
+      'description': 'San Pedro Police Station providing security services to western areas'
+    },
+    {
+      'name': 'Old San Pedro Municipal Hall Bldg',
+      'location': LatLng(14.364588172639383, 121.05740637137525),
+      'type': 'city_hall',
+      'contact': 'Administrative Services',
+      'facilities': ['Government Services', 'Administrative Offices', 'Public Records', 'Municipal Services'],
+      'description': 'Former municipal hall building providing government administrative services'
+    },
+    {
+      'name': 'San Pedro City Hall',
+      'location': LatLng(14.363361746093352, 121.06021732625193),
+      'type': 'city_hall',
+      'contact': 'Administrative Services',
+      'facilities': ['City Government Offices', 'Administrative Services', 'Public Records', 'Municipal Services', 'Mayor\'s Office'],
+      'description': 'Main San Pedro City Hall - center of city government administration'
+    },
+    // Barangay Halls
+    {
+      'name': 'Bagong Silang Barangay Hall',
+      'location': LatLng(14.335886660238907, 121.02686750976196),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Bagong Silang Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Hall Calendola',
+      'location': LatLng(14.343466490944863, 121.03597248092653),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Calendola Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Chrysanthemum',
+      'location': LatLng(14.341636833586847, 121.04511339448426),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Chrysanthemum Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Cuyab Barangay Hall',
+      'location': LatLng(14.374727543775055, 121.0572017116103),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Cuyab Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Estrella Barangay Hall',
+      'location': LatLng(14.335145439196346, 121.01954834229292),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Estrella Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Fatima Barangay Hall',
+      'location': LatLng(14.354711882063242, 121.05563552695152),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Fatima Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Brgy Hall GSIS San Pedro, Laguna',
+      'location': LatLng(14.35000090347985, 121.04157244414111),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'GSIS Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Landayan Barangay Hall',
+      'location': LatLng(14.352310607983583, 121.06764132510376),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Landayan Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Langgam Barangay Hall',
+      'location': LatLng(14.328746670145382, 121.01772957847696),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Langgam Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Laram Barangay Hall',
+      'location': LatLng(14.329539516783225, 121.02320432510356),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Laram Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Magsaysay Barangay Hall',
+      'location': LatLng(14.337540348842719, 121.03327230976181),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Magsaysay Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Maharlika Barangay Hall',
+      'location': LatLng(14.346692982653394, 121.04574662510362),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Maharlika Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Hall Narra',
+      'location': LatLng(14.331134439810109, 121.0251590046282),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Narra Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Brgy. Nueva (Brgy. Hall)',
+      'location': LatLng(14.35838097208905, 121.05768857143597),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Nueva Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Pamahalaang Barangay Ng Pacita 1',
+      'location': LatLng(14.34535705762904, 121.05656198604945),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Pacita 1 Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Hall Pacita 2, San Pedro, Laguna',
+      'location': LatLng(14.350098350303574, 121.04823528092668),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Pacita 2 Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Poblacion Barangay Hall',
+      'location': LatLng(14.363154862374707, 121.05897655393932),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Poblacion Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Riverside Barangay Hall',
+      'location': LatLng(14.332494953029865, 121.02806314289465),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Riverside Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Hall Rosario',
+      'location': LatLng(14.336619318138863, 121.04768528621652),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Rosario Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Sampaguita San Pedro Laguna',
+      'location': LatLng(14.344764489920069, 121.03549044044527),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Sampaguita Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay San Antonio Hall',
+      'location': LatLng(14.367129081801519, 121.05625740920348),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'San Antonio Barangay Hall providing local government services'
+    },
+    {
+      'name': 'San Lorenzo Ruiz Barangay Hall',
+      'location': LatLng(14.350847285116295, 121.05128915209119),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'San Lorenzo Ruiz Barangay Hall providing local government services'
+    },
+    {
+      'name': 'San Roque Barangay Hall',
+      'location': LatLng(14.365739279975925, 121.06171785578724),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'San Roque Barangay Hall providing local government services'
+    },
+    {
+      'name': 'San Vicente Barangay Hall',
+      'location': LatLng(14.358409120936944, 121.04846934679776),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'San Vicente Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Bayan-Bayanan Barangay Hall',
+      'location': LatLng(14.34280730530945, 121.0235005120474),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Bayan-Bayanan Barangay Hall providing local government services'
+    },
+    {
+      'name': 'Barangay Hall Santo Niño',
+      'location': LatLng(14.366036744929923, 121.05595501242121),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'Santo Niño Barangay Hall providing local government services'
+    },
+    {
+      'name': 'United Bayanihan Barangay Hall',
+      'location': LatLng(14.334256267218713, 121.03001478462217),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'United Bayanihan Barangay Hall providing local government services'
+    },
+    {
+      'name': 'United Better Living Barangay Hall',
+      'location': LatLng(14.337640732824969, 121.02400626928059),
+      'type': 'barangay_hall',
+      'contact': 'Barangay Services',
+      'facilities': ['Barangay Government', 'Community Services', 'Local Records', 'Permits'],
+      'description': 'United Better Living Barangay Hall providing local government services'
+    },
+  ];
+
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -1988,7 +2288,7 @@ class _WeatherScreenState extends State<WeatherScreen>
 
     return Positioned(
       bottom:
-          220, // Moved even closer to safety indicator (only 40px gap from safety indicator at bottom: 180)
+          80, // Moved closer to hazard toggle (40px gap from hazard toggle at bottom: 120)
       left: 16,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -2812,9 +3112,6 @@ class _WeatherScreenState extends State<WeatherScreen>
                                                             _buildWeatherMarker(),
                                                       ),
 
-                                                      // Additional markers for nearby locations
-                                                      ..._buildNearbyLocationMarkers(),
-
                                                       // Hazard location markers
                                                       if (_showHazardLocations)
                                                         ..._buildHazardMarkers(),
@@ -2822,6 +3119,10 @@ class _WeatherScreenState extends State<WeatherScreen>
                                                       // Evacuation center markers
                                                       if (_showEvacuationCenters)
                                                         ..._buildEvacuationCenterMarkers(),
+
+                                                      // Government agency markers (Fire & Police)
+                                                      if (_showGovernmentAgencies)
+                                                        ..._buildGovernmentAgencyMarkers(),
                                                     ],
                                                   ),
 
@@ -3109,73 +3410,6 @@ class _WeatherScreenState extends State<WeatherScreen>
       default:
         return Icons.location_on;
     }
-  }
-
-  List<Marker> _buildNearbyLocationMarkers() {
-    // Updated San Pedro, Laguna specific locations with more accurate coordinates
-    final sanPedroLocations = [
-      {
-        'name': 'San Pedro City Hall',
-        'coords': LatLng(14.3358, 121.0417)
-      }, // Correct position
-      {
-        'name': 'St. Peter the Apostle Cathedral',
-        'coords': LatLng(14.3364, 121.0423)
-      }, // Correct position
-      {
-        'name': 'Pacita Complex I',
-        'coords': LatLng(14.3189, 121.0401)
-      }, // Correct position
-      {
-        'name': 'SM City San Pedro',
-        'coords': LatLng(14.3320, 121.0440)
-      }, // Slightly adjusted
-      {
-        'name': 'Landayan Town Center',
-        'coords': LatLng(14.3390, 121.0460)
-      }, // Better position
-      {
-        'name': 'San Pedro Plaza',
-        'coords': LatLng(14.3361, 121.0419)
-      }, // Correct position
-      {
-        'name': 'Laguna de Bay Shoreline',
-        'coords': LatLng(14.3480, 121.0600)
-      }, // Better lakefront position
-      {
-        'name': 'San Pedro Sports Complex',
-        'coords': LatLng(14.3290, 121.0370)
-      }, // Adjusted position
-    ];
-
-    return sanPedroLocations.map((location) {
-      return Marker(
-        width: 30.0,
-        height: 30.0,
-        point: location['coords'] as LatLng,
-        builder: (ctx) => GestureDetector(
-          onTap: () => _onNearbyLocationTap(location),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.green.withOpacity(0.8),
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: const Icon(
-              Icons.location_city,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-  void _onNearbyLocationTap(Map<String, dynamic> location) {
-    final coords = location['coords'] as LatLng;
-    _mapController.move(coords, 12.0);
-    _fetchWeatherForLocation(coords);
   }
 
   List<Marker> _buildHazardMarkers() {
@@ -3496,6 +3730,60 @@ class _WeatherScreenState extends State<WeatherScreen>
     }).toList();
   }
 
+  List<Marker> _buildGovernmentAgencyMarkers() {
+    if (!_showGovernmentAgencies) return [];
+
+    return _governmentAgencies.map((agency) {
+      return Marker(
+        width: 32.0,
+        height: 32.0,
+        point: agency['location'] as LatLng,
+        builder: (ctx) => Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              _onGovernmentAgencyTap(agency);
+            },
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: agency['type'] == 'fire_station' 
+                    ? Colors.red.shade600 
+                    : agency['type'] == 'police_station'
+                    ? Colors.blue.shade600
+                    : agency['type'] == 'city_hall'
+                    ? Colors.purple.shade600
+                    : Colors.orange.shade600, // barangay_hall
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                agency['type'] == 'fire_station' 
+                    ? Icons.local_fire_department 
+                    : agency['type'] == 'police_station'
+                    ? Icons.local_police
+                    : agency['type'] == 'city_hall'
+                    ? Icons.account_balance
+                    : Icons.location_city, // barangay_hall
+                color: Colors.white,
+                size: 14,
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
   Color _getEvacuationCenterColor(String type) {
     // Use consistent green color for all evacuation centers
     return Colors.green.shade600;
@@ -3589,6 +3877,99 @@ class _WeatherScreenState extends State<WeatherScreen>
                 foregroundColor: Colors.white,
               ),
               child: const Text('Get Directions'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onGovernmentAgencyTap(Map<String, dynamic> agency) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                agency['type'] == 'fire_station' 
+                    ? Icons.local_fire_department 
+                    : Icons.local_police,
+                color: agency['type'] == 'fire_station' 
+                    ? Colors.red.shade600 
+                    : Colors.blue.shade600,
+                size: 28,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  agency['name'],
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildInfoRow('Type', agency['type'] == 'fire_station' ? 'Fire Station' : 'Police Station'),
+                const SizedBox(height: 8),
+                _buildInfoRow('Emergency Contact', agency['contact']),
+                const SizedBox(height: 8),
+                _buildInfoRow('Description', agency['description']),
+                const SizedBox(height: 12),
+                const Text(
+                  'Available Services:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...agency['facilities'].map<Widget>((facility) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color: agency['type'] == 'fire_station' ? Colors.red : Colors.blue,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(facility),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showSnackBar('Emergency Call: 911');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: agency['type'] == 'fire_station' 
+                    ? Colors.red.shade600 
+                    : Colors.blue.shade600,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Emergency Call'),
             ),
           ],
         );
@@ -3794,6 +4175,28 @@ class _WeatherScreenState extends State<WeatherScreen>
               ),
             ),
             PopupMenuItem<String>(
+              value: 'toggle_government_agencies',
+              child: Row(
+                children: [
+                  Icon(
+                    _showGovernmentAgencies
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color: _showGovernmentAgencies ? Colors.blue : Colors.grey,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Row(
+                    children: [
+                      Icon(Icons.account_balance, size: 14, color: Colors.blue),
+                      SizedBox(width: 4),
+                      Text('Government Agencies'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem<String>(
               value: 'toggle_air_quality',
               child: Row(
                 children: [
@@ -3864,6 +4267,13 @@ class _WeatherScreenState extends State<WeatherScreen>
                 _showSnackBar(_showEvacuationCenters
                     ? 'Evacuation centers shown'
                     : 'Evacuation centers hidden');
+              }
+              // Handle government agencies (Fire & Police stations)
+              else if (value == 'toggle_government_agencies') {
+                _showGovernmentAgencies = !_showGovernmentAgencies;
+                _showSnackBar(_showGovernmentAgencies
+                    ? 'Government agencies shown'
+                    : 'Government agencies hidden');
               }
               // Handle air quality
               else if (value == 'toggle_air_quality') {
