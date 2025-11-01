@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
-      initialRoute: '/login',
+      initialRoute: '/login-form',
       routes: {
         '/': (context) => const WeatherScreen(),
         '/login': (context) => const LoginScreen(),

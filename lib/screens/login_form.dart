@@ -20,8 +20,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   bool _isLoading = false;
   bool _isResendingCode = false;
   bool _isOtpSent = false;
-  String _verificationId = '';
   int _resendTimer = 0;
+  int _otpExpirySeconds = 300; // 5 minutes = 300 seconds
+  int _otpExpiryTimer = 0;
 
   @override
   void dispose() {
@@ -44,6 +45,10 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       _showSnackBar('Phone number must be exactly 11 digits', isError: true);
       return;
     }
+    if (!phone.startsWith('09')) {
+      _showSnackBar('Phone number must start with 09', isError: true);
+      return;
+    }
     if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
       _showSnackBar('Phone number must contain only digits', isError: true);
       return;
@@ -54,14 +59,14 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     try {
       final result = await LoginService().sendOTP(
         phone,
-        onCodeSent: (verificationId) {
+        onCodeSent: (message) {
           setState(() {
-            _verificationId = verificationId;
             _isOtpSent = true;
             _isLoading = false;
           });
           _startResendTimer();
-          _showSnackBar('OTP sent successfully!');
+          _startExpiryTimer();
+          _showSnackBar(message);
           // Focus on SMS code field
           Future.delayed(const Duration(milliseconds: 100), () {
             _smsCodeFocusNode.requestFocus();
@@ -80,7 +85,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       if (!result['success'] && result['action'] == 'register') {
         setState(() => _isLoading = false);
         _showRegisterDialog();
-      } else if (!result['success']) {
+      } else if (!result['success'] && result.containsKey('error')) {
         setState(() => _isLoading = false);
         _showSnackBar(result['error'] ?? 'Failed to send OTP', isError: true);
       }
@@ -136,23 +141,19 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     setState(() => _isResendingCode = true);
 
     try {
-      final result = await LoginService().sendOTP(
+      final result = await LoginService().resendOTP(
         _phoneController.text.trim(),
-        onCodeSent: (verificationId) {
+        onCodeSent: (message) {
           setState(() {
-            _verificationId = verificationId;
             _isResendingCode = false;
           });
           _startResendTimer();
-          _showSnackBar('OTP resent successfully!');
+          _startExpiryTimer(); // Restart expiry timer
+          _showSnackBar(message);
         },
         onError: (error) {
           setState(() => _isResendingCode = false);
           _showSnackBar(error, isError: true);
-        },
-        onTimeout: () {
-          setState(() => _isResendingCode = false);
-          _showSnackBar('Request timed out. Please try again.', isError: true);
         },
       );
 
@@ -176,6 +177,27 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       }
       return false;
     });
+  }
+
+  void _startExpiryTimer() {
+    setState(() => _otpExpiryTimer = _otpExpirySeconds);
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) {
+        setState(() => _otpExpiryTimer--);
+        if (_otpExpiryTimer == 0) {
+          _showSnackBar('OTP has expired. Please request a new one.', isError: true);
+        }
+        return _otpExpiryTimer > 0;
+      }
+      return false;
+    });
+  }
+
+  String _formatExpiryTime() {
+    int minutes = _otpExpiryTimer ~/ 60;
+    int seconds = _otpExpiryTimer % 60;
+    return '${minutes.toString().padLeft(1, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   void _showRegisterDialog() {
@@ -221,6 +243,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       _isOtpSent = false;
       _smsCodeController.clear();
       _resendTimer = 0;
+      _otpExpiryTimer = 0;
     });
     Future.delayed(const Duration(milliseconds: 100), () {
       _phoneFocusNode.requestFocus();
@@ -336,13 +359,48 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                       Text(
                         _isOtpSent
                             ? 'Enter the 6-digit code sent to ${_phoneController.text}'
-                            : 'Enter your details to continue',
+                            : 'Enter your phone number to continue',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.grey,
                         ),
                       ),
+                      
+                      // Show expiry timer when OTP is sent
+                      if (_isOtpSent && _otpExpiryTimer > 0) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: _otpExpiryTimer < 60 ? Colors.red.shade50 : Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _otpExpiryTimer < 60 ? Colors.red.shade200 : Colors.green.shade200,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.timer,
+                                size: 16,
+                                color: _otpExpiryTimer < 60 ? Colors.red.shade700 : Colors.green.shade700,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'OTP expires in ${_formatExpiryTime()}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _otpExpiryTimer < 60 ? Colors.red.shade700 : Colors.green.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      
                       const SizedBox(height: 30),
 
                       // Phone Number Field
