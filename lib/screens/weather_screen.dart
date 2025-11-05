@@ -225,7 +225,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                 nav.pop();
                 // Clear both authentication systems
                 await _authManager.logout();
-                AuthService.signOut();
+                // AuthService.signOut();
                 if (mounted) {
                   setState(() {});
                   nav.pushNamedAndRemoveUntil('/', (route) => false);
