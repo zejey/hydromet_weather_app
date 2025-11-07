@@ -426,27 +426,6 @@ class _WeatherScreenState extends State<WeatherScreen>
     return Colors.red;
   }
 
-  // Get weather-based circle color
-  Color _getWeatherCircleColor() {
-    if (weatherData == null) return Colors.blue;
-    final weatherCondition = weatherData!['weather'][0]['main'].toLowerCase();
-    switch (weatherCondition) {
-      case 'rain':
-      case 'drizzle':
-        return Colors.blue;
-      case 'thunderstorm':
-        return Colors.purple;
-      case 'snow':
-        return Colors.lightBlue;
-      case 'clear':
-        return Colors.yellow;
-      case 'clouds':
-        return Colors.grey;
-      default:
-        return Colors.blue;
-    }
-  }
-
   // Minimized "Safe to go out" indicator
   Widget _buildSafetyIndicator() {
     final isSafe = _calculateSafetyStatus();
@@ -503,11 +482,14 @@ class _WeatherScreenState extends State<WeatherScreen>
   String city = 'San Pedro, Laguna, Philippines';
   final MapController _mapController = MapController();
   double _currentZoom = 14.0;
-  String _currentMapStyle = 'satellite';
+  String _currentMapStyle = 'street';
   final bool _showSatelliteLayer = false;
   bool _showRainAnimation = false;
   bool _showHazardLocations = false;
   bool _showEvacuationCenters = false;
+  bool _showNearestEvacuationCenters = false;
+  LatLng? _pinnedLocation; // Location where user pins for nearest search
+  final double _searchRadius = 400; // 400 meters radius
   bool _showGovernmentAgencies = false;
   bool _showAirQualityIndicator = false;
   final bool _showSafetyIndicator = false;
@@ -2219,18 +2201,16 @@ class _WeatherScreenState extends State<WeatherScreen>
       final weatherCondition = weatherData!['weather'][0]['main'].toLowerCase();
       final temperature = weatherData!['main']['temp'] ?? 0.0;
 
-      // Enable rain animation for rainy conditions
+      // Initialize weather effects based on current conditions
       if (weatherCondition.contains('rain') ||
           weatherCondition.contains('thunderstorm')) {
         _showRainAnimation = true;
         _generateRainParticles();
       }
 
-      // Enable temperature heatmap for extreme temperatures
-      if (temperature > 30 || temperature < 10) {
-        _showTemperatureHeatmap = true;
-        _generateTemperaturePoints();
-      }
+      // Temperature heatmap disabled by default - can be enabled manually
+      // Reset temperature heatmap to ensure it's off
+      _showTemperatureHeatmap = false;
 
       // Enable wind arrows if wind data available
       if (weatherData!['wind'] != null) {
@@ -2275,6 +2255,23 @@ class _WeatherScreenState extends State<WeatherScreen>
         temp < 5 ||
         windSpeed > 20 ||
         !airQualitySafe);
+  }
+
+  // Calculate distance between two points using Haversine formula
+  double _calculateDistance(LatLng point1, LatLng point2) {
+    const double earthRadius = 6371000; // Earth's radius in meters
+    
+    final double lat1Rad = point1.latitude * (pi / 180);
+    final double lat2Rad = point2.latitude * (pi / 180);
+    final double deltaLatRad = (point2.latitude - point1.latitude) * (pi / 180);
+    final double deltaLngRad = (point2.longitude - point1.longitude) * (pi / 180);
+    
+    final double a = sin(deltaLatRad / 2) * sin(deltaLatRad / 2) +
+        cos(lat1Rad) * cos(lat2Rad) *
+        sin(deltaLngRad / 2) * sin(deltaLngRad / 2);
+    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    
+    return earthRadius * c;
   }
 
   // Air Quality Index (AQI) indicator - positioned closer to safety indicator and hazard button
@@ -3112,13 +3109,16 @@ class _WeatherScreenState extends State<WeatherScreen>
                                                             _buildWeatherMarker(),
                                                       ),
 
+                                                      // Pinned location marker
+                                                      if (_buildPinnedLocationMarker() != null)
+                                                        _buildPinnedLocationMarker()!,
+
                                                       // Hazard location markers
                                                       if (_showHazardLocations)
                                                         ..._buildHazardMarkers(),
 
-                                                      // Evacuation center markers
-                                                      if (_showEvacuationCenters)
-                                                        ..._buildEvacuationCenterMarkers(),
+                                                      // Evacuation center markers (includes nearest logic)
+                                                      ..._buildEvacuationCenterMarkers(),
 
                                                       // Government agency markers (Fire & Police)
                                                       if (_showGovernmentAgencies)
@@ -3126,42 +3126,12 @@ class _WeatherScreenState extends State<WeatherScreen>
                                                     ],
                                                   ),
 
-                                                  // Enhanced weather coverage circle with pulsing effect
+                                                  // Circle layer for search radius only
                                                   CircleLayer(
                                                     circles: [
-                                                      CircleMarker(
-                                                        point:
-                                                            selectedLocation!,
-                                                        radius:
-                                                            5000, // 5km radius
-                                                        color:
-                                                            _getWeatherCircleColor()
-                                                                .withOpacity(
-                                                                    0.08),
-                                                        borderColor:
-                                                            _getWeatherCircleColor()
-                                                                .withOpacity(
-                                                                    0.3),
-                                                        borderStrokeWidth: 1,
-                                                      ),
-                                                    ],
-                                                  ),
-
-                                                  // Pulsing weather effect overlay
-                                                  CircleLayer(
-                                                    circles: [
-                                                      CircleMarker(
-                                                        point:
-                                                            selectedLocation!,
-                                                        radius: 3000,
-                                                        color:
-                                                            _getWeatherCircleColor()
-                                                                .withOpacity(
-                                                                    0.05),
-                                                        borderColor:
-                                                            Colors.transparent,
-                                                        borderStrokeWidth: 0,
-                                                      ),
+                                                      // Search radius circle for nearest evacuation centers (only when active)
+                                                      if (_buildSearchRadiusCircle() != null)
+                                                        _buildSearchRadiusCircle()!,
                                                     ],
                                                   ),
                                                 ],
@@ -3309,13 +3279,26 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   void _onMapTap(LatLng point) {
-    // Handle map tap - could fetch weather for tapped location
-    setState(() {
-      selectedLocation = point;
-    });
-
-    // Optional: Fetch weather for the tapped location
-    _fetchWeatherForLocation(point);
+    if (_showNearestEvacuationCenters) {
+      // Set pinned location for nearest search
+      setState(() {
+        _pinnedLocation = point;
+      });
+      
+      // Count nearby evacuation centers
+      final nearbyCount = _evacuationCenters.where((center) {
+        final distance = _calculateDistance(point, center['location'] as LatLng);
+        return distance <= _searchRadius;
+      }).length;
+      
+      _showSnackBar('📍 Pinned location set! Found $nearbyCount evacuation centers within 400m');
+    } else {
+      // Original behavior - change weather location
+      setState(() {
+        selectedLocation = point;
+      });
+      _fetchWeatherForLocation(point);
+    }
   }
 
   Future<void> _fetchWeatherForLocation(LatLng point) async {
@@ -3689,9 +3672,29 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   List<Marker> _buildEvacuationCenterMarkers() {
-    if (!_showEvacuationCenters) return [];
+    if (!_showEvacuationCenters && !_showNearestEvacuationCenters) return [];
 
-    return _evacuationCenters.map((center) {
+    List<Map<String, dynamic>> centersToShow = _evacuationCenters;
+
+    // Filter by nearest if toggle is on and location is pinned
+    if (_showNearestEvacuationCenters && _pinnedLocation != null) {
+      centersToShow = _evacuationCenters.where((center) {
+        final distance = _calculateDistance(
+          _pinnedLocation!,
+          center['location'] as LatLng,
+        );
+        return distance <= _searchRadius;
+      }).toList();
+
+      // Sort by distance (nearest first)
+      centersToShow.sort((a, b) {
+        final distanceA = _calculateDistance(_pinnedLocation!, a['location'] as LatLng);
+        final distanceB = _calculateDistance(_pinnedLocation!, b['location'] as LatLng);
+        return distanceA.compareTo(distanceB);
+      });
+    }
+
+    return centersToShow.map((center) {
       return Marker(
         width: 32.0,
         height: 32.0,
@@ -3708,7 +3711,9 @@ class _WeatherScreenState extends State<WeatherScreen>
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.green.shade600,
+                color: _showNearestEvacuationCenters 
+                    ? Colors.purple.shade600  // Different color for nearest mode
+                    : Colors.green.shade600,
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
                   BoxShadow(
@@ -3718,8 +3723,10 @@ class _WeatherScreenState extends State<WeatherScreen>
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.home_work,
+              child: Icon(
+                _showNearestEvacuationCenters 
+                    ? Icons.near_me  // Different icon for nearest mode
+                    : Icons.home_work,
                 color: Colors.white,
                 size: 14,
               ),
@@ -3728,6 +3735,49 @@ class _WeatherScreenState extends State<WeatherScreen>
         ),
       );
     }).toList();
+  }
+
+  // Add pinned location marker
+  Marker? _buildPinnedLocationMarker() {
+    if (_pinnedLocation == null) return null;
+    
+    return Marker(
+      width: 40.0,
+      height: 40.0,
+      point: _pinnedLocation!,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.purple.shade700,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.location_pin,
+          color: Colors.white,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
+  // Add search radius circle
+  CircleMarker? _buildSearchRadiusCircle() {
+    if (_pinnedLocation == null || !_showNearestEvacuationCenters) return null;
+    
+    return CircleMarker(
+      point: _pinnedLocation!,
+      radius: _searchRadius, // 400m radius
+      color: Colors.purple.withOpacity(0.1),
+      borderColor: Colors.purple.withOpacity(0.5),
+      borderStrokeWidth: 2,
+    );
   }
 
   List<Marker> _buildGovernmentAgencyMarkers() {
@@ -3847,7 +3897,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.check_circle,
                           color: Colors.green,
                           size: 16,
@@ -4126,6 +4176,30 @@ class _WeatherScreenState extends State<WeatherScreen>
                 ],
               ),
             ),
+            
+            PopupMenuItem<String>(
+              value: 'toggle_air_quality',
+              child: Row(
+                children: [
+                  Icon(
+                    _showAirQualityIndicator
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color:
+                        _showAirQualityIndicator ? Colors.purple : Colors.grey,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Row(
+                    children: [
+                      Icon(Icons.air, size: 14, color: Colors.purple),
+                      SizedBox(width: 4),
+                      Text('Air Quality'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
 
             const PopupMenuDivider(),
 
@@ -4168,7 +4242,30 @@ class _WeatherScreenState extends State<WeatherScreen>
                     children: [
                       Icon(Icons.home, size: 14, color: Colors.green),
                       SizedBox(width: 4),
-                      Text('Evacuation Centers'),
+                      Text('All Evacuation Centers'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // NEW: Nearest Evacuation Centers toggle
+            PopupMenuItem<String>(
+              value: 'toggle_nearest_evacuation',
+              child: Row(
+                children: [
+                  Icon(
+                    _showNearestEvacuationCenters
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color: _showNearestEvacuationCenters ? Colors.purple : Colors.grey,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Row(
+                    children: [
+                      Icon(Icons.near_me, size: 14, color: Colors.purple),
+                      SizedBox(width: 4),
+                      Text('Nearest Centers (400m)'),
                     ],
                   ),
                 ],
@@ -4196,33 +4293,24 @@ class _WeatherScreenState extends State<WeatherScreen>
                 ],
               ),
             ),
-            PopupMenuItem<String>(
-              value: 'toggle_air_quality',
-              child: Row(
-                children: [
-                  Icon(
-                    _showAirQualityIndicator
-                        ? Icons.check_box
-                        : Icons.check_box_outline_blank,
-                    color:
-                        _showAirQualityIndicator ? Colors.purple : Colors.grey,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  const Row(
-                    children: [
-                      Icon(Icons.air, size: 14, color: Colors.purple),
-                      SizedBox(width: 4),
-                      Text('Air Quality'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
 
             const PopupMenuDivider(),
 
             // Quick Actions
+            if (_showNearestEvacuationCenters && _pinnedLocation != null)
+              PopupMenuItem<String>(
+                value: 'clear_pin',
+                child: Row(
+                  children: [
+                    Icon(Icons.clear_all, color: Colors.red.shade600, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Clear Pin',
+                      style: TextStyle(color: Colors.red.shade600),
+                    ),
+                  ],
+                ),
+              ),
             PopupMenuItem<String>(
               value: 'center_location',
               child: Row(
@@ -4264,9 +4352,26 @@ class _WeatherScreenState extends State<WeatherScreen>
               // Handle evacuation centers
               else if (value == 'toggle_evacuation') {
                 _showEvacuationCenters = !_showEvacuationCenters;
+                // Turn off nearest mode if all centers are shown
+                if (_showEvacuationCenters) {
+                  _showNearestEvacuationCenters = false;
+                  _pinnedLocation = null;
+                }
                 _showSnackBar(_showEvacuationCenters
-                    ? 'Evacuation centers shown'
+                    ? 'All evacuation centers shown'
                     : 'Evacuation centers hidden');
+              }
+              // NEW: Handle nearest evacuation centers
+              else if (value == 'toggle_nearest_evacuation') {
+                _showNearestEvacuationCenters = !_showNearestEvacuationCenters;
+                // Turn off all centers mode if nearest is shown
+                if (_showNearestEvacuationCenters) {
+                  _showEvacuationCenters = false;
+                  _showSnackBar('Tap on map to pin location and find nearest evacuation centers within 400m');
+                } else {
+                  _pinnedLocation = null;
+                  _showSnackBar('Nearest evacuation center mode disabled');
+                }
               }
               // Handle government agencies (Fire & Police stations)
               else if (value == 'toggle_government_agencies') {
@@ -4281,6 +4386,11 @@ class _WeatherScreenState extends State<WeatherScreen>
                 _showSnackBar(_showAirQualityIndicator
                     ? 'Air quality indicator shown'
                     : 'Air quality indicator hidden');
+              }
+              // Clear pin action
+              else if (value == 'clear_pin') {
+                _pinnedLocation = null;
+                _showSnackBar('Pin location cleared');
               }
               // Handle center location
               else if (value == 'center_location') {

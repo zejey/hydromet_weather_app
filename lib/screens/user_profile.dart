@@ -434,7 +434,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               // await prefs.remove('userToken');
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => SplashScreen()),
+                MaterialPageRoute(builder: (context) => const SplashScreen()),
                 (route) => false,
               );
             },

@@ -37,10 +37,10 @@ class MyApp extends StatelessWidget {
       initialRoute: '/weather',
       routes: {
         '/': (context) => const WeatherScreen(),
-        '/splash': (context) => SplashScreen(),
+        '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/login-form': (context) => const LoginFormScreen(),
-        '/mpin-login': (context) => LoginMPINScreen(),
+        '/mpin-login': (context) => const LoginMPINScreen(),
         '/register': (context) => const UserRegistrationScreen(),
         '/weather': (context) => const WeatherScreen(),
         '/profile': (context) => const UserProfileScreen(),

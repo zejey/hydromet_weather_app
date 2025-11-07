@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginMPINScreen()), // MPIN login
+        MaterialPageRoute(builder: (context) => const LoginMPINScreen()), // MPIN login
       );
     }
   }

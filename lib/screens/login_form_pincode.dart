@@ -283,7 +283,7 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
               ),
               _NumberButton(
                 onTap: _onBackspace,
-                child: Icon(Icons.backspace, color: Colors.green, size: 28),
+                child: const Icon(Icons.backspace, color: Colors.green, size: 28),
               ),
             ],
           ),

@@ -102,7 +102,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
         } else if (key == '<') {
           return _NumberButton(
             onTap: _onBackspace,
-            child: Icon(Icons.backspace, color: Colors.green),
+            child: const Icon(Icons.backspace, color: Colors.green),
           );
         } else {
           return _NumberButton(
