@@ -12,6 +12,7 @@ from backend.api.safety_tips import router as safety_tips_router
 from backend.api.otp import router as otp_router
 from backend.api.predictions import router as predictions_router
 from backend.api.weather import router as weather_router
+from backend.api.auto_predictor import router as auto_predictor_router
 
 __all__ = [
     'users_router',
@@ -23,4 +24,5 @@ __all__ = [
     'otp_router',
     'predictions_router',
     'weather_router',
+    'auto_predictor_router',
 ]
