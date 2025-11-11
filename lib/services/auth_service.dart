@@ -1,79 +1,140 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'user_registration_service.dart';
-import 'otp_api_service.dart';
 
-/// Unified Authentication Service
-/// Handles: Login sessions, MPIN storage, OTP verification
 class AuthService {
-  // ===== SHARED PREFERENCES KEYS (Session Management) =====
-  static const String _loginKey = 'user_logged_in';
+  // Session keys
+  static const String _loginKey = 'is_logged_in';
   static const String _usernameKey = 'username';
   static const String _emailKey = 'email';
-  static const String _phoneKey = 'user_phone';
+  static const String _tokenKey = 'token';
+  static const String _phoneKey = 'phone_number';
   static const String _userIdKey = 'user_id';
-  
-  // ===== SECURE STORAGE (MPIN) =====
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  final UserRegistrationService _userService = UserRegistrationService();
-  final OtpApiService _otpService = OtpApiService();
-  
-  // ===== SINGLETON PATTERN =====
-  static final AuthService _instance = AuthService._internal();
-  factory AuthService() => _instance;
-  AuthService._internal();
+  static const String _lastLoginKey = 'last_login_at';
+  static const String _trustedPhoneKey = "trusted_device_phone";
+  static const String _lastVerifiedKey = "last_otp_verified";
 
-  // ===== CURRENT SESSION STATE =====
+  late SharedPreferences _prefs;
+  bool _isInitialized = false;
+
+  // Session duration: 30 days
+  static const Duration sessionDuration = Duration(days: 30);
+
+  // Session state
   bool _isLoggedIn = false;
   String _username = '';
   String _email = '';
+  String _token = '';
   String _phoneNumber = '';
   String _userId = '';
 
-  // ===== GETTERS =====
+  // Getters
   bool get isLoggedIn => _isLoggedIn;
   String get username => _username;
   String get email => _email;
+  String get token => _token;
   String get phoneNumber => _phoneNumber;
   String get userId => _userId;
 
-  // ===== INITIALIZATION =====
-  
-  /// Initialize the service by loading saved login state
+  /// Initialize - Load session from storage
+  /// Initialize - Load session from storage
   Future<void> initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    _isLoggedIn = prefs.getBool(_loginKey) ?? false;
-    _username = prefs.getString(_usernameKey) ?? '';
-    _email = prefs.getString(_emailKey) ?? '';
-    _phoneNumber = prefs.getString(_phoneKey) ?? '';
-    _userId = prefs.getString(_userIdKey) ?? '';
+    await _ensureInitialized(); // ✅ Use the new method
+
+    _isLoggedIn = _prefs.getBool(_loginKey) ?? false;
+    _username = _prefs.getString(_usernameKey) ?? '';
+    _email = _prefs.getString(_emailKey) ?? '';
+    _token = _prefs.getString(_tokenKey) ?? '';
+    _phoneNumber = _prefs.getString(_phoneKey) ?? '';
+    _userId = _prefs.getString(_userIdKey) ?? '';
+
+    // Check if session expired (30 days)
+    final lastLoginStr = _prefs.getString(_lastLoginKey);
+    if (lastLoginStr != null && _isLoggedIn) {
+      final lastLogin = DateTime.parse(lastLoginStr);
+      final now = DateTime.now();
+
+      if (now.difference(lastLogin) > sessionDuration) {
+        print('⏰ Session expired (> 30 days) - logging out');
+        await logout();
+      } else {
+        final daysLeft =
+            sessionDuration.inDays - now.difference(lastLogin).inDays;
+        print('✅ Session valid - expires in $daysLeft days');
+      }
+    }
+
+    print('🔍 Auth initialized - Logged in: $_isLoggedIn');
   }
 
-  // ===== SESSION MANAGEMENT (Your existing functionality) =====
-  
-  /// Login method (legacy - for backwards compatibility)
-  Future<bool> login(String username, String email) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      if (username.isNotEmpty && email.isNotEmpty) {
-        _isLoggedIn = true;
-        _username = username;
-        _email = email;
-        
-        await prefs.setBool(_loginKey, true);
-        await prefs.setString(_usernameKey, username);
-        await prefs.setString(_emailKey, email);
-        
-        return true;
-      }
+  Future<void> _ensureInitialized() async {
+    if (!_isInitialized) {
+      _prefs = await SharedPreferences.getInstance();
+      _isInitialized = true;
+    }
+  }
+
+  /// Check if current device is trusted for this specific phone number
+  Future<bool> isDeviceTrusted(String phoneNumber) async {
+    await _ensureInitialized();
+
+    final trustedPhone = _prefs.getString(_trustedPhoneKey);
+    final lastVerified = _prefs.getInt(_lastVerifiedKey);
+
+    // Check if phone number matches
+    if (trustedPhone != phoneNumber) {
+      print('🔒 Different user - device not trusted for $phoneNumber');
       return false;
-    } catch (e) {
+    }
+
+    if (lastVerified == null) return false;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final daysSinceVerified = (now - lastVerified) / (1000 * 60 * 60 * 24);
+
+    // Trust device for 30 days after last OTP verification
+    if (daysSinceVerified < 30) {
+      print(
+          '✅ Device is trusted for $phoneNumber (verified ${daysSinceVerified.toStringAsFixed(1)} days ago)');
+      return true;
+    } else {
+      print(
+          '⏰ Device trust expired for $phoneNumber (${daysSinceVerified.toStringAsFixed(1)} days old)');
       return false;
     }
   }
 
-  /// Login with user data from backend
+  /// Mark this device as trusted for a specific phone number
+  Future<void> markDeviceVerified(String phoneNumber) async {
+    await _ensureInitialized();
+    await _prefs.setString(_trustedPhoneKey, phoneNumber);
+    await _prefs.setInt(
+        _lastVerifiedKey, DateTime.now().millisecondsSinceEpoch);
+    print('✅ Device marked as trusted for: $phoneNumber');
+  }
+
+  /// Clear device trust ONLY if different user is logging in
+  Future<void> clearDeviceTrustIfDifferentUser(String newPhoneNumber) async {
+    await _ensureInitialized();
+    final trustedPhone = _prefs.getString(_trustedPhoneKey);
+
+    if (trustedPhone != null && trustedPhone != newPhoneNumber) {
+      print('🔄 Different user detected - clearing device trust');
+      print('   Previous: $trustedPhone');
+      print('   New: $newPhoneNumber');
+      await _prefs.remove(_trustedPhoneKey);
+      await _prefs.remove(_lastVerifiedKey);
+    }
+  }
+
+  /// Clear device trust completely (optional - for security settings)
+  Future<void> clearDeviceTrust() async {
+    await _ensureInitialized();
+    await _prefs.remove(_trustedPhoneKey);
+    await _prefs.remove(_lastVerifiedKey);
+    print('🔒 Device trust cleared completely');
+  }
+
+  /// Login with user data (saves 30-day session)
+  /// Login with user data (saves 30-day session)
   Future<bool> loginWithUserData({
     required String userId,
     required String username,
@@ -81,268 +142,101 @@ class AuthService {
     String? email,
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      
+      await _ensureInitialized(); // ✅ Use the new method
+      final now = DateTime.now().toIso8601String();
+
+      await _prefs.setBool(_loginKey, true);
+      await _prefs.setString(_usernameKey, username);
+      await _prefs.setString(_emailKey, email ?? '');
+      await _prefs.setString(_tokenKey, userId);
+      await _prefs.setString(_phoneKey, phoneNumber);
+      await _prefs.setString(_userIdKey, userId);
+      await _prefs.setString(_lastLoginKey, now);
+
       _isLoggedIn = true;
-      _userId = userId;
       _username = username;
       _email = email ?? '';
+      _token = userId;
       _phoneNumber = phoneNumber;
-      
-      await prefs.setBool(_loginKey, true);
-      await prefs.setString(_userIdKey, userId);
-      await prefs.setString(_usernameKey, username);
-      await prefs.setString(_emailKey, _email);
-      await prefs.setString(_phoneKey, phoneNumber);
-      
+      _userId = userId;
+
+      final expiryDate = DateTime.parse(now).add(sessionDuration);
+      print('✅ User logged in: $username ($phoneNumber)');
+      print('⏰ Session valid until: $expiryDate');
+
       return true;
     } catch (e) {
-      print('Login error: $e');
+      print('❌ Login error: $e');
       return false;
     }
   }
 
-  /// Logout method
+  /// Logout - Clear session
+  /// Logout - Clear session (but preserve device trust for same user)
   Future<void> logout() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      
+      await _ensureInitialized();
+
+      await _prefs.remove(_loginKey);
+      await _prefs.remove(_usernameKey);
+      await _prefs.remove(_emailKey);
+      await _prefs.remove(_tokenKey);
+      await _prefs.remove(_phoneKey);
+      await _prefs.remove(_userIdKey);
+      await _prefs.remove(_lastLoginKey);
+
+      // Note: We DON'T clear device trust here!
+      // Device trust persists for the same user
+
       _isLoggedIn = false;
       _username = '';
       _email = '';
+      _token = '';
       _phoneNumber = '';
       _userId = '';
-      
-      await prefs.remove(_loginKey);
-      await prefs.remove(_usernameKey);
-      await prefs.remove(_emailKey);
-      await prefs.remove(_phoneKey);
-      await prefs.remove(_userIdKey);
-      
-      // Note: We keep MPIN - user can login again with same MPIN
+
+      print('✅ User logged out (device trust preserved)');
     } catch (e) {
-      print('Logout error: $e');
+      print('❌ Logout error: $e');
     }
   }
 
-  /// Check if user is logged in
-  Future<bool> checkLoginStatus() async {
-    await initialize();
-    return _isLoggedIn;
+  /// Check if session is still valid
+  /// Check if session is still valid
+  Future<bool> isSessionValid() async {
+    await _ensureInitialized();
+    final lastLoginStr = _prefs.getString(_lastLoginKey);
+
+    if (lastLoginStr == null) return false;
+
+    final lastLogin = DateTime.parse(lastLoginStr);
+    final now = DateTime.now();
+
+    return now.difference(lastLogin) <= sessionDuration;
   }
 
-  // ===== MPIN MANAGEMENT (New functionality) =====
-  
-  /// Save MPIN to secure device storage
-  Future<bool> saveMPIN(String phoneNumber, String mpin) async {
-    if (mpin.length != 4 || !RegExp(r'^[0-9]+$').hasMatch(mpin)) {
-      return false;
-    }
-    
-    try {
-      await _secureStorage.write(
-        key: 'mpin_$phoneNumber',
-        value: mpin,
-      );
-      return true;
-    } catch (e) {
-      print('Error saving MPIN: $e');
-      return false;
-    }
+  /// Get session expiry date
+  Future<DateTime?> getSessionExpiry() async {
+    await _ensureInitialized();
+    final lastLoginStr = _prefs.getString(_lastLoginKey);
+
+    if (lastLoginStr == null) return null;
+
+    final lastLogin = DateTime.parse(lastLoginStr);
+    return lastLogin.add(sessionDuration);
   }
 
-  /// Verify MPIN locally (no server call)
-  Future<bool> verifyMPIN(String phoneNumber, String mpin) async {
-    if (mpin.length != 4) return false;
-    
-    try {
-      final storedMpin = await _secureStorage.read(key: 'mpin_$phoneNumber');
-      return storedMpin == mpin;
-    } catch (e) {
-      print('Error verifying MPIN: $e');
-      return false;
-    }
-  }
+  /// Get days until session expires
+  Future<int> getDaysUntilExpiry() async {
+    final expiry = await getSessionExpiry();
+    if (expiry == null) return 0;
 
-  /// Check if user has set MPIN
-  Future<bool> hasMPIN(String phoneNumber) async {
-    try {
-      final mpin = await _secureStorage.read(key: 'mpin_$phoneNumber');
-      return mpin != null && mpin.isNotEmpty;
-    } catch (e) {
-      return false;
-    }
-  }
+    final now = DateTime.now();
+    final difference = expiry.difference(now);
 
-  /// Clear MPIN (for password reset)
-  Future<void> clearMPIN(String phoneNumber) async {
-    await _secureStorage.delete(key: 'mpin_$phoneNumber');
-  }
-
-  /// Clear all stored data (complete app reset)
-  Future<void> clearAllData() async {
-    await logout();
-    await _secureStorage.deleteAll();
-  }
-
-  // ===== COMPLETE LOGIN FLOW (MPIN + OTP + Backend) =====
-  
-  /// Step 1: Verify MPIN and send OTP
-  Future<Map<String, dynamic>> loginWithMPIN({
-    required String phoneNumber,
-    required String mpin,
-  }) async {
-    // Verify MPIN locally
-    final mpinValid = await verifyMPIN(phoneNumber, mpin);
-    if (!mpinValid) {
-      return {
-        'success': false,
-        'error': 'Incorrect MPIN',
-        'step': 'mpin_verification'
-      };
-    }
-
-    // Send OTP to server
-    final normalizedPhone = _normalizePhoneNumber(phoneNumber);
-    final otpResult = await _otpService.sendOtp(normalizedPhone);
-    
-    if (!otpResult['success']) {
-      return {
-        'success': false,
-        'error': otpResult['message'] ?? 'Failed to send OTP',
-        'step': 'otp_send'
-      };
-    }
-
-    return {
-      'success': true,
-      'message': 'MPIN verified. OTP sent to your phone.',
-      'step': 'otp_verification',
-      'data': otpResult['data']
-    };
-  }
-
-  /// Step 2: Verify OTP and complete login
-  Future<Map<String, dynamic>> verifyOTPAndLogin({
-    required String phoneNumber,
-    required String otpCode,
-  }) async {
-    // Verify OTP with server
-    final normalizedPhone = _normalizePhoneNumber(phoneNumber);
-    final otpResult = await _otpService.verifyOtp(normalizedPhone, otpCode);
-    
-    if (!otpResult['success']) {
-      return {
-        'success': false,
-        'error': otpResult['message'] ?? 'Invalid OTP',
-        'step': 'otp_verification'
-      };
-    }
-
-    // Get user data from backend
-    final loginSuccess = await _userService.loginWithPhone(phoneNumber);
-    
-    if (!loginSuccess) {
-      return {
-        'success': false,
-        'error': 'Login failed. Please try again.',
-        'step': 'backend_login'
-      };
-    }
-
-    // Get user data
-    final userData = await _userService.getUserData();
-    
-    if (userData != null) {
-      // Save session
-      await loginWithUserData(
-        userId: userData['id'] ?? '',
-        username: '${userData['first_name']} ${userData['last_name']}',
-        phoneNumber: phoneNumber,
-        email: userData['email'],
-      );
-      
-      return {
-        'success': true,
-        'message': 'Login successful!',
-        'step': 'complete',
-        'user': userData
-      };
-    }
-
-    return {
-      'success': false,
-      'error': 'Failed to retrieve user data',
-      'step': 'backend_login'
-    };
-  }
-
-  // ===== MPIN RESET (Requires OTP) =====
-  
-  /// Reset MPIN - requires OTP verification first
-  Future<Map<String, dynamic>> resetMPIN({
-    required String phoneNumber,
-    required String otpCode,
-    required String newMpin,
-  }) async {
-    if (newMpin.length != 4 || !RegExp(r'^[0-9]+$').hasMatch(newMpin)) {
-      return {
-        'success': false,
-        'error': 'MPIN must be 4 digits'
-      };
-    }
-
-    // Verify OTP first
-    final normalizedPhone = _normalizePhoneNumber(phoneNumber);
-    final otpResult = await _otpService.verifyOtp(normalizedPhone, otpCode);
-    
-    if (!otpResult['success']) {
-      return {
-        'success': false,
-        'error': 'Invalid OTP'
-      };
-    }
-
-    // Save new MPIN
-    final saved = await saveMPIN(phoneNumber, newMpin);
-    
-    if (!saved) {
-      return {
-        'success': false,
-        'error': 'Failed to save new MPIN'
-      };
-    }
-
-    return {
-      'success': true,
-      'message': 'MPIN reset successfully'
-    };
-  }
-
-  // ===== USER DATA ACCESS ===== ✅ NEW METHOD
-  
-  /// Get current user data from backend
-  Future<Map<String, dynamic>?> getUserData() async {
-    return await _userService.getUserData();
-  }
-
-  // ===== HELPER METHODS =====
-  
-  String _normalizePhoneNumber(String phone) {
-    phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
-    
-    if (phone.startsWith('09') && phone.length == 11) {
-      return '63${phone.substring(1)}';
-    }
-    
-    if (phone.startsWith('63') && phone.length == 12) {
-      return phone;
-    }
-    
-    return phone;
+    return difference.inDays;
   }
 }
 
-// ===== BACKWARDS COMPATIBILITY ALIAS =====
-// Keep your existing AuthManager working
+// Backwards compatibility alias
 typedef AuthManager = AuthService;

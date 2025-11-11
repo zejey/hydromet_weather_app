@@ -7,7 +7,7 @@ class UserRegistrationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // ⚠️ CHANGE THIS to your actual backend URL
-  static const String baseUrl = 'http://your-server-ip:8000/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   static const String _loginKey = 'user_logged_in';
   static const String _usernameKey = 'username';
@@ -45,6 +45,36 @@ class UserRegistrationService {
     _token = prefs.getString(_tokenKey) ?? '';
     _phoneNumber = prefs.getString(_phoneKey) ?? '';
     _userId = prefs.getString(_userIdKey) ?? '';
+  }
+
+  /// Get user data by phone number
+  Future<Map<String, dynamic>?> getUserByPhone(String phoneNumber) async {
+    try {
+      print('📱 Fetching user data for: $phoneNumber');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/phone/$phoneNumber'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('📡 Get user response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print(
+            '✅ User data fetched: ${data['first_name']} ${data['last_name']}');
+        return data;
+      } else if (response.statusCode == 404) {
+        print('❌ User not found');
+        return null;
+      } else {
+        print('❌ Error fetching user: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Exception fetching user: $e');
+      return null;
+    }
   }
 
   String _normalizePhoneNumber(String phone) {
@@ -94,14 +124,17 @@ class UserRegistrationService {
     try {
       final normalizedPhone = phoneNumber.trim();
 
-      // Check if phone exists
+      // ✅ FIX: Add trailing slash
       final checkResponse = await http
           .post(
-            Uri.parse('$baseUrl/users/check-user'),
+            Uri.parse('$baseUrl/users/check-user'), // ← This one is OK
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'phone_number': normalizedPhone}),
           )
           .timeout(const Duration(seconds: 10));
+
+      print('Check user status: ${checkResponse.statusCode}');
+      print('Check user body: ${checkResponse.body}');
 
       if (checkResponse.statusCode == 200) {
         final checkData = jsonDecode(checkResponse.body);
@@ -113,10 +146,10 @@ class UserRegistrationService {
         }
       }
 
-      // Register in PostgreSQL
+      // ✅ FIX: Add trailing slash here!
       final registerResponse = await http
           .post(
-            Uri.parse('$baseUrl/users'),
+            Uri.parse('$baseUrl/users/'), // ← Add trailing slash!
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'first_name': firstName.trim(),
@@ -131,8 +164,15 @@ class UserRegistrationService {
           )
           .timeout(const Duration(seconds: 30));
 
+      print('Register status: ${registerResponse.statusCode}');
+      print('Register body: ${registerResponse.body}');
+
       if (registerResponse.statusCode == 201 ||
           registerResponse.statusCode == 200) {
+        if (registerResponse.body.isEmpty) {
+          return {'success': false, 'error': 'Server returned empty response'};
+        }
+
         final userData = jsonDecode(registerResponse.body);
 
         return {
@@ -141,6 +181,13 @@ class UserRegistrationService {
           'user': userData,
         };
       } else {
+        if (registerResponse.body.isEmpty) {
+          return {
+            'success': false,
+            'error': 'Server error (${registerResponse.statusCode})'
+          };
+        }
+
         final errorData = jsonDecode(registerResponse.body);
         return {
           'success': false,
@@ -148,6 +195,7 @@ class UserRegistrationService {
         };
       }
     } catch (e) {
+      print('Registration error: $e');
       return {
         'success': false,
         'error': 'Registration failed: ${e.toString()}'
@@ -159,6 +207,8 @@ class UserRegistrationService {
     try {
       final normalizedPhone = phoneNumber.trim();
 
+      print('🔍 Checking if phone is registered: $normalizedPhone');
+
       final response = await http
           .post(
             Uri.parse('$baseUrl/users/check-user'),
@@ -167,14 +217,21 @@ class UserRegistrationService {
           )
           .timeout(const Duration(seconds: 10));
 
+      print('📡 Response status: ${response.statusCode}');
+      print('📡 Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['exists'] == true;
+        final exists = data['exists'] == true;
+
+        print(exists ? '✅ User exists' : '❌ User does not exist');
+
+        return exists;
       }
 
       return false;
     } catch (e) {
-      print('Error checking phone registration: $e');
+      print('❌ Error checking phone registration: $e');
       return false;
     }
   }
@@ -185,7 +242,8 @@ class UserRegistrationService {
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/users/get-user'),
+            Uri.parse(
+                '$baseUrl/users/get-user'), // ← This one is fine (no redirect)
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'phone_number': normalizedPhone}),
           )
@@ -223,6 +281,32 @@ class UserRegistrationService {
     }
   }
 
+  Future<Map<String, dynamic>?> getUserData() async {
+    if (!_isLoggedIn || _phoneNumber.isEmpty) return null;
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(
+                '$baseUrl/users/get-user'), // ← This one is fine (no redirect)
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'phone_number': _phoneNumber}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['user'];
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error getting user data: $e');
+      return null;
+    }
+  }
+
   Future<bool> login(String phone, [String? smsToken]) {
     return loginWithPhone(phone, smsToken: smsToken);
   }
@@ -243,31 +327,5 @@ class UserRegistrationService {
     await prefs.remove(_tokenKey);
     await prefs.remove(_phoneKey);
     await prefs.remove(_userIdKey);
-  }
-
-  /// Get user data from PostgreSQL ✅ NEW METHOD
-  Future<Map<String, dynamic>?> getUserData() async {
-    if (!_isLoggedIn || _phoneNumber.isEmpty) return null;
-
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/users/get-user'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'phone_number': _phoneNumber}),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          return data['user'];
-        }
-      }
-      return null;
-    } catch (e) {
-      print('Error getting user data: $e');
-      return null;
-    }
   }
 }
