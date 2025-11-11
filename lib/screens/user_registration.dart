@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/user_registration_service.dart';
+import '../services/otp_api_service.dart';
+import 'registration_otp_verify.dart';
 
 class UserRegistrationScreen extends StatefulWidget {
   const UserRegistrationScreen({super.key});
@@ -15,14 +18,14 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   final TextEditingController _suffixController = TextEditingController();
   final TextEditingController _houseAddressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  
+
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _middleNameFocusNode = FocusNode();
   final FocusNode _lastNameFocusNode = FocusNode();
   final FocusNode _suffixFocusNode = FocusNode();
   final FocusNode _houseAddressFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
-  
+
   String? _selectedBarangay;
   bool _agreeToTerms = false;
   bool _isLoading = false;
@@ -56,12 +59,12 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     'Welcome to HydroMet San Pedro, a weather alert and early warning system designed to keep residents informed about hazards such as flooding, storms, extreme heat, and air pollution. By using our app, you agree to the following Terms and Conditions:',
                   ),
                   const SizedBox(height: 16),
-                  _buildTermSection('1. Acceptance of Terms', 
-                    'By accessing or using the app, you confirm that you are at least 18 years of age or have parental consent, and you agree to be bound by these Terms.'),
-                  _buildTermSection('2. User Responsibilities', 
-                    '• Use the app only for lawful and non-commercial purposes.\n• Do not interfere with the functioning or security of the app.\n• Ensure the accuracy of information you provide (e.g., location data).'),
-                  _buildTermSection('3. Service Availability', 
-                    'We strive for 24/7 availability, but we do not guarantee uninterrupted service. Maintenance, technical issues, or natural disasters may cause downtime.'),
+                  _buildTermSection('1. Acceptance of Terms',
+                      'By accessing or using the app, you confirm that you are at least 18 years of age or have parental consent, and you agree to be bound by these Terms.'),
+                  _buildTermSection('2. User Responsibilities',
+                      '• Use the app only for lawful and non-commercial purposes.\n• Do not interfere with the functioning or security of the app.\n• Ensure the accuracy of information you provide (e.g., location data).'),
+                  _buildTermSection('3. Service Availability',
+                      'We strive for 24/7 availability, but we do not guarantee uninterrupted service. Maintenance, technical issues, or natural disasters may cause downtime.'),
                   const SizedBox(height: 20),
                   const Text(
                     'Privacy Policy',
@@ -157,10 +160,10 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
   @override
   void dispose() {
-  _firstNameController.dispose();
-  _middleNameController.dispose();
-  _lastNameController.dispose();
-  _suffixController.dispose();
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _lastNameController.dispose();
+    _suffixController.dispose();
     _houseAddressController.dispose();
     _phoneController.dispose();
     _firstNameFocusNode.dispose();
@@ -173,63 +176,105 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   Future<void> _register() async {
     // Validate all fields
     if (_firstNameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your first name');
+      _showSnackBar('Please enter your first name', isError: true);
       return;
     }
     if (_lastNameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your last name');
+      _showSnackBar('Please enter your last name', isError: true);
       return;
     }
-    
+
     if (_houseAddressController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your house number/street');
+      _showSnackBar('Please enter your house number/street', isError: true);
       return;
     }
-    
+
     if (_selectedBarangay == null) {
-      _showSnackBar('Please select your barangay');
+      _showSnackBar('Please select your barangay', isError: true);
       return;
     }
-    
-    if (_phoneController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your phone number');
+
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      _showSnackBar('Please enter your phone number', isError: true);
       return;
     }
-    
-    if (_phoneController.text.trim().length < 10) {
-      _showSnackBar('Please enter a valid phone number');
+
+    if (!RegExp(r'^09[0-9]{9}$').hasMatch(phone)) {
+      _showSnackBar('Please enter a valid phone number (09XXXXXXXXX)',
+          isError: true);
       return;
     }
-    
+
     if (!_agreeToTerms) {
-      _showSnackBar('Please agree to the Terms and Conditions and Privacy Policy');
+      _showSnackBar('Please agree to the Terms and Conditions', isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
-    
-    // Simulate API call for registration
-    await Future.delayed(const Duration(seconds: 2));
-    
-    setState(() => _isLoading = false);
-    
-    // Show success message
-    _showSnackBar('Registration successful! Please sign in to verify your account.');
-    
-    // Wait a moment for the user to see the success message
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // Navigate to login form screen for account verification
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
+
+    try {
+      // ✅ STEP 1: Register user via FastAPI
+      final registrationService = UserRegistrationService();
+      final registrationResult = await registrationService.registerUser(
+        firstName: _firstNameController.text.trim(),
+        middleName: _middleNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        suffix: _suffixController.text.trim(),
+        houseAddress: _houseAddressController.text.trim(),
+        barangay: _selectedBarangay!,
+        phoneNumber: phone,
+      );
+
+      if (!registrationResult['success']) {
+        setState(() => _isLoading = false);
+        _showSnackBar(registrationResult['error'] ?? 'Registration failed',
+            isError: true);
+        return;
+      }
+
+      // ✅ STEP 2: Send OTP to verify phone number
+      final otpService = OtpApiService();
+      final otpResult = await otpService.sendRegistrationOtp(phone);
+
+      setState(() => _isLoading = false);
+
+      if (otpResult['success']) {
+        _showSnackBar('Registration successful! Please verify your phone.',
+            isError: false);
+
+        // ✅ STEP 3: Navigate to OTP verification screen
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RegistrationOTPVerifyScreen(
+                phoneNumber: phone,
+                displayName:
+                    '${_firstNameController.text} ${_lastNameController.text}',
+              ),
+            ),
+          );
+        }
+      } else {
+        _showSnackBar('Registration successful but OTP failed. Please login.',
+            isError: true);
+        // Still go to login since user is registered
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showSnackBar('Registration failed: ${e.toString()}', isError: true);
     }
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        duration: Duration(seconds: isError ? 4 : 2),
       ),
     );
   }
@@ -253,7 +298,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                
+
                 // Back Button
                 Row(
                   children: [
@@ -267,17 +312,17 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Registration Form
                 _buildRegistrationForm(),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // Sign In Link
                 _buildSignInLink(),
-                
+
                 const SizedBox(height: 30),
               ],
             ),
@@ -324,7 +369,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          
+
           // Name Fields
           Row(
             children: [
@@ -342,7 +387,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                      borderSide:
+                          const BorderSide(color: Colors.green, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -366,7 +412,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                      borderSide:
+                          const BorderSide(color: Colors.green, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -394,7 +441,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                      borderSide:
+                          const BorderSide(color: Colors.green, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -418,7 +466,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green, width: 2),
+                      borderSide:
+                          const BorderSide(color: Colors.green, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -429,9 +478,9 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // House No./Street Input
           const Align(
             alignment: Alignment.centerLeft,
@@ -465,9 +514,9 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Barangay Dropdown
           const Align(
             alignment: Alignment.centerLeft,
@@ -513,9 +562,9 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               });
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Phone Number Input
           const Align(
             alignment: Alignment.centerLeft,
@@ -554,9 +603,9 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Terms and Conditions Checkbox
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -570,7 +619,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                 },
                 activeColor: Colors.green,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                visualDensity:
+                    const VisualDensity(horizontal: -4, vertical: -4),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -613,9 +663,9 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Register Button
           ElevatedButton(
             onPressed: _isLoading ? null : _register,
