@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/user_registration_service.dart';
 
 class RegistrationCreateMPINScreen extends StatefulWidget {
   final String phoneNumber;
@@ -19,10 +21,11 @@ class RegistrationCreateMPINScreen extends StatefulWidget {
 class _RegistrationCreateMPINScreenState
     extends State<RegistrationCreateMPINScreen> {
   final AuthService _authService = AuthService();
+  final UserRegistrationService _userService = UserRegistrationService();
 
   String _mpin = '';
   String _confirmMpin = '';
-  bool _isCreatingMpin = true; // true = create, false = confirm
+  bool _isCreatingMpin = true;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -33,7 +36,6 @@ class _RegistrationCreateMPINScreenState
           _mpin += value;
           _errorMessage = null;
 
-          // Auto-proceed to confirm when 4 digits entered
           if (_mpin.length == 4) {
             Future.delayed(const Duration(milliseconds: 300), () {
               if (mounted) {
@@ -49,7 +51,6 @@ class _RegistrationCreateMPINScreenState
           _confirmMpin += value;
           _errorMessage = null;
 
-          // Auto-verify when 4 digits entered
           if (_confirmMpin.length == 4) {
             Future.delayed(const Duration(milliseconds: 300), () {
               if (mounted) {
@@ -80,7 +81,6 @@ class _RegistrationCreateMPINScreenState
 
   void _onBack() {
     if (!_isCreatingMpin) {
-      // Go back to creating MPIN
       setState(() {
         _isCreatingMpin = true;
         _confirmMpin = '';
@@ -101,39 +101,93 @@ class _RegistrationCreateMPINScreenState
     setState(() => _isLoading = true);
 
     try {
-      // Save MPIN to secure storage
+      // ✅ Step 1: Save MPIN to secure storage
       final saved = await _authService.saveMPIN(widget.phoneNumber, _mpin);
 
-      setState(() => _isLoading = false);
-
-      if (saved) {
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('MPIN created successfully!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-
-        // Wait a moment then navigate to login
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        if (mounted) {
-          // Navigate to login screen
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/', // Your login route
-            (route) => false,
-          );
-        }
-      } else {
+      if (!saved) {
         setState(() {
+          _isLoading = false;
           _errorMessage = 'Failed to save MPIN. Please try again.';
           _confirmMpin = '';
         });
+        return;
+      }
+
+      print('✅ MPIN saved successfully');
+
+      // ✅ Step 2: Save OTP verification timestamp (mark device as trusted for 72 hours)
+      await _saveOtpVerificationTimestamp();
+      print('✅ OTP timestamp saved - device trusted for 72 hours');
+
+      // ✅ Step 3: Login user automatically (fetch user data from backend)
+      final loginSuccess =
+          await _userService.loginWithPhone(widget.phoneNumber);
+
+      setState(() => _isLoading = false);
+
+      if (loginSuccess) {
+        // ✅ Step 4: Get user data
+        final userData = await _userService.getUserData();
+
+        if (userData != null) {
+          // ✅ Step 5: Save login session
+          await _authService.loginWithUserData(
+            userId: userData['id'] ?? '',
+            username: '${userData['first_name']} ${userData['last_name']}',
+            phoneNumber: widget.phoneNumber,
+            email: userData['email'],
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Registration complete! Welcome!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          if (mounted) {
+            // ✅ Step 6: Navigate directly to weather screen (no login needed!)
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/weather',
+              (route) => false, // Remove all previous routes
+            );
+          }
+        } else {
+          setState(() {
+            _errorMessage =
+                'Failed to retrieve user data. Please login manually.';
+          });
+
+          await Future.delayed(const Duration(seconds: 2));
+
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/login',
+              (route) => false,
+            );
+          }
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Login failed. Please try logging in manually.';
+        });
+
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/login',
+            (route) => false,
+          );
+        }
       }
     } catch (e) {
       setState(() {
@@ -141,6 +195,24 @@ class _RegistrationCreateMPINScreenState
         _errorMessage = 'Error: ${e.toString()}';
         _confirmMpin = '';
       });
+    }
+  }
+
+  // ✅ NEW: Save OTP verification timestamp so user doesn't need OTP for 72 hours
+  Future<void> _saveOtpVerificationTimestamp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now().toIso8601String();
+
+      // Save global timestamp
+      await prefs.setString('last_otp_verified_at', now);
+
+      // Save phone-specific timestamp
+      await prefs.setString('last_otp_verified_at_${widget.phoneNumber}', now);
+
+      print('✅ OTP verification timestamp saved: $now');
+    } catch (e) {
+      print('⚠️ Failed to save OTP timestamp: $e');
     }
   }
 
@@ -168,100 +240,12 @@ class _RegistrationCreateMPINScreenState
       padding: const EdgeInsets.symmetric(horizontal: 30),
       child: Column(
         children: [
-          // Row 1: 1, 2, 3
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _NumberButton(
-                child: const Text('1',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('1'),
-              ),
-              _NumberButton(
-                child: const Text('2',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('2'),
-              ),
-              _NumberButton(
-                child: const Text('3',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('3'),
-              ),
-            ],
-          ),
+          _buildNumberRow(['1', '2', '3']),
           const SizedBox(height: 20),
-          // Row 2: 4, 5, 6
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _NumberButton(
-                child: const Text('4',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('4'),
-              ),
-              _NumberButton(
-                child: const Text('5',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('5'),
-              ),
-              _NumberButton(
-                child: const Text('6',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('6'),
-              ),
-            ],
-          ),
+          _buildNumberRow(['4', '5', '6']),
           const SizedBox(height: 20),
-          // Row 3: 7, 8, 9
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _NumberButton(
-                child: const Text('7',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('7'),
-              ),
-              _NumberButton(
-                child: const Text('8',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('8'),
-              ),
-              _NumberButton(
-                child: const Text('9',
-                    style: TextStyle(
-                        fontSize: 28,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold)),
-                onTap: () => _onKeyTap('9'),
-              ),
-            ],
-          ),
+          _buildNumberRow(['7', '8', '9']),
           const SizedBox(height: 20),
-          // Row 4: back arrow, 0, backspace
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -290,6 +274,22 @@ class _RegistrationCreateMPINScreenState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNumberRow(List<String> numbers) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: numbers.map((number) {
+        return _NumberButton(
+          child: Text(number,
+              style: const TextStyle(
+                  fontSize: 28,
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold)),
+          onTap: () => _onKeyTap(number),
+        );
+      }).toList(),
     );
   }
 
@@ -322,8 +322,6 @@ class _RegistrationCreateMPINScreenState
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-
-                  // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -348,10 +346,7 @@ class _RegistrationCreateMPINScreenState
                       const SizedBox(width: 48),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Success Icon
                   Container(
                     width: 100,
                     height: 100,
@@ -367,15 +362,12 @@ class _RegistrationCreateMPINScreenState
                       ],
                     ),
                     child: const Icon(
-                      Icons.check_circle_outline,
+                      Icons.lock_outline,
                       size: 50,
                       color: Colors.green,
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // MPIN Card
                   Expanded(
                     child: Container(
                       width: double.infinity,
@@ -416,10 +408,7 @@ class _RegistrationCreateMPINScreenState
                             ),
                           ),
                           const SizedBox(height: 30),
-
-                          // PIN Dots
                           _buildPinDots(currentPin),
-
                           if (_errorMessage != null) ...[
                             const SizedBox(height: 16),
                             Container(
@@ -448,10 +437,7 @@ class _RegistrationCreateMPINScreenState
                               ),
                             ),
                           ],
-
                           const SizedBox(height: 30),
-
-                          // Number Pad
                           Expanded(
                             child: _isLoading
                                 ? const Center(
@@ -463,7 +449,7 @@ class _RegistrationCreateMPINScreenState
                                             color: Colors.green),
                                         SizedBox(height: 16),
                                         Text(
-                                          'Setting up your MPIN...',
+                                          'Setting up your account...',
                                           style: TextStyle(
                                             color: Colors.green,
                                             fontSize: 16,
@@ -475,10 +461,7 @@ class _RegistrationCreateMPINScreenState
                                   )
                                 : _buildNumberPad(),
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Info Text
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(

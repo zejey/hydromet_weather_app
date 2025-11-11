@@ -5,23 +5,21 @@ import '../services/otp_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_registration_service.dart';
 
-class RegistrationOTPVerifyScreen extends StatefulWidget {
+class OTPVerifyLoginScreen extends StatefulWidget {
   final String phoneNumber;
   final String displayName;
 
-  const RegistrationOTPVerifyScreen({
+  const OTPVerifyLoginScreen({
     super.key,
     required this.phoneNumber,
     required this.displayName,
   });
 
   @override
-  State<RegistrationOTPVerifyScreen> createState() =>
-      _RegistrationOTPVerifyScreenState();
+  State<OTPVerifyLoginScreen> createState() => _OTPVerifyLoginScreenState();
 }
 
-class _RegistrationOTPVerifyScreenState
-    extends State<RegistrationOTPVerifyScreen> {
+class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
   final List<TextEditingController> _controllers =
       List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
@@ -124,7 +122,7 @@ class _RegistrationOTPVerifyScreenState
 
       print('✅ OTP verified successfully');
 
-      // Step 2: Auto-login (no MPIN needed!)
+      // Step 2: Auto-login (no MPIN!)
       print('🔐 Step 2: Logging in user...');
       final loginSuccess =
           await _userService.loginWithPhone(widget.phoneNumber);
@@ -162,12 +160,12 @@ class _RegistrationOTPVerifyScreenState
 
       setState(() => _isLoading = false);
 
-      print('✅ Registration & Login complete!');
+      print('✅ Login complete!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Registration complete! Welcome to HydroMet!'),
+            content: Text('✅ Login successful! Welcome back!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -255,6 +253,8 @@ class _RegistrationOTPVerifyScreenState
             child: Column(
               children: [
                 const SizedBox(height: 40),
+
+                // Back Button
                 Row(
                   children: [
                     IconButton(
@@ -267,7 +267,10 @@ class _RegistrationOTPVerifyScreenState
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 20),
+
+                // Icon
                 Container(
                   width: 120,
                   height: 120,
@@ -288,7 +291,10 @@ class _RegistrationOTPVerifyScreenState
                     color: Colors.green,
                   ),
                 ),
+
                 const SizedBox(height: 30),
+
+                // OTP Form Container
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -333,12 +339,13 @@ class _RegistrationOTPVerifyScreenState
                       const SizedBox(height: 30),
 
                       // OTP Input Fields
+                      // OTP Input Fields
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: List.generate(6, (index) {
                           return SizedBox(
-                            width: 45,
-                            height: 60,
+                            width: 50, // ✅ Increased from 45 to 50
+                            height: 65, // ✅ Increased from 60 to 65
                             child: TextField(
                               controller: _controllers[index],
                               focusNode: _focusNodes[index],
@@ -346,12 +353,18 @@ class _RegistrationOTPVerifyScreenState
                               textAlign: TextAlign.center,
                               maxLength: 1,
                               style: const TextStyle(
-                                fontSize: 24,
+                                fontSize: 22, // ✅ Slightly reduced from 24
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
+                                height: 1.2, // ✅ Added line height control
                               ),
                               decoration: InputDecoration(
                                 counterText: '',
+                                contentPadding: const EdgeInsets.symmetric(
+                                  // ✅ Added explicit padding
+                                  vertical: 18,
+                                  horizontal: 0,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide:
@@ -364,8 +377,16 @@ class _RegistrationOTPVerifyScreenState
                                     width: 2,
                                   ),
                                 ),
+                                enabledBorder: OutlineInputBorder(
+                                  // ✅ Added enabled state
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey.shade300),
+                                ),
                                 filled: true,
                                 fillColor: Colors.grey.shade50,
+                                isDense:
+                                    true, // ✅ Added to reduce internal padding
                               ),
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
@@ -408,6 +429,7 @@ class _RegistrationOTPVerifyScreenState
 
                       const SizedBox(height: 24),
 
+                      // Verify Button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -442,6 +464,7 @@ class _RegistrationOTPVerifyScreenState
 
                       const SizedBox(height: 16),
 
+                      // Resend OTP
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -487,6 +510,7 @@ class _RegistrationOTPVerifyScreenState
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 30),
               ],
             ),
