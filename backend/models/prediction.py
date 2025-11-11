@@ -68,7 +68,7 @@ class PredictionResponse(BaseModel):
     success: bool = Field(default=True)
     prediction: HazardPrediction
     notification: Optional[NotificationTemplate] = None
-    features: Optional[WeatherFeatures] = None
+    features: Optional[Dict[str, Any]] = None
 
 
 class ForecastPredictionResponse(BaseModel):
