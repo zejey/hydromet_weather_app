@@ -1,4 +1,4 @@
-package com.example.weather_hybrid_app
+package com.zjayarcena.hydromet
 
 import io.flutter.embedding.android.FlutterActivity
 

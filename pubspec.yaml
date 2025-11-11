@@ -25,6 +25,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
 
 
 flutter:
@@ -32,3 +33,10 @@ flutter:
   assets:
   #- .env - remove for netlify but uncomment for local dev
   - assets/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo.png"
+  adaptive_icon_background: "#1976D2"
+  adaptive_icon_foreground: "assets/logo.png"
