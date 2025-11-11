@@ -19,7 +19,8 @@ class Config:
     
     # iProg SMS API
     IPROG_API_TOKEN = os.getenv("IPROG_API_TOKEN")
-    
+    IPROG_BASE_URL = os.getenv("IPROG_BASE_URL", "https://sms.iprogtech.com/api/v1")     
+
     # OTP Settings
     OTP_VALIDITY_MINUTES = int(os.getenv("OTP_VALIDITY_MINUTES", 5))
     OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", 3))

@@ -27,7 +27,8 @@ from backend.api import (
     safety_tips_router,
     otp_router,
     predictions_router,
-    weather_router
+    weather_router,
+    auto_predictor_router,
 )
 
 # Validate configuration
@@ -72,6 +73,7 @@ app.include_router(notifications_router)      # /api/notifications/*
 app.include_router(hotlines_router)           # /api/hotlines/*
 app.include_router(safety_categories_router)  # /api/safety/categories/*
 app.include_router(safety_tips_router)        # /api/safety/tips/*
+app.include_router(auto_predictor_router)
 
 
 @app.get("/")
@@ -100,6 +102,7 @@ async def root():
             },
             "otp": {
                 "send": "POST /api/otp/send",
+                "send_registration": "POST /api/otp/send-registration",
                 "verify": "POST /api/otp/verify",
                 "resend": "POST /api/otp/resend",
                 "health": "GET /api/otp/health"
