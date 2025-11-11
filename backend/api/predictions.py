@@ -113,8 +113,7 @@ async def predict_from_weather_data(request: PredictionRequest):
         return PredictionResponse(
             success=True,
             prediction=prediction,
-            notification=hazard_info,
-            features=features
+            notification=hazard_info
         )
         
     except HTTPException:

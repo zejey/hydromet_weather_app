@@ -13,6 +13,45 @@ from backend.utils.validators import normalize_phone_number
 
 router = APIRouter(prefix="/api/users", tags=["Users & Authentication"])
 
+@router.get("/phone/{phone_number}")
+async def get_user_by_phone(phone_number: str):
+    """Get user by phone number"""
+    try:
+        from backend.utils.validators import normalize_phone_number
+        phone_number = normalize_phone_number(phone_number)
+        
+        with get_db_cursor() as cur:
+            cur.execute("""
+                SELECT id, first_name, last_name, middle_name, suffix,
+                       phone_number, barangay, house_address,
+                       role, is_verified, created_at
+                FROM users
+                WHERE phone_number IN (%s, %s, %s)
+                LIMIT 1
+            """, (
+                phone_number,
+                phone_number.lstrip('63'),
+                '0' + phone_number.lstrip('63')
+            ))
+            
+            user = cur.fetchone()
+            
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+            
+            return dict(user)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error fetching user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 @router.post("/check-user", response_model=CheckUserResponse)
 async def check_user(request: CheckUserRequest):
@@ -102,7 +141,9 @@ async def get_user(request: LoginRequest):
         )
 
 
+# ✅ FIX: Handle both "/" and "" (with and without trailing slash)
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreate):
     """Create a new user"""
     try:
@@ -140,24 +181,31 @@ async def create_user(user_data: UserCreate):
                 user_data.barangay.strip(),
                 phone_number,
                 user_data.role.strip(),
-                False,
+                False,  # is_verified starts as False
                 now,
                 now
             ))
             
             new_user = cur.fetchone()
+            
+            # ✅ Add success logging
+            print(f"✅ User created successfully: {user_id} | {phone_number}")
+            
             return User(**new_user)
             
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Error creating user: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating user: {str(e)}"
         )
 
 
+# ✅ FIX: Handle both "/" and "" (with and without trailing slash)
 @router.get("/", response_model=List[User])
+@router.get("", response_model=List[User])
 async def get_users():
     """Get all users"""
     with get_db_cursor() as cur:
