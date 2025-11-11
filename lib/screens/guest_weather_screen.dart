@@ -2,27 +2,22 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/weather_service.dart';
-import '../services/auth_service.dart' as auth_service;
-import '../services/notification_service.dart';
 import '../widgets/weather/weather_header.dart';
 import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
 import '../widgets/weather/weather_tiles_grid.dart';
 import '../widgets/weather/weather_map.dart';
+import '../services/notification_service.dart';
 
-class WeatherScreen extends StatefulWidget {
-  const WeatherScreen({super.key});
+class GuestWeatherScreen extends StatefulWidget {
+  const GuestWeatherScreen({super.key});
 
   @override
-  State<WeatherScreen> createState() => _WeatherScreenState();
+  State<GuestWeatherScreen> createState() => _GuestWeatherScreenState();
 }
 
-class _WeatherScreenState extends State<WeatherScreen>
+class _GuestWeatherScreenState extends State<GuestWeatherScreen>
     with TickerProviderStateMixin {
-  // User authentication state
-  bool _isUserLoggedIn = false;
-  String _currentUserName = '';
-
   // Weather data
   Map<String, dynamic>? weatherData;
   Map<String, dynamic>? airData;
@@ -32,7 +27,6 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // Services
   final WeatherService _weatherService = WeatherService();
-  final auth_service.AuthService _authService = auth_service.AuthService();
 
   // Animation
   late AnimationController _animationController;
@@ -41,7 +35,6 @@ class _WeatherScreenState extends State<WeatherScreen>
   @override
   void initState() {
     super.initState();
-    _checkAuth();
     loadWeather();
 
     _animationController = AnimationController(
@@ -58,30 +51,172 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _checkAuth();
-  }
-
-  @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
 
-  Future<void> _checkAuth() async {
-    final auth = auth_service.AuthService();
-    await auth.initialize();
+// Add this method to _GuestWeatherScreenState class
 
-    print('🔍 Weather Screen Auth Check:');
-    print('   - isLoggedIn: ${auth.isLoggedIn}');
-    print('   - username: ${auth.username}');
-    print('   - phone: ${auth.phoneNumber}');
+  void _showGuestNotifications() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.notifications, color: Colors.orange),
+              SizedBox(width: 12),
+              Text('Weather Alerts'),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: NotificationService.instance
+                  .userNotificationsStream(), // ✅ Public notifications
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.notifications_off_outlined,
+                          size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      const Text('No weather alerts at the moment',
+                          textAlign: TextAlign.center),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.sms, color: Colors.orange.shade700),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Want SMS alerts too?',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Sign in to receive emergency alerts via SMS',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade700,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.pushNamed(context, '/login');
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.shade700,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Sign In Now'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
 
-    setState(() {
-      _isUserLoggedIn = auth.isLoggedIn;
-      _currentUserName = auth.username;
-    });
+                final notifications = snapshot.data!;
+                return ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: notifications.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final notif = notifications[index];
+                    return ListTile(
+                      leading: Icon(
+                        _getNotificationIcon(notif['type']),
+                        color: _getNotificationColor(notif['type']),
+                        size: 28,
+                      ),
+                      title: Text(
+                        notif['title'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(notif['body'] ?? ''),
+                          if (notif['timestamp'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                notif['timestamp'].toString(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/login');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade700,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Sign In for SMS'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  IconData _getNotificationIcon(String? type) {
+    switch (type) {
+      case 'Emergency':
+        return Icons.priority_high_rounded;
+      case 'Warning':
+        return Icons.warning_amber_rounded;
+      default:
+        return Icons.info_rounded;
+    }
+  }
+
+  Color _getNotificationColor(String? type) {
+    switch (type) {
+      case 'Emergency':
+        return Colors.red;
+      case 'Warning':
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
   }
 
   Future<void> loadWeather() async {
@@ -166,130 +301,8 @@ class _WeatherScreenState extends State<WeatherScreen>
     }
   }
 
-  // ✅ LOGGED-IN USER NOTIFICATIONS
-  void _showNotifications() {
-    if (!_isUserLoggedIn) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Notifications'),
-            content: const Text(
-                'Notifications are not available. Please log in first to view notifications.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/login');
-                },
-                child: const Text('Login'),
-              ),
-            ],
-          );
-        },
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Notifications'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: NotificationService.instance.userNotificationsStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text('No new notifications.');
-                }
-                final notifications = snapshot.data!;
-                return ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: notifications.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final notif = notifications[index];
-                    return ListTile(
-                      leading: Icon(
-                        _getNotificationIcon(notif['type']),
-                        color: _getNotificationColor(notif['type']),
-                        size: 28,
-                      ),
-                      title: Text(
-                        notif['title'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(notif['body'] ?? ''),
-                          if (notif['timestamp'] != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(
-                                notif['timestamp'].toString(),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  IconData _getNotificationIcon(String? type) {
-    switch (type) {
-      case 'Emergency':
-        return Icons.priority_high_rounded;
-      case 'Warning':
-        return Icons.warning_amber_rounded;
-      default:
-        return Icons.info_rounded;
-    }
-  }
-
-  Color _getNotificationColor(String? type) {
-    switch (type) {
-      case 'Emergency':
-        return Colors.red;
-      case 'Warning':
-        return Colors.orange;
-      default:
-        return Colors.blue;
-    }
-  }
-
-  // ✅ LOGGED-IN USER PROFILE MENU
-  void _showProfileMenu() {
+  // ✅ GUEST MENU (Limited options)
+  void _showGuestMenu() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -300,38 +313,34 @@ class _WeatherScreenState extends State<WeatherScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // User info header
+            // Guest indicator
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: Colors.orange.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade200),
+                border: Border.all(color: Colors.orange.shade200),
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.green.shade700,
-                    child: const Icon(Icons.person, color: Colors.white),
-                  ),
+                  Icon(Icons.person_outline, color: Colors.orange.shade700),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Logged in as:',
+                        Text(
+                          'Guest Mode',
                           style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade900,
                           ),
                         ),
                         Text(
-                          _currentUserName,
+                          'Sign in to receive SMS weather alerts',
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade900,
-                            fontSize: 16,
+                            fontSize: 12,
+                            color: Colors.orange.shade700,
                           ),
                         ),
                       ],
@@ -344,22 +353,15 @@ class _WeatherScreenState extends State<WeatherScreen>
 
             // Menu options
             ListTile(
-              leading: const Icon(Icons.person, color: Colors.green),
-              title: const Text('Profile'),
+              leading: const Icon(Icons.login, color: Colors.green),
+              title: const Text('Sign In',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/profile');
+                Navigator.pushNamed(context, '/login');
               },
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.lightbulb_outline),
               title: const Text('Safety Tips'),
@@ -384,57 +386,9 @@ class _WeatherScreenState extends State<WeatherScreen>
                 _showAboutDialog();
               },
             ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Logout', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context);
-                _handleLogout();
-              },
-            ),
           ],
         ),
       ),
-    );
-  }
-
-  void _handleLogout() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final nav = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
-                nav.pop();
-
-                await _authService.logout();
-
-                if (mounted) {
-                  setState(() {});
-                  nav.pushNamedAndRemoveUntil('/', (route) => false);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: const Text('Logged out successfully'),
-                      backgroundColor: Colors.green.shade700,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Logout'),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -496,13 +450,13 @@ class _WeatherScreenState extends State<WeatherScreen>
             // Main content
             Column(
               children: [
-                // ✅ Shared Header Widget (User mode)
+                // ✅ Shared Header Widget (Guest mode)
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: WeatherHeader(
-                    isGuest: false, // ✅ User mode
-                    onNotificationTap: _showNotifications,
-                    onMenuTap: _showProfileMenu,
+                    isGuest: true, // ✅ Guest mode
+                    onNotificationTap: _showGuestNotifications,
+                    onMenuTap: _showGuestMenu,
                   ),
                 ),
 
@@ -528,7 +482,7 @@ class _WeatherScreenState extends State<WeatherScreen>
                                 WeatherTilesGrid(
                                   weatherData: weatherData!,
                                   airData: airData,
-                                  isGuest: false, // ✅ User mode
+                                  isGuest: true, // ✅ Guest mode
                                 ),
 
                                 const SizedBox(height: 20),
@@ -539,7 +493,8 @@ class _WeatherScreenState extends State<WeatherScreen>
                                     location: selectedLocation!,
                                     weatherData: weatherData!,
                                     airData: airData,
-                                    isGuest: false, // ✅ User mode
+                                    isGuest:
+                                        true, // ✅ Guest mode (shows overlay)
                                   ),
 
                                 const SizedBox(height: 40),
