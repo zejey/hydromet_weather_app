@@ -34,5 +34,14 @@ HAZARD_THRESHOLDS = {
 # OpenWeather API defaults
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 OPENWEATHER_LAT = float(os.getenv("OPENWEATHER_LAT", "14.3644"))
-OPENWEATHER_LON = float(os.getenv("OPENWEATHER_LON", "-121.0619"))
-OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
+OPENWEATHER_LON = float(os.getenv("OPENWEATHER_LON", "121.0619"))
+OPENWEATHER_BASE_URL = os.getenv("OPENWEATHER_BASE_URL", "https://pro.openweathermap.org/data/2.5")
+
+if __name__ == "__main__":
+    print(f"📁 Configuration Paths:")
+    print(f"   BASE_DIR: {BASE_DIR}")
+    print(f"   MODEL_PATH: {MODEL_PATH}")
+    print(f"   METADATA_PATH: {METADATA_PATH}")
+    print(f"   Model exists: {Path(MODEL_PATH).exists()}")
+    print(f"   Metadata exists: {Path(METADATA_PATH).exists()}")
+    print(f"   OpenWeather Base URL: {OPENWEATHER_BASE_URL}")

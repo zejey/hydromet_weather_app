@@ -268,30 +268,71 @@ def train_from_csv(csv_path):
 
 def predict_from_features(features_dict):
     """Takes weather features dict (parsed from OpenWeather JSON), returns prediction & probability."""
+    print(f"\n🔍 DEBUG: predict_from_features called")
+    print(f"   Features: {list(features_dict.keys())}")
+    
     # Load model and metadata
-    pipeline = joblib.load(MODEL_PATH)
-    with open(METADATA_PATH) as f:
-        meta = json.load(f)
+    try:
+        pipeline = joblib.load(MODEL_PATH)
+        print(f"   ✅ Model loaded from {MODEL_PATH}")
+    except Exception as e:
+        print(f"   ❌ Model load failed: {e}")
+        raise
+    
+    try:
+        with open(METADATA_PATH) as f:
+            meta = json.load(f)
+        print(f"   ✅ Metadata loaded: {len(meta.get('feature_columns', []))} features")
+    except Exception as e:
+        print(f"   ❌ Metadata load failed: {e}")
+        raise
+    
     feature_cols = meta["feature_columns"]
+    print(f"   Expected features: {feature_cols[:5]}...")  # Show first 5
 
     df = pd.DataFrame([features_dict])
+    print(f"   ✅ DataFrame created: {df.shape}")
+    
     df = engineer_features(df)
+    print(f"   ✅ Features engineered: {df.shape}")
+    
     for col in feature_cols:
         if col not in df.columns:
             df[col] = 60.0 if col == "humidity" else 0.0
+    
     X = df[feature_cols].values
+    print(f"   ✅ Feature matrix: {X.shape}")
 
-    pred = pipeline.predict(X)[0]
-    proba = pipeline.predict_proba(X)[0].tolist()
+    try:
+        pred = pipeline.predict(X)[0]
+        proba = pipeline.predict_proba(X)[0].tolist()
+        print(f"   ✅ ML Prediction: event={pred}, probability={proba[1]:.2f}")
+    except Exception as e:
+        print(f"   ❌ Prediction failed: {e}")
+        raise
 
     event, hazards = hazard_score(features_dict, explain=True)
     hazard_type = determine_hazard_type(hazards) if event else "None"
+    print(f"   Rules: event={event}, hazard_type={hazard_type}")
 
     # Fallback: If the MODEL predicts an event, but the rules don't trigger any hazard
     if pred and not hazards:
         hazard_type = "General Hazard (AI detected, not matched to rules)"
 
+    result = {
+        "event": int(pred),
+        "probability": proba[1],
+        "probabilities": {"no_event": proba[0], "event": proba[1]},
+        "features_used": feature_cols,
+        "hazards_triggered": hazards if event else [],
+        "hazard_type": hazard_type
+    }
+    
+    print(f"   ✅ Final result: {result['event']}, {result['hazard_type']}, {result['probability']:.2f}")
+    
+    # ✅ SEND NOTIFICATION IF HAZARD
     if int(pred) == 1 and hazard_type in hazard_notification_templates:
+        print(f"   📧 Sending notification for {hazard_type}")
         template = hazard_notification_templates[hazard_type]
 
         notif_service = NotificationService()
@@ -301,18 +342,13 @@ def predict_from_features(features_dict):
             message=template["in_app"]["message"],
             notif_type="Alert",
             status="Active",
-            send_sms=True,  # Enable SMS
-            sms_recipients=None  # Uses default recipients from config
+            send_sms=True,
+            sms_recipients=None
         )
+    else:
+        print(f"   ℹ️  No notification sent (pred={pred}, hazard_type={hazard_type})")
 
-    return {
-        "event": int(pred),
-        "probability": proba[1],
-        "probabilities": {"no_event": proba[0], "event": proba[1]},
-        "features_used": feature_cols,
-        "hazards_triggered": hazards if event else [],
-        "hazard_type": hazard_type
-    }
+    return result
 
 def features_from_openweather_json(weather_json):
     """Parses OpenWeather API JSON to model feature dict."""

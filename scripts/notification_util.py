@@ -9,15 +9,21 @@ import pytz
 import os
 import requests
 import logging
+from pathlib import Path
+from dotenv import load_dotenv
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-key.json"
 
 # IPROGSMS Configuration
-IPROGSMS_API_KEY = os.getenv("IPROGSMS_API_KEY")  # Store in environment variable
+IPROG_API_TOKEN = os.getenv("IPROG_API_TOKEN")  # Store in environment variable
+IPROG_BASE_URL = os.getenv("IPROG_BASE_URL")
 
 # Default recipient numbers (can be overridden per notification)
 # DEFAULT_SMS_RECIPIENTS = [
@@ -25,169 +31,22 @@ IPROGSMS_API_KEY = os.getenv("IPROGSMS_API_KEY")  # Store in environment variabl
 #     os.getenv("SMS_RECIPIENT_2", "+63987654321"),  # Secondary admin
 # ]
 
-class SMSNotificationService:
-    """Handle SMS notifications via IPROGSMS"""
-    
-    SINGLE_SMS_URL = "https://sms.iprogtech.com/api/v1/sms_messages"
-    BULK_SMS_URL = "https://sms.iprogtech.com/api/v1/sms_messages/send_bulk"
-    
-    def __init__(self, api_key=IPROGSMS_API_KEY):
-        self.api_key = api_key
-        
-        if not self.api_key:
-            logger.warning("⚠️ IPROGSMS_API_KEY not set. SMS notifications disabled.")
-    
-    def send_sms(self, phone_number, message):
-        """
-        Send SMS via IPROGSMS API (Single recipient)
-        
-        Args:
-            phone_number (str): Recipient phone number (e.g., +63912345678 or 09092418164)
-            message (str): Message content (max 160 chars for standard SMS)
-        
-        Returns:
-            dict: Response from IPROGSMS API
-        """
-        if not self.api_key:
-            logger.error("❌ IPROGSMS API key not configured")
-            return {"status": "error", "message": "SMS service not configured"}
-        
-        # Truncate message if too long (standard SMS = 160 chars)
-        if len(message) > 160:
-            message = message[:157] + "..."
-        
-        # Single SMS payload
-        payload = {
-            "api_token": self.api_key,
-            "phone_number": phone_number,
-            "message": message,
-        }
-        
-        try:
-            logger.info(f"📱 Sending SMS to {phone_number}...")
-            logger.debug(f"   URL: {self.SINGLE_SMS_URL}")
-            logger.debug(f"   Payload: {payload}")
-            
-            response = requests.post(self.SINGLE_SMS_URL, json=payload, timeout=10)
-            
-            logger.debug(f"   Response Status: {response.status_code}")
-            logger.debug(f"   Response Body: {response.text}")
-            
-            if response.status_code == 200:
-                result = response.json()
-                logger.debug(f"   Parsed JSON: {result}")
-                
-                # Check for success - IPROGSMS returns "success": true when queued
-                if result.get("success") or "successfully" in result.get("message", "").lower():
-                    logger.info(f"✓ SMS queued successfully for {phone_number}")
-                    return {"status": "success", "phone": phone_number, "response": result}
-                else:
-                    logger.error(f"✗ SMS API error: {result.get('message', 'Unknown error')}")
-                    return {"status": "failed", "phone": phone_number, "response": result}
-            else:
-                logger.error(f"✗ HTTP error {response.status_code}: {response.text}")
-                return {"status": "error", "phone": phone_number, "http_status": response.status_code}
-        
-        except requests.exceptions.Timeout:
-            logger.error(f"✗ SMS request timeout for {phone_number}")
-            return {"status": "timeout", "phone": phone_number}
-        except Exception as e:
-            logger.error(f"✗ SMS error: {str(e)}")
-            return {"status": "exception", "phone": phone_number, "error": str(e)}
-    
-    def send_bulk_sms(self, recipients, message):
-        """
-        Send SMS to multiple recipients using bulk endpoint
-        
-        Args:
-            recipients (list): List of phone numbers
-            message (str): Message content
-        
-        Returns:
-            dict: Summary of all send attempts
-        """
-        if len(recipients) == 1:
-            # Use single SMS endpoint for one recipient
-            result = self.send_sms(recipients[0], message)
-            return {
-                "total": 1,
-                "successful": 1 if result["status"] == "success" else 0,
-                "failed": 0 if result["status"] == "success" else 1,
-                "details": [result]
-            }
-        
-        # Use bulk SMS endpoint for multiple recipients
-        if not self.api_key:
-            logger.error("❌ IPROGSMS API key not configured")
-            return {"total": len(recipients), "successful": 0, "failed": len(recipients), "details": []}
-        
-        # Truncate message if too long
-        if len(message) > 160:
-            message = message[:157] + "..."
-        
-        # Format phone numbers as comma-separated string
-        phone_numbers = ",".join(recipients)
-        
-        # Bulk SMS payload
-        payload = {
-            "api_token": self.api_key,
-            "phone_number": phone_numbers,
-            "message": message,
-        }
-        
-        try:
-            logger.info(f"📱 Sending bulk SMS to {len(recipients)} recipients...")
-            logger.debug(f"   URL: {self.BULK_SMS_URL}")
-            logger.debug(f"   Recipients: {phone_numbers}")
-            
-            response = requests.post(self.BULK_SMS_URL, json=payload, timeout=10)
-            
-            logger.debug(f"   Response Status: {response.status_code}")
-            logger.debug(f"   Response Body: {response.text}")
-            
-            if response.status_code == 200:
-                result = response.json()
-                logger.debug(f"   Parsed JSON: {result}")
-                
-                if result.get("success") or "successfully" in result.get("message", "").lower():
-                    logger.info(f"✓ Bulk SMS queued successfully for {len(recipients)} recipients")
-                    return {
-                        "total": len(recipients),
-                        "successful": len(recipients),
-                        "failed": 0,
-                        "details": [{"status": "success", "phone": phone_numbers, "response": result}]
-                    }
-                else:
-                    logger.error(f"✗ Bulk SMS API error: {result.get('message', 'Unknown error')}")
-                    return {
-                        "total": len(recipients),
-                        "successful": 0,
-                        "failed": len(recipients),
-                        "details": [{"status": "failed", "response": result}]
-                    }
-            else:
-                logger.error(f"✗ HTTP error {response.status_code}: {response.text}")
-                return {
-                    "total": len(recipients),
-                    "successful": 0,
-                    "failed": len(recipients),
-                    "details": [{"status": "error", "http_status": response.status_code}]
-                }
-        
-        except requests.exceptions.Timeout:
-            logger.error(f"✗ Bulk SMS request timeout")
-            return {"total": len(recipients), "successful": 0, "failed": len(recipients), "details": []}
-        except Exception as e:
-            logger.error(f"✗ Bulk SMS error: {str(e)}")
-            return {"total": len(recipients), "successful": 0, "failed": len(recipients), "details": []}
-
-
 class NotificationService:
     """Combined in-app + SMS notification service"""
     
     def __init__(self):
         self.db = firestore.Client()
-        self.sms_service = SMSNotificationService()
+        self.api_key = os.getenv("IPROG_API_TOKEN")
+        self.api_url = os.getenv("IPROG_BASE_URL")
+        
+        if IPROG_BASE_URL:
+            self.api_url = f"{IPROG_BASE_URL.rstrip('/')}/sms_messages/send_bulk"
+        else:
+            self.api_url = "https://sms.iprogtech.com/api/v1/sms_messages/send_bulk"
+            logger.warning("⚠️ IPROG_BASE_URL not set, using hardcoded URL")
+
+        if not self.api_key:
+            logger.warning("⚠️ IPROG_API_TOKEN not set. SMS notifications disabled.")
     
     def send_notification(
         self,
@@ -200,22 +59,10 @@ class NotificationService:
         send_sms=True,
         sms_recipients=None
     ):
-        """
-        Send both in-app and SMS notifications
-        
-        Args:
-            title (str): Notification title
-            message (str): Notification message (long version for in-app)
-            notif_type (str): Type of notification
-            status (str): Status (Active, Resolved, etc.)
-            sent_to (int): User ID (0 for broadcast)
-            dt (datetime): Timestamp
-            send_sms (bool): Whether to send SMS
-            sms_recipients (list): Phone numbers for SMS (uses defaults if None)
-        """
+        """Send both in-app and SMS notifications"""
         now = dt or datetime.now(pytz.timezone("Asia/Manila"))
         
-        # ===== SEND IN-APP NOTIFICATION =====
+        # Save to Firestore
         try:
             in_app_doc = {
                 'dateTime': firestore.SERVER_TIMESTAMP,
@@ -230,52 +77,135 @@ class NotificationService:
         except Exception as e:
             logger.error(f"✗ Failed to save in-app notification: {str(e)}")
         
-        # ===== SEND SMS NOTIFICATION =====
-        if send_sms:
-            # Use provided recipients or defaults
-            recipients = sms_recipients or DEFAULT_SMS_RECIPIENTS
+        # Send SMS
+        if send_sms and self.api_key:
+            if sms_recipients is None:
+                sms_recipients = self._get_registered_users_phones()
             
-            # Create shorter SMS message (SMS has character limit)
-            sms_message = self._create_sms_message(title, message)
+            if sms_recipients:
+                sms_message = self._create_sms_message(title, message)
+                self._send_sms_batch(sms_recipients, sms_message)
+    
+    def _send_sms_batch(self, recipients, message):
+        """Send SMS to multiple recipients using iProg bulk endpoint"""
+        
+        if not self.api_key:
+            logger.warning("⚠️ SMS disabled - no API key")
+            return
+        
+        # ✅ Format phone numbers as comma-separated string
+        # Convert 09XXXXXXXXX format to required format
+        phone_numbers = ",".join(recipients)
+        
+        logger.info(f"📱 Attempting to send SMS to {len(recipients)} recipients")
+        logger.info(f"   API URL: {self.api_url}")
+        logger.info(f"   Phone numbers: {phone_numbers}")
+        logger.info(f"   Message: {message[:50]}...")
+        
+        try:
+            # ✅ iProg API format
+            payload = {
+                'api_token': self.api_key,
+                'phone_number': phone_numbers,  # Comma-separated
+                'message': message
+            }
             
-            sms_results = self.sms_service.send_bulk_sms(
-                recipients=recipients,
-                message=sms_message,
-                message_type="text"
+            logger.debug(f"   Payload: {payload}")
+            
+            response = requests.post(
+                self.api_url,
+                json=payload,
+                timeout=10
             )
             
-            logger.info(f"📱 SMS Results: {sms_results['successful']}/{sms_results['total']} sent")
+            logger.info(f"   Response Status: {response.status_code}")
+            logger.info(f"   Response Body: {response.text[:200]}...")
             
-            # Save SMS send results to Firestore for audit trail
-            try:
-                self.db.collection('sms_audit_log').document().set({  # <-- Changed from 'notifications'
-                    'dateTime': firestore.SERVER_TIMESTAMP,
-                    'type': 'SMS_SENT',
-                    'title': title,
-                    'sms_results': {
-                        'total': sms_results['total'],
-                        'successful': sms_results['successful'],
-                        'failed': sms_results['failed']
-                    },
-                    'recipients': len(recipients)
-                })
-            except Exception as e:
-                logger.error(f"✗ Failed to log SMS results: {str(e)}")
+            if response.status_code == 200:
+                try:
+                    result = response.json()
+                    logger.info(f"   Response JSON: {result}")
+                    
+                    # Check for success
+                    if result.get("success") or "successfully" in str(result.get("message", "")).lower():
+                        logger.info(f"✅ Bulk SMS sent successfully to {len(recipients)} recipients")
+                        logger.info(f"📱 SMS: {len(recipients)}/{len(recipients)} sent")
+                        return
+                    else:
+                        logger.error(f"❌ iProg API error: {result.get('message', 'Unknown error')}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to parse JSON response: {e}")
+            else:
+                logger.error(f"❌ HTTP error {response.status_code}: {response.text[:200]}")
+            
+            logger.info(f"📱 SMS: 0/{len(recipients)} sent")
+            
+        except requests.exceptions.Timeout:
+            logger.error(f"❌ SMS request timeout")
+            logger.info(f"📱 SMS: 0/{len(recipients)} sent")
+        except Exception as e:
+            logger.error(f"❌ SMS error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            logger.info(f"📱 SMS: 0/{len(recipients)} sent")
+        
+    def _get_registered_users_phones(self):
+        """Get phone numbers from database"""
+        try:
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+            from backend.database import get_db_connection
+            
+            logger.info("📱 Fetching registered users from database...")
+            
+            # Use context manager
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    # ✅ FIXED: Use correct column names
+                    cursor.execute("""
+                        SELECT phone_number, first_name, last_name 
+                        FROM users 
+                        WHERE phone_number IS NOT NULL 
+                        AND phone_number != ''
+                        AND is_verified = true
+                    """)
+                    users = cursor.fetchall()
+            
+            if not users:
+                logger.warning("⚠️ No registered users found in database")
+                return []
+            
+            # Extract phone numbers and create display names
+            phones = []
+            user_names = []
+            
+            for user in users:
+                phone = user[0]
+                first_name = user[1] or ""
+                last_name = user[2] or ""
+                full_name = f"{first_name} {last_name}".strip() or phone
+                
+                phones.append(phone)
+                user_names.append(full_name)
+            
+            logger.info(f"📱 Found {len(phones)} verified users: {', '.join(user_names)}")
+            
+            return phones
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get phone numbers: {e}")
+            
+            # More detailed error logging
+            import traceback
+            logger.error(f"Traceback:\n{traceback.format_exc()}")
+            
+            return []
     
     def _create_sms_message(self, title, long_message):
-        """
-        Create a concise SMS message from title and long message
-        SMS limit: 160 characters
-        """
-        # Extract key info from message
-        sms_msg = f"{title}: {long_message[:120]}"
-        
-        # Truncate if needed
-        if len(sms_msg) > 160:
-            sms_msg = sms_msg[:157] + "..."
-        
-        return sms_msg
-
+        """Create SMS (max 160 chars)"""
+        sms = f"{title}: {long_message[:120]}"
+        return sms[:157] + "..." if len(sms) > 160 else sms
 
 # ===== CONVENIENCE FUNCTIONS =====
 
@@ -308,7 +238,7 @@ def send_event_notification(
 
 def send_sms_only(phone_numbers, message):
     """Send SMS without in-app notification"""
-    sms_service = SMSNotificationService()
+    sms_service = NotificationService()
     return sms_service.send_sms(phone_numbers, message)
 
 
