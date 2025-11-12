@@ -7,7 +7,7 @@ class UserRegistrationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // ⚠️ CHANGE THIS to your actual backend URL
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'https://caring-kindness-production.up.railway.app/api';
 
   static const String _loginKey = 'user_logged_in';
   static const String _usernameKey = 'username';
