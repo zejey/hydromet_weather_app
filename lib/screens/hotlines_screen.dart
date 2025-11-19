@@ -199,129 +199,124 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                               const SizedBox(height: 16),
 
                               // 🆕 StreamBuilder for dynamic hotlines
-                              StreamBuilder<List<HotlineItem>>(
-                                stream: _hotlinesService.getActiveHotlines(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(32.0),
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
-                                  }
+                             // ...inside build(), replace the existing StreamBuilder with this:
 
-                                  if (snapshot.hasError) {
-                                    return Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(32.0),
-                                        child: Column(
-                                          children: [
-                                            const Icon(
-                                              Icons.error_outline,
-                                              size: 48,
-                                              color: Colors.red,
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              'Error loading hotlines: ${snapshot.error}',
-                                              style: const TextStyle(
-                                                  color: Colors.red),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }
+                            // 🆕 StreamBuilder for dynamic hotlines (use polling stream)
+                            StreamBuilder<List<HotlineItem>>(
+                              stream: _hotlinesService.getActiveHotlinesStream(), // <- changed from getActiveHotlines()
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(32.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
 
-                                  final hotlines = snapshot.data ?? [];
-
-                                  if (hotlines.isEmpty) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(32.0),
-                                        child: Text(
-                                          'No emergency hotlines available',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.grey,
+                                if (snapshot.hasError) {
+                                  return Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(32.0),
+                                      child: Column(
+                                        children: [
+                                          const Icon(
+                                            Icons.error_outline,
+                                            size: 48,
+                                            color: Colors.red,
                                           ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Error loading hotlines: ${snapshot.error}',
+                                            style: const TextStyle(color: Colors.red),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                final hotlines = snapshot.data ?? [];
+
+                                if (hotlines.isEmpty) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(32.0),
+                                      child: Text(
+                                        'No emergency hotlines available',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey,
                                         ),
                                       ),
-                                    );
-                                  }
+                                    ),
+                                  );
+                                }
 
-                                  return Column(
-                                    children: [
-                                      // Build hotline items dynamically
-                                      ...hotlines.asMap().entries.map((entry) {
-                                        final index = entry.key;
-                                        final hotline = entry.value;
-                                        final isLast =
-                                            index == hotlines.length - 1;
+                                return Column(
+                                  children: [
+                                    // Build hotline items dynamically
+                                    ...hotlines.asMap().entries.map((entry) {
+                                      final index = entry.key;
+                                      final hotline = entry.value;
+                                      final isLast = index == hotlines.length - 1;
 
-                                        return _buildDynamicHotlineItem(
-                                          context,
-                                          hotline,
-                                          isLast: isLast,
-                                        );
-                                      }).toList(),
+                                      return _buildDynamicHotlineItem(
+                                        context,
+                                        hotline,
+                                        isLast: isLast,
+                                      );
+                                    }).toList(),
 
-                                      const SizedBox(height: 24),
+                                    const SizedBox(height: 24),
 
-                                      // Emergency Call 911 (keep the same)
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.red.shade600,
-                                              Colors.red.shade800
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.red
-                                                  .withValues(alpha: 0.3),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
+                                    // Emergency Call 911 (keep the same)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Colors.red.shade600, Colors.red.shade800],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
                                         ),
-                                        child: const Row(
-                                          children: [
-                                            Icon(
-                                              Icons.phone_in_talk,
-                                              color: Colors.white,
-                                              size: 24,
-                                            ),
-                                            SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                '🚨 For immediate life-threatening emergencies, call 911',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.red.withValues(alpha: 0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.phone_in_talk,
+                                            color: Colors.white,
+                                            size: 24,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              '🚨 For immediate life-threatening emergencies, call 911',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
+                                    ),
 
-                                      const SizedBox(height: 20),
-                                    ],
-                                  );
-                                },
-                              ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                );
+                              },
+                            ),                           
                             ],
                           ),
                         ),
