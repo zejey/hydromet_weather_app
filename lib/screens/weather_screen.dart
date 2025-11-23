@@ -8,7 +8,7 @@ import '../widgets/weather/weather_header.dart';
 import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
 import '../widgets/weather/weather_tiles_grid.dart';
-import '../widgets/weather/weather_map.dart';
+import '../widgets/weather/weather_map_widget.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
@@ -534,14 +534,37 @@ class _WeatherScreenState extends State<WeatherScreen>
                                 const SizedBox(height: 20),
 
                                 // ✅ Shared Weather Map
+                                // Top part omitted ...
                                 if (selectedLocation != null)
-                                  WeatherMap(
-                                    location: selectedLocation!,
-                                    weatherData: weatherData!,
+                                  WeatherMapWidget(
+                                    selectedLocation: selectedLocation!,
+                                    initialZoom: 14.0,
+                                    weatherData: weatherData,
                                     airData: airData,
-                                    isGuest: false, // ✅ User mode
+                                    // Control features depending on your toggles (add these states to your _WeatherScreenState as needed)
+                                    showHazardLocations: _showHazardLocations,
+                                    showEvacuationCenters: _showEvacuationCenters,
+                                    showNearestEvacuationCenters: _showNearestEvacuationCenters,
+                                    showGovernmentAgencies: _showGovernmentAgencies,
+                                    showAirQualityIndicator: _showAirQualityIndicator,
+                                    showSafetyIndicator: _showSafetyIndicator,
+                                    hazardLocations: hazardLocations, // must define this List in your state
+                                    evacuationCenters: evacuationCenters, // must define this List
+                                    governmentAgencies: governmentAgencies, // must define this List
+                                    temperaturePoints: _temperaturePoints, // must define and generate these as in old screen
+                                    windData: _windData,
+                                    rainParticleLocations: _rainParticleLocations,
+                                    rainAnimation: _rainAnimation, // define AnimationController and Animation
+                                    scaleAnimation: _scaleAnimation,
+                                    forecastLayer: _forecastLayer,        // add and manage this state in your screen
+                                    searchRadius: 400,
+                                    pinnedLocation: _pinnedLocation,      // add and update these in your logic
+                                    showRainAnimation: _showRainAnimation,
+                                    showWindArrows: _showWindArrows,
+                                    showTemperatureHeatmap: _showTemperatureHeatmap,
+                                    externalMapController: _mapController, // optional, you can use internal
+                                    onMapTap: _onMapTap,                  // provide a tap handler as needed
                                   ),
-
                                 const SizedBox(height: 40),
                               ],
                             ],
