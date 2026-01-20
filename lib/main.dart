@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/weather_screen.dart';
+//import 'screens/weather_screen.dart';
 import 'screens/smart_login_screen.dart';
 import 'screens/user_registration.dart';
 import 'screens/user_profile.dart';
@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const SmartLoginScreen(),
         '/register': (context) => const UserRegistrationScreen(),
         '/home': (context) => const HomeShellScreen(),
-        '/weather': (context) => const WeatherScreen(),
+        // '/weather': (context) => const WeatherScreen(),
         '/profile': (context) => const UserProfileScreen(),
         '/tips': (context) => const TipsScreen(),
         '/hotlines': (context) => const HotlinesScreen(),

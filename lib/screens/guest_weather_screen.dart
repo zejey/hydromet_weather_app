@@ -6,7 +6,7 @@ import '../widgets/weather/weather_header.dart';
 import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
 import '../widgets/weather/weather_tiles_grid.dart';
-import '../widgets/weather/weather_map.dart';
+import '../widgets/weather/weather_map_widget.dart';
 import '../services/notification_service.dart';
 
 class GuestWeatherScreen extends StatefulWidget {
@@ -489,12 +489,15 @@ class _GuestWeatherScreenState extends State<GuestWeatherScreen>
 
                                 // ✅ Shared Weather Map
                                 if (selectedLocation != null)
-                                  WeatherMap(
-                                    location: selectedLocation!,
+                                  WeatherMapWidget(
+                                    selectedLocation: selectedLocation!,
                                     weatherData: weatherData!,
                                     airData: airData,
-                                    isGuest:
-                                        true, // ✅ Guest mode (shows overlay)
+                                    hazardLocations: const [],
+                                    evacuationCenters: const [],
+                                    governmentAgencies: const [],
+                                    rainAnimation: _animationController,
+                                    scaleAnimation: _scaleAnimation,
                                   ),
 
                                 const SizedBox(height: 40),

@@ -150,14 +150,16 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     return GestureDetector(
       onTap: () {
         // Switch to Map tab (index 1)
-        final shell = context.findAncestorStateOfType<_HomeShellScreenState>();
-        if (shell != null) {
-          shell.switchToTab(1);
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Full map view coming soon!  Tap the Map tab below.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
       },
       child: Container(
         height: 200,
-        margin: const EdgeInsets.all(16),
+        margin: const EdgeInsets. all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
@@ -169,20 +171,20 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius. circular(16),
           child: Stack(
             children: [
               // Simple map placeholder with location marker
               Container(
-                color: Colors.grey.shade300,
+                color:  Colors.grey.shade300,
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.location_on,
-                        size: 60,
-                        color: Colors.green.shade700,
+                        size:  60,
+                        color: Colors. green.shade700,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -190,7 +192,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700,
+                          color: Colors. grey.shade700,
                         ),
                       ),
                     ],
@@ -199,14 +201,13 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
               ),
               // Overlay with "Tap to explore" prompt
               Positioned(
-                bottom: 12,
+                bottom:  12,
                 right: 12,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.black54,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius. circular(20),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -215,7 +216,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                       SizedBox(width: 4),
                       Text(
                         'Tap to explore',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        style: TextStyle(color:  Colors.white, fontSize: 12),
                       ),
                     ],
                   ),
@@ -264,10 +265,10 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                 onMenuTap: () {
                   // For now, do nothing - menu is now in Profile tab
                   // Could navigate to Profile tab
-                  final shell = context.findAncestorStateOfType<_HomeShellScreenState>();
-                  if (shell != null) {
-                    shell.switchToTab(4); // Profile tab
-                  }
+                  // final shell = context.findAncestorStateOfType<_HomeShellScreenState>();
+                  // if (shell != null) {
+                  //   shell.switchToTab(4); // Profile tab
+                  // }
                 },
               ),
             ),

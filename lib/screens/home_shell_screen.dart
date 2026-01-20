@@ -13,6 +13,23 @@ class HomeShellScreen extends StatefulWidget {
   State<HomeShellScreen> createState() => _HomeShellScreenState();
 }
 
+class HomeShellNavigator extends InheritedWidget {
+  final Function(int) switchToTab;
+  
+  const HomeShellNavigator({
+    super.key,
+    required this.switchToTab,
+    required super.child,
+  });
+
+  static HomeShellNavigator?  of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<HomeShellNavigator>();
+  }
+
+  @override
+  bool updateShouldNotify(HomeShellNavigator oldWidget) => false;
+}
+
 class _HomeShellScreenState extends State<HomeShellScreen> {
   int _currentIndex = 0;
   bool _isUserLoggedIn = false;
@@ -140,7 +157,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
+      body: HomeShellNavigator(
+        switchToTab: (index) => setState(() => _currentIndex = index),
         child: IndexedStack(
           index: _currentIndex,
           children: _screens,
