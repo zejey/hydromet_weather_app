@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
         print('✅ Session valid - going to weather');
 
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/weather');
+          Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
         // No session

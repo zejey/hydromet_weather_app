@@ -8,6 +8,7 @@ import 'screens/hotlines_screen.dart';
 import 'screens/user_settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/guest_weather_screen.dart';
+import 'screens/home_shell_screen.dart';
 import 'services/user_registration_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const SmartLoginScreen(),
         '/register': (context) => const UserRegistrationScreen(),
+        '/home': (context) => const HomeShellScreen(),
         '/weather': (context) => const WeatherScreen(),
         '/profile': (context) => const UserProfileScreen(),
         '/tips': (context) => const TipsScreen(),

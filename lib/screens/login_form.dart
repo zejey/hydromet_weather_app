@@ -121,7 +121,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
         await UserRegistrationService().login(phone);
         await AuthManager().initialize();
         Navigator.pushNamedAndRemoveUntil(
-            context, '/weather', (route) => false);
+            context, '/home', (route) => false);
       } else {
         _showSnackBar(result['error'] ?? 'OTP verification failed',
             isError: true);

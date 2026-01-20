@@ -187,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     child: TextButton(
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, '/weather');
+                        Navigator.pushReplacementNamed(context, '/home');
                       },
                       child: const Text(
                         'Skip to Weather Dashboard',
@@ -398,7 +398,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: TextButton(
                               onPressed: () {
                                 Navigator.pushReplacementNamed(
-                                    context, '/weather');
+                                    context, '/home');
                               },
                               child: const Text(
                                 'Back to Weather Dashboard',
@@ -625,7 +625,7 @@ class _LoginScreenState extends State<LoginScreen> {
     
 //     // Navigate back to weather screen
 //     if (mounted) {
-//       Navigator.pushNamedAndRemoveUntil(context, '/weather', (route) => false);
+//       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
 //     }
 //   }
 

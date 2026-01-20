@@ -39,7 +39,7 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
     // If user is already logged in, go directly to weather
     if (_authService.isLoggedIn) {
       Future.microtask(() {
-        Navigator.pushReplacementNamed(context, '/weather');
+        Navigator.pushReplacementNamed(context, '/home');
       });
     }
   }
@@ -104,7 +104,7 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
               ),
             );
 
-            Navigator.pushReplacementNamed(context, '/weather');
+            Navigator.pushReplacementNamed(context, '/home');
             return;
           }
         }
@@ -233,7 +233,7 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
   }
 
   void _continueAsGuest() {
-    Navigator.pushReplacementNamed(context, '/guest-weather');
+    Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override

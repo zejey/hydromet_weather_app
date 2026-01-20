@@ -154,7 +154,7 @@ class _RegistrationCreateMPINScreenState
             // ✅ Step 6: Navigate directly to weather screen (no login needed!)
             Navigator.pushNamedAndRemoveUntil(
               context,
-              '/weather',
+              '/home',
               (route) => false, // Remove all previous routes
             );
           }

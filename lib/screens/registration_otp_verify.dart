@@ -178,7 +178,7 @@ class _RegistrationOTPVerifyScreenState
         // Navigate to weather screen
         Navigator.pushNamedAndRemoveUntil(
           context,
-          '/weather',
+          '/home',
           (route) => false,
         );
       }

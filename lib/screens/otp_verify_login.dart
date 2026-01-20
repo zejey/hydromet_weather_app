@@ -176,7 +176,7 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
         // Navigate to weather screen
         Navigator.pushNamedAndRemoveUntil(
           context,
-          '/weather',
+          '/home',
           (route) => false,
         );
       }
