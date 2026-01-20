@@ -159,7 +159,7 @@ class HotlinesService {
 
   // API endpoints
   Uri _hotlinesUri({bool activeOnly = true}) =>
-      Uri.parse('$_apiBaseUrl/api/hotlines${activeOnly ? '?active_only=true' : ''}');
+      Uri.parse('$_apiBaseUrl/api/hotlines/${activeOnly ? '?active_only=true' : ''}');
 
   Uri _hotlinesByCategoryUri(String category) =>
       Uri.parse('$_apiBaseUrl/api/hotlines/category/${Uri.encodeComponent(category)}');
