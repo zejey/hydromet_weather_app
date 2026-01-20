@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/weather_service.dart';
@@ -68,12 +67,11 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   }
 
   Future<void> _checkAuth() async {
-    final auth = auth_service.AuthService();
-    await auth.initialize();
+    await _authService.initialize();
 
     if (mounted) {
       setState(() {
-        _isUserLoggedIn = auth.isLoggedIn;
+        _isUserLoggedIn = _authService.isLoggedIn;
       });
     }
   }
