@@ -1,60 +1,49 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
+// ==================== MODELS ====================
+
 class SafetyCategory {
-  final String id;
+  final int id;
   final String name;
-  final String icon;
-  final List<String> gradientColors;
-  final int order;
-  final bool isActive;
   final String description;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final String icon;
+  final List<Color> colors;
+  final int orderNum;
+  final bool isActive;
 
   SafetyCategory({
     required this.id,
     required this.name,
-    required this.icon,
-    required this.gradientColors,
-    required this.order,
-    required this.isActive,
     required this.description,
-    this.createdAt,
-    this.updatedAt,
+    required this.icon,
+    required this.colors,
+    required this.orderNum,
+    required this.isActive,
   });
 
-  factory SafetyCategory.fromMap(Map<String, dynamic> map, String docId) {
+  factory SafetyCategory.fromJson(Map<String, dynamic> json) {
+    List<Color> parseColors(dynamic gradientColors) {
+      if (gradientColors is List) {
+        return gradientColors
+            .map((c) => Color(int.parse(c.toString().replaceFirst('#', '0xFF'))))
+            .toList();
+      }
+      return [Colors.green, Colors.green.shade700];
+    }
+
     return SafetyCategory(
-      id: docId,
-      name: map['name'] ?? '',
-      icon: map['icon'] ?? 'info',
-      gradientColors:
-          List<String>.from(map['gradient_colors'] ?? ['#2196F3', '#1976D2']),
-      order: map['order'] ?? 0,
-      isActive: map['is_active'] ?? true,
-      description: map['description'] ?? '',
-      createdAt: map['created_at']?.toDate(),
-      updatedAt: map['updated_at']?.toDate(),
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      description: json['description'] ?? '',
+      icon: json['icon'] ?? 'info',
+      colors: parseColors(json['gradient_colors']),
+      orderNum: json['order_num'] ?? 0,
+      isActive: json['is_active'] ?? true,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'icon': icon,
-      'gradient_colors': gradientColors,
-      'order': order,
-      'is_active': isActive,
-      'description': description,
-      'created_at': createdAt != null
-          ? Timestamp.fromDate(createdAt!)
-          : FieldValue.serverTimestamp(),
-      'updated_at': FieldValue.serverTimestamp(),
-    };
-  }
-
-  // Helper method to get Flutter icon from string
   IconData get iconData {
     switch (icon) {
       case 'air':
@@ -67,107 +56,90 @@ class SafetyCategory {
         return Icons.storm;
       case 'thermostat':
         return Icons.thermostat;
-      case 'umbrella':
-        return Icons.umbrella;
-      case 'flash_on':
-        return Icons.flash_on;
-      case 'ac_unit':
-        return Icons.ac_unit;
-      case 'cloud':
-        return Icons.cloud;
       default:
         return Icons.info;
     }
   }
+}
 
-  // Helper method to get Flutter colors from hex strings
-  List<Color> get colors {
-    return gradientColors.map((hex) {
-      try {
-        return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-      } catch (e) {
-        return Colors.blue;
-      }
-    }).toList();
+class SafetyTipDetail {
+  final int id;
+  final int tipId;
+  final String description;
+  final int orderNum;
+
+  SafetyTipDetail({
+    required this.id,
+    required this.tipId,
+    required this.description,
+    required this.orderNum,
+  });
+
+  factory SafetyTipDetail.fromJson(Map<String, dynamic> json) {
+    return SafetyTipDetail(
+      id: json['id'] ?? 0,
+      tipId: json['tip_id'] ?? 0,
+      description: json['description'] ?? '',
+      orderNum: json['order_num'] ?? 0,
+    );
   }
 }
 
 class SafetyTip {
-  final String id;
-  final String categoryId;
+  final int id;
+  final int categoryId;
   final String range;
   final String level;
-  final String color;
-  final String description;
-  final int order;
-  final bool isActive;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final List<String> descriptions;
+  final Color colorData;
+  final int orderNum;
 
   SafetyTip({
     required this.id,
     required this.categoryId,
     required this.range,
     required this.level,
-    required this.color,
-    required this.description,
-    required this.order,
-    required this.isActive,
-    this.createdAt,
-    this.updatedAt,
+    required this.descriptions,
+    required this.colorData,
+    required this.orderNum,
   });
 
-  factory SafetyTip.fromMap(Map<String, dynamic> map, String docId) {
-    return SafetyTip(
-      id: docId,
-      categoryId: map['category_id'] ?? '',
-      range: map['range'] ?? '',
-      level: map['level'] ?? '',
-      color: map['color'] ?? '#2196F3',
-      description: map['description'] ?? '',
-      order: map['order'] ?? 0,
-      isActive: map['is_active'] ?? true,
-      createdAt: map['created_at']?.toDate(),
-      updatedAt: map['updated_at']?.toDate(),
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'category_id': categoryId,
-      'range': range,
-      'level': level,
-      'color': color,
-      'description': description,
-      'order': order,
-      'is_active': isActive,
-      'created_at': createdAt != null
-          ? Timestamp.fromDate(createdAt!)
-          : FieldValue.serverTimestamp(),
-      'updated_at': FieldValue.serverTimestamp(),
-    };
-  }
-
-  // Helper method to get Flutter color from hex string
-  Color get colorData {
-    try {
-      return Color(int.parse(color.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      return Colors.blue;
+  factory SafetyTip.fromJson(Map<String, dynamic> json) {
+    Color parseColor(String? colorStr) {
+      if (colorStr == null || colorStr.isEmpty) return Colors.green;
+      try {
+        return Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
+      } catch (_) {
+        return Colors.green;
+      }
     }
+
+    List<String> parseDetails(dynamic details) {
+      if (details is List) {
+        return details.map((d) => d['description'].toString()).toList();
+      }
+      return [];
+    }
+
+    return SafetyTip(
+      id: json['id'] ?? 0,
+      categoryId: json['category_id'] ?? 0,
+      range: json['range_label'] ?? '',
+      level: json['level'] ?? '',
+      descriptions: parseDetails(json['details']),
+      colorData: parseColor(json['color']),
+      orderNum: json['order_num'] ?? 0,
+    );
   }
 }
 
 class PreventiveMeasure {
-  final String id;
-  final String categoryId;
+  final int id;
+  final int categoryId;
   final String number;
   final String title;
   final String description;
-  final int order;
-  final bool isActive;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final int orderNum;
 
   PreventiveMeasure({
     required this.id,
@@ -175,125 +147,203 @@ class PreventiveMeasure {
     required this.number,
     required this.title,
     required this.description,
-    required this.order,
-    required this.isActive,
-    this.createdAt,
-    this.updatedAt,
+    required this.orderNum,
   });
 
-  factory PreventiveMeasure.fromMap(Map<String, dynamic> map, String docId) {
+  factory PreventiveMeasure.fromJson(Map<String, dynamic> json) {
     return PreventiveMeasure(
-      id: docId,
-      categoryId: map['category_id'] ?? '',
-      number: map['number'] ?? '01',
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      order: map['order'] ?? 0,
-      isActive: map['is_active'] ?? true,
-      createdAt: map['created_at']?.toDate(),
-      updatedAt: map['updated_at']?.toDate(),
+      id: json['id'] ?? 0,
+      categoryId: json['category_id'] ?? 0,
+      number: json['number'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      orderNum: json['order_num'] ?? 0,
     );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'category_id': categoryId,
-      'number': number,
-      'title': title,
-      'description': description,
-      'order': order,
-      'is_active': isActive,
-      'created_at': createdAt != null
-          ? Timestamp.fromDate(createdAt!)
-          : FieldValue.serverTimestamp(),
-      'updated_at': FieldValue.serverTimestamp(),
-    };
   }
 }
 
+// ==================== SERVICE ====================
+
 class SafetyTipsService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _baseUrl = 'https://caring-kindness-production.up.railway.app';
 
-  // Get all active categories ordered by priority
+  // Cache streams
+  final Map<int, Stream<List<SafetyTip>>> _tipStreams = {};
+  final Map<int, Stream<List<PreventiveMeasure>>> _measureStreams = {};
+  Stream<List<SafetyCategory>>? _categoryStream;
+
+  // ✅ Get all categories
   Stream<List<SafetyCategory>> getActiveCategories() {
-    return _firestore
-        .collection('safety_categories')
-        .where('is_active', isEqualTo: true)
-        .orderBy('order')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SafetyCategory.fromMap(doc.data(), doc.id))
-            .toList());
+    print('🔵 getActiveCategories() called');
+    
+    if (_categoryStream == null) {
+      print('🆕 Creating new category stream');
+      _categoryStream = _createCategoryStream().asBroadcastStream();
+    } else {
+      print('♻️ Reusing existing category stream');
+    }
+    
+    return _categoryStream!;
   }
 
-  // Get tips for a specific category
-  Stream<List<SafetyTip>> getTipsForCategory(String categoryId) {
-    return _firestore
-        .collection('safety_tips')
-        .where('category_id', isEqualTo: categoryId)
-        .where('is_active', isEqualTo: true)
-        .orderBy('order')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SafetyTip.fromMap(doc.data(), doc.id))
-            .toList());
+  Stream<List<SafetyCategory>> _createCategoryStream() async* {
+    print('🚀 Category stream generator started');
+    
+    while (true) {
+      try {
+        print('📡 Fetching categories from API...');
+        
+        final response = await http.get(
+          Uri.parse('$_baseUrl/api/safety/categories/'),  // ✅ WITH trailing slash
+        ).timeout(const Duration(seconds: 10));
+
+        print('📡 Categories response: ${response.statusCode}');
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          print('✅ Loaded ${data.length} categories');
+          
+          final categories = data.map((json) => SafetyCategory.fromJson(json)).toList();
+          yield categories;
+        } else {
+          print('❌ Failed to load categories: ${response.statusCode}');
+          yield [];
+        }
+      } catch (e) {
+        print('❌ Error loading categories: $e');
+        yield [];
+      }
+
+      print('⏰ Waiting 30 seconds before next fetch...');
+      await Future.delayed(const Duration(seconds: 30));
+    }
   }
 
-  // Get preventive measures for a specific category
-  Stream<List<PreventiveMeasure>> getPreventiveMeasuresForCategory(
-      String categoryId) {
-    return _firestore
-        .collection('preventive_measures')
-        .where('category_id', isEqualTo: categoryId)
-        .where('is_active', isEqualTo: true)
-        .orderBy('order')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PreventiveMeasure.fromMap(doc.data(), doc.id))
-            .toList());
+  // ✅ Get tips for category
+  Stream<List<SafetyTip>> getTipsForCategory(int categoryId) {
+    print('🔵 getTipsForCategory($categoryId) called');
+    
+    if (!_tipStreams.containsKey(categoryId)) {
+      print('🆕 Creating new tip stream for category $categoryId');
+      _tipStreams[categoryId] = _createTipStream(categoryId).asBroadcastStream();
+    } else {
+      print('♻️ Reusing existing tip stream for category $categoryId');
+    }
+    
+    return _tipStreams[categoryId]!;
   }
 
-  // Admin functions for managing content
-  Future<void> addCategory(SafetyCategory category) async {
-    await _firestore.collection('safety_categories').add(category.toMap());
+  Stream<List<SafetyTip>> _createTipStream(int categoryId) async* {
+    print('🚀 Tip stream generator started for category $categoryId');
+    
+    while (true) {
+      try {
+        print('📡 Fetching tips for category $categoryId...');
+        
+        final response = await http.get(
+          Uri.parse('$_baseUrl/api/safety/tips/category/$categoryId'),
+        ).timeout(const Duration(seconds: 10));
+
+        print('📡 Tips response for category $categoryId: ${response.statusCode}');
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          print('✅ Loaded ${data.length} tips for category $categoryId');
+          
+          final tips = data.map((json) => SafetyTip.fromJson(json)).toList();
+          yield tips;
+        } else {
+          print('❌ Failed to load tips: ${response.statusCode}');
+          yield [];
+        }
+      } catch (e) {
+        print('❌ Error loading tips for category $categoryId: $e');
+        yield [];
+      }
+
+      await Future.delayed(const Duration(seconds: 30));
+    }
   }
 
-  Future<void> updateCategory(String id, SafetyCategory category) async {
-    await _firestore
-        .collection('safety_categories')
-        .doc(id)
-        .update(category.toMap());
+  // ✅ Get preventive measures
+  Stream<List<PreventiveMeasure>> getPreventiveMeasuresForCategory(int categoryId) {
+    print('🔵 getPreventiveMeasuresForCategory($categoryId) called');
+    
+    if (!_measureStreams.containsKey(categoryId)) {
+      print('🆕 Creating new measure stream for category $categoryId');
+      _measureStreams[categoryId] = _createMeasureStream(categoryId).asBroadcastStream();
+    } else {
+      print('♻️ Reusing existing measure stream for category $categoryId');
+    }
+    
+    return _measureStreams[categoryId]!;
   }
 
-  Future<void> deleteCategory(String id) async {
-    await _firestore.collection('safety_categories').doc(id).delete();
+  Stream<List<PreventiveMeasure>> _createMeasureStream(int categoryId) async* {
+    print('🚀 Measure stream generator started for category $categoryId');
+    
+    while (true) {
+      try {
+        print('📡 Fetching preventive measures for category $categoryId...');
+        
+        final response = await http.get(
+          Uri.parse('$_baseUrl/api/safety/preventive-measures/category/$categoryId'),
+        ).timeout(const Duration(seconds: 10));
+
+        print('📡 Measures response for category $categoryId: ${response.statusCode}');
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          print('✅ Loaded ${data.length} preventive measures for category $categoryId');
+          
+          final measures = data.map((json) => PreventiveMeasure.fromJson(json)).toList();
+          yield measures;
+        } else {
+          print('❌ Failed to load measures: ${response.statusCode}');
+          yield [];
+        }
+      } catch (e) {
+        print('❌ Error loading measures for category $categoryId: $e');
+        yield [];
+      }
+
+      await Future.delayed(const Duration(seconds: 30));
+    }
   }
 
-  Future<void> addSafetyTip(SafetyTip tip) async {
-    await _firestore.collection('safety_tips').add(tip.toMap());
+  // ✅ Get specific tip by ID
+  Future<SafetyTip?> getTipById(int tipId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/safety/tips/$tipId'),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return SafetyTip.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error loading tip $tipId: $e');
+      return null;
+    }
   }
 
-  Future<void> updateSafetyTip(String id, SafetyTip tip) async {
-    await _firestore.collection('safety_tips').doc(id).update(tip.toMap());
-  }
+  // ✅ Get specific category by ID
+  Future<SafetyCategory?> getCategoryById(int categoryId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/safety/categories/$categoryId'),
+      ).timeout(const Duration(seconds: 10));
 
-  Future<void> deleteSafetyTip(String id) async {
-    await _firestore.collection('safety_tips').doc(id).delete();
-  }
-
-  Future<void> addPreventiveMeasure(PreventiveMeasure measure) async {
-    await _firestore.collection('preventive_measures').add(measure.toMap());
-  }
-
-  Future<void> updatePreventiveMeasure(
-      String id, PreventiveMeasure measure) async {
-    await _firestore
-        .collection('preventive_measures')
-        .doc(id)
-        .update(measure.toMap());
-  }
-
-  Future<void> deletePreventiveMeasure(String id) async {
-    await _firestore.collection('preventive_measures').doc(id).delete();
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return SafetyCategory.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error loading category $categoryId: $e');
+      return null;
+    }
   }
 }
