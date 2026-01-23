@@ -42,295 +42,222 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/b.jpg'),
-            fit: BoxFit.cover,
-          ),
+      appBar: AppBar(
+        title: const Text('Emergency Hotlines',
+        style: TextStyle(color: Colors.white)
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header (keep the same)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Emergency Hotlines',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black45,
-                              offset: Offset(1, 1),
-                              blurRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
+        backgroundColor:  Colors.green,
+        automaticallyImplyLeading: false,  // ✅ Remove back button
+      ),
+      body: Container(
+        color: Colors.grey.shade50,  // ✅ Light background
+        child: Column(
+          children: [
+            // Weather Banner
+            _buildWeatherBanner(),
+
+            // Emergency Icon Header
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.red. shade400, Colors.red.shade600],
+                  begin: Alignment. topLeft,
+                  end:  Alignment.bottomRight,
                 ),
-              ),
-
-              // Weather Banner (keep the same)
-              _buildWeatherBanner(),
-
-              // 🆕 Dynamic Content from Database
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(24),
-                      topRight: Radius.circular(24),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, -3),
-                      ),
-                    ],
+                borderRadius: BorderRadius. circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.3),
+                    blurRadius:  8,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Column(
-                    children: [
-                      // Emergency Icon Header (keep the same)
-                      Container(
-                        margin: const EdgeInsets.all(20),
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.red.shade400, Colors.red.shade600],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.emergency,
+                    size: 48,
+                    color: Colors. white,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment. start,
+                      children: [
+                        const Text(
+                          'City of San Pedro',
+                          style: TextStyle(
+                            color: Colors. white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.red.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.emergency,
-                              size: 48,
-                              color: Colors.white,
+                        Text(
+                          'Emergency Services',
+                          style: TextStyle(
+                            color: Colors. white.withOpacity(0.9),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Expanded(
+              child:  SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Weather Information
+                    _buildWeatherInfoCard(),
+
+                    const SizedBox(height: 16),
+
+                    const Text(
+                      'In case of an emergency, please contact:',
+                      style:  TextStyle(
+                        color:  Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Hotlines list
+                    StreamBuilder<List<HotlineItem>>(
+                      stream: _hotlinesService.getActiveHotlinesStream(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child:  Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: CircularProgressIndicator(),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
+                          );
+                        }
+
+                        if (snapshot. hasError) {
+                          return Center(
+                            child:  Padding(
+                              padding: const EdgeInsets.all(32.0),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'City of San Pedro',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  const Icon(
+                                    Icons.error_outline,
+                                    size:  48,
+                                    color: Colors.red,
                                   ),
+                                  const SizedBox(height: 16),
                                   Text(
-                                    'Emergency Services',
-                                    style: TextStyle(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.9),
-                                      fontSize: 14,
+                                    'Error loading hotlines:  ${snapshot.error}',
+                                    style: const TextStyle(color: Colors.red),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        final hotlines = snapshot.data ?? [];
+
+                        if (hotlines.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: Text(
+                                'No emergency hotlines available',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          children: [
+                            ... hotlines.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final hotline = entry.value;
+                              final isLast = index == hotlines.length - 1;
+
+                              return _buildDynamicHotlineItem(
+                                context,
+                                hotline,
+                                isLast:  isLast,
+                              );
+                            }).toList(),
+
+                            const SizedBox(height: 24),
+
+                            // 911 Emergency banner
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.red.shade600, Colors.red.shade800],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:  Colors.red.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.phone_in_talk,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child:  Text(
+                                      '🚨 For immediate life-threatening emergencies, call 911',
+                                      style: TextStyle(
+                                        color:  Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+
+                            const SizedBox(height: 20),
                           ],
-                        ),
-                      ),
-
-                      // 🆕 Dynamic content from database
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Weather Information (keep the same)
-                              _buildWeatherInfoCard(),
-
-                              const SizedBox(height: 16),
-
-                              const Text(
-                                'In case of an emergency, please contact:',
-                                style: TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // 🆕 StreamBuilder for dynamic hotlines
-                             // ...inside build(), replace the existing StreamBuilder with this:
-
-                            // 🆕 StreamBuilder for dynamic hotlines (use polling stream)
-                            StreamBuilder<List<HotlineItem>>(
-                              stream: _hotlinesService.getActiveHotlinesStream(), // <- changed from getActiveHotlines()
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(32.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-
-                                if (snapshot.hasError) {
-                                  return Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(32.0),
-                                      child: Column(
-                                        children: [
-                                          const Icon(
-                                            Icons.error_outline,
-                                            size: 48,
-                                            color: Colors.red,
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Error loading hotlines: ${snapshot.error}',
-                                            style: const TextStyle(color: Colors.red),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }
-
-                                final hotlines = snapshot.data ?? [];
-
-                                if (hotlines.isEmpty) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(32.0),
-                                      child: Text(
-                                        'No emergency hotlines available',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }
-
-                                return Column(
-                                  children: [
-                                    // Build hotline items dynamically
-                                    ...hotlines.asMap().entries.map((entry) {
-                                      final index = entry.key;
-                                      final hotline = entry.value;
-                                      final isLast = index == hotlines.length - 1;
-
-                                      return _buildDynamicHotlineItem(
-                                        context,
-                                        hotline,
-                                        isLast: isLast,
-                                      );
-                                    }).toList(),
-
-                                    const SizedBox(height: 24),
-
-                                    // Emergency Call 911 (keep the same)
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [Colors.red.shade600, Colors.red.shade800],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.red.withValues(alpha: 0.3),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Row(
-                                        children: [
-                                          Icon(
-                                            Icons.phone_in_talk,
-                                            color: Colors.white,
-                                            size: 24,
-                                          ),
-                                          SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              '🚨 For immediate life-threatening emergencies, call 911',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 20),
-                                  ],
-                                );
-                              },
-                            ),                           
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
+  } 
 
   Widget _buildDynamicHotlineItem(BuildContext context, HotlineItem hotline,
       {bool isLast = false}) {
@@ -808,18 +735,18 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
   // Weather Banner Widget
   Widget _buildWeatherBanner() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets. all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient:  LinearGradient(
           colors: _getWeatherGradient(),
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -841,7 +768,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                   'Loading weather...',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -857,27 +784,13 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${weatherData!['main']['temp'].toStringAsFixed(1)}°C - ${weatherData!['weather'][0]['description']}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (_isRainingCondition())
-                            Text(
-                              _getRainInfo(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                        ],
+                      child: Text(
+                        '${weatherData!['main']['temp'].toStringAsFixed(1)}°C - ${weatherData! ['weather'][0]['description']}',
+                        style: const TextStyle(
+                          color:  Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -890,7 +803,7 @@ class _HotlinesScreenState extends State<HotlinesScreen> {
                       'Weather data unavailable',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
