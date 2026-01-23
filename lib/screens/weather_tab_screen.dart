@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/weather_service.dart';
 import '../services/auth_service.dart' as auth_service;
+import '../services/notification_service.dart';
 import '../widgets/weather/weather_header.dart';
 import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
@@ -19,7 +20,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     with TickerProviderStateMixin {
   // User authentication state
   bool _isUserLoggedIn = false;
-
+  int _notificationCount = 0;
   // Weather data
   Map<String, dynamic>? weatherData;
   Map<String, dynamic>? airData;
@@ -40,6 +41,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     super.initState();
     _checkAuth();
     loadWeather();
+    _loadNotificationCount();
 
     _animationController = AnimationController(
       vsync: this,
@@ -53,6 +55,17 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
       ),
     );
   }
+
+
+  void _loadNotificationCount() {
+      NotificationService.instance.userNotificationsStream().listen((notifications) {
+        if (mounted) {
+          setState(() {
+            _notificationCount = notifications. length;
+          });
+        }
+      });
+    }
 
   @override
   void didChangeDependencies() {
@@ -229,24 +242,189 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     );
   }
 
+  Widget _buildNotificationButton() {
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            onPressed: _showNotifications,
+            icon:  const Icon(
+              Icons.notifications,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ),
+        
+        // Notification badge
+        if (_notificationCount > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 20,
+                minHeight: 20,
+              ),
+              child:  Text(
+                _notificationCount > 9 ? '9+' : '$_notificationCount',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+// Keep your existing _showNotifications method
+  void _showNotifications() {
+    if (! _isUserLoggedIn) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Notifications'),
+            content: const Text(
+                'Notifications are not available.  Please log in first to view notifications.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed:  () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/login');
+                },
+                child: const Text('Login'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Notifications'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: NotificationService.instance.userNotificationsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (! snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Text('No new notifications.');
+                }
+                final notifications = snapshot.data!;
+                return ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: notifications.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final notif = notifications[index];
+                    return ListTile(
+                      leading: Icon(
+                        _getNotificationIcon(notif['type']),
+                        color:  _getNotificationColor(notif['type']),
+                        size: 28,
+                      ),
+                      title: Text(
+                        notif['title'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle:  Column(
+                        crossAxisAlignment:  CrossAxisAlignment.start,
+                        children: [
+                          Text(notif['body'] ?? ''),
+                          if (notif['timestamp'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                notif['timestamp']. toString(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  IconData _getNotificationIcon(String?  type) {
+    switch (type) {
+      case 'Emergency':
+        return Icons.priority_high_rounded;
+      case 'Warning':
+        return Icons.warning_amber_rounded;
+      default:
+        return Icons.info_rounded;
+    }
+  }
+
+  Color _getNotificationColor(String?  type) {
+    switch (type) {
+      case 'Emergency':
+        return Colors.red;
+      case 'Warning': 
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         // Animated background
         Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _scaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(scale: _scaleAnimation.value, child: child);
-            },
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(getBackgroundImage(), fit: BoxFit.cover),
-                Container(color: Colors.black.withOpacity(0.1)),
-              ],
-            ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(getBackgroundImage(), fit: BoxFit.cover),
+              Container(color: Colors.black.withOpacity(0.1)),
+            ],
           ),
         ),
 
@@ -256,20 +434,36 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
             // Weather Header
             Padding(
               padding: const EdgeInsets.all(16),
-              child: WeatherHeader(
-                isGuest: !_isUserLoggedIn,
-                onNotificationTap: () {
-                  // For now, do nothing - notifications are in Profile tab
-                  // Could show a tooltip or navigate to Profile tab
-                },
-                onMenuTap: () {
-                  // For now, do nothing - menu is now in Profile tab
-                  // Could navigate to Profile tab
-                  // final shell = context.findAncestorStateOfType<_HomeShellScreenState>();
-                  // if (shell != null) {
-                  //   shell.switchToTab(4); // Profile tab
-                  // }
-                },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // ✅ Custom notification button with badge
+                  _buildNotificationButton(),
+                  
+                  const Spacer(),
+                  
+                  // App Title
+                  const Text(
+                    'HydroMet',
+                    style: TextStyle(
+                      color:  Colors.white,
+                      fontSize: 24,
+                      fontWeight:  FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black45,
+                          offset: Offset(1, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // Empty space to balance layout (no menu button)
+                  const SizedBox(width: 48),
+                ],
               ),
             ),
 
