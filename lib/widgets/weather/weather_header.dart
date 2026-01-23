@@ -3,71 +3,76 @@ import 'package:flutter/material.dart';
 class WeatherHeader extends StatelessWidget {
   final bool isGuest;
   final VoidCallback? onNotificationTap;
-  final VoidCallback onMenuTap;
+  final VoidCallback? onMenuTap;  // ✅ Make nullable
 
   const WeatherHeader({
+    super.key,
     required this.isGuest,
     this.onNotificationTap,
-    required this.onMenuTap,
-    super.key,
+    this.onMenuTap,  // ✅ Optional now
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: [
-        // Notification/Guest icon
-        IconButton(
-          onPressed: onNotificationTap,
-          icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children:  [
+        // Notification button (left)
+        if (onNotificationTap != null)  // ✅ Only show if callback provided
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white. withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              onPressed: onNotificationTap,
+              icon: const Icon(
+                Icons.notifications,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ),
+        
+        const Spacer(),
+        
+        // App Title/Logo (center)
+        const Text(
+          'HydroMet',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                color: Colors.black45,
+                offset: Offset(1, 1),
+                blurRadius: 2,
+              ),
+            ],
+          ),
         ),
-
-        // Fixed location display bar
-        Expanded(
-          child: Container(
-            height: 45,
-            margin: const EdgeInsets.symmetric(horizontal: 12),
+        
+        const Spacer(),
+        
+        // Menu button (right) - only show if callback provided
+        if (onMenuTap != null)  // ✅ Only show if callback provided
+          Container(
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(25),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(left: 20),
-                  child: Icon(
-                    Icons.location_pin,
-                    color: Colors.white70,
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'San Pedro, Laguna, Philippines',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            child: IconButton(
+              onPressed: onMenuTap,
+              icon: const Icon(
+                Icons.menu,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
-          ),
-        ),
-
-        // Profile/Menu button
-        IconButton(
-          onPressed: onMenuTap,
-          icon: Icon(
-            isGuest ? Icons.menu : Icons.account_circle,
-            color: Colors.white,
-            size: 28,
-          ),
-        ),
+          )
+        else
+          const SizedBox(width: 48),  // ✅ Placeholder to keep title centered
       ],
     );
   }
