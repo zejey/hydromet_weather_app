@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 //import 'screens/weather_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'screens/smart_login_screen.dart';
 import 'screens/user_registration.dart';
 import 'screens/user_profile.dart';
@@ -25,9 +26,25 @@ Future<void> main() async {
   await UserRegistrationService().initialize();
   await LocalNotificationService().initialize();
   await LocalNotificationService().requestPermissions();
+  await _requestInitialPermissions();
 
   runApp(const MyApp());
 }
+
+Future<void> _requestInitialPermissions() async {
+  // Request notification permission
+  final notificationStatus = await Permission.notification.status;
+  if (notificationStatus.isDenied) {
+    await Permission.notification.request();
+  }
+  
+  // Request location permission
+  final locationStatus = await Permission.location.status;
+  if (locationStatus.isDenied) {
+    await Permission.location.request();
+  }
+}
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

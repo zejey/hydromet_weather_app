@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/permission_helper.dart';
 import '../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -13,12 +14,32 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkSession();
+    _initialize();  // ✅ Changed from _checkSession
+  }
+
+  // ✅ New initialization method that includes permission check
+  Future<void> _initialize() async {
+    await Future.delayed(const Duration(seconds: 1));
+
+    // ✅ Check if this is first launch and show permission dialog
+    if (mounted) {
+      final prefs = await SharedPreferences.getInstance();
+      final hasShownPermissions = prefs.getBool('has_shown_permissions') ?? false;
+      
+      if (!hasShownPermissions) {
+        // First launch - show permission dialog
+        await PermissionHelper.showPermissionDialog(context);
+        await prefs.setBool('has_shown_permissions', true);
+      }
+    }
+
+    // Continue with session check
+    if (mounted) {
+      await _checkSession();
+    }
   }
 
   Future<void> _checkSession() async {
-    await Future.delayed(const Duration(seconds: 1));
-
     try {
       final authService = AuthService();
       await authService.initialize();
@@ -49,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen> {
         }
 
         // Session valid
-        print('✅ Session valid - going to weather');
+        print('✅ Session valid - going to home');
 
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/home');
@@ -105,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       errorBuilder: (context, error, stackTrace) {
                         // Fallback if logo fails to load
                         return Container(
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
