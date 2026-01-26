@@ -184,7 +184,7 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
         width: 18.0,
         height: 24.0,
         point: location,
-        builder: (ctx) => AnimatedBuilder(
+        child: AnimatedBuilder(
           animation: widget.rainAnimation,
           builder: (context, child) {
             return Transform.translate(
@@ -221,7 +221,7 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
         width: 40.0,
         height: 40.0,
         point: windPoint['location'],
-        builder: (ctx) => Transform.rotate(
+        child: Transform.rotate(
           angle: (windPoint['direction'] * pi) / 180,
           child: Container(
             decoration: BoxDecoration(
@@ -262,7 +262,7 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
         width: 80.0,
         height: 80.0,
         point: hazard['location'] as LatLng,
-        builder: (ctx) => Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
@@ -398,7 +398,7 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
         width: 32.0,
         height: 32.0,
         point: center['location'] as LatLng,
-        builder: (ctx) => Container(
+        child: Container(
           width: 32,
           height: 32,
           decoration: BoxDecoration(
@@ -434,7 +434,7 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
       width: 40.0,
       height: 40.0,
       point: widget.pinnedLocation!,
-      builder: (ctx) => Container(
+      child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.purple.shade700,
@@ -496,7 +496,7 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
         width: 32.0,
         height: 32.0,
         point: agency['location'] as LatLng,
-        builder: (ctx) => Container(
+        child: Container(
           width: 32,
           height: 32,
           decoration: BoxDecoration(
@@ -568,18 +568,20 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                center: widget.selectedLocation,
-                zoom: _currentZoom,
+                initialCenter: widget.selectedLocation,
+                initialZoom: _currentZoom,
                 minZoom: 3.0,
                 maxZoom: 18.0,
-                interactiveFlags: InteractiveFlag.all,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all,
+                ),
                 onTap: (tapPosition, point) {
                   if (widget.onMapTap != null) widget.onMapTap!(point);
                 },
-                onPositionChanged: (position, hasGesture) {
-                  if (hasGesture) {
+                onMapEvent: (MapEvent event) {
+                  if (event is MapEventMove) {
                     setState(() {
-                      _currentZoom = position.zoom!;
+                      _currentZoom = event.camera.zoom; 
                     });
                   }
                 },
@@ -595,7 +597,6 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
                 if (widget.forecastLayer != ForecastLayer.none)
                   TileLayer(
                     urlTemplate: _getForecastTileUrl(widget.forecastLayer),
-                    backgroundColor: Colors.transparent,
                   ),
                 // Temperature heatmap
                 if (widget.showTemperatureHeatmap)
@@ -630,7 +631,7 @@ class _WeatherMapWidgetState extends State<WeatherMapWidget> {
                       width: 50.0,
                       height: 50.0,
                       point: widget.selectedLocation,
-                      builder: (ctx) => _buildWeatherMarker(),
+                      child: _buildWeatherMarker(),
                     ),
                     // Pinned
                     if (_buildPinnedLocationMarker() != null) _buildPinnedLocationMarker()!,
