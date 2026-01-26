@@ -9,16 +9,23 @@ import 'screens/user_settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/guest_weather_screen.dart';
 import 'screens/home_shell_screen.dart';
+import 'screens/map_tab_screen.dart';
 import 'services/user_registration_service.dart';
+import 'services/local_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   await UserRegistrationService().initialize();
+  await LocalNotificationService().initialize();
+  await LocalNotificationService().requestPermissions();
+
   runApp(const MyApp());
 }
 
@@ -39,6 +46,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const SmartLoginScreen(),
         '/register': (context) => const UserRegistrationScreen(),
         '/home': (context) => const HomeShellScreen(),
+        '/map': (context) => const MapTabScreen(),
         // '/weather': (context) => const WeatherScreen(),
         '/profile': (context) => const UserProfileScreen(),
         '/tips': (context) => const TipsScreen(),
