@@ -538,7 +538,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
           children: [
             // Weather Header
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
