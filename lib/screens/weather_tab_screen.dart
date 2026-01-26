@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/weather_service.dart';
 import '../services/auth_service.dart' as auth_service;
-import '../services/notification_service.dart';
+import '../services/firestore_notification_service.dart';
+import '../services/local_notification_service.dart';
 import '../widgets/weather/weather_header.dart';
 import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
 import '../widgets/weather/weather_tiles_grid.dart';
+import '../widgets/weather/weather_map_widget.dart';
 import 'home_shell_screen.dart';
 
 class WeatherTabScreen extends StatefulWidget {
@@ -58,14 +60,26 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
 
 
   void _loadNotificationCount() {
-      NotificationService.instance.userNotificationsStream().listen((notifications) {
-        if (mounted) {
-          setState(() {
-            _notificationCount = notifications. length;
-          });
+    // ✅ Use renamed service
+    FirestoreNotificationService.instance.userNotificationsStream().listen((notifications) {
+      if (mounted) {
+        setState(() {
+          _notificationCount = notifications.length;
+        });
+        
+        // ✅ Show system notifications for new alerts
+        for (var notification in notifications) {
+          if (notification['type'] == 'Emergency' || notification['type'] == 'Warning') {
+            LocalNotificationService().showWeatherAlert(
+              hazardType: notification['title'] ?? 'Weather Hazard',
+              message: notification['body'] ?? 'Unusual weather conditions detected.',
+              riskLevel: notification['type'] == 'Emergency' ? 'high' : 'medium',
+            );
+          }
         }
-      });
-    }
+      }
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -159,79 +173,170 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     }
   }
 
-  Widget _buildMapPreview() {
+    Widget _buildMapPreview() {
     return GestureDetector(
       onTap: () {
-        // Switch to Map tab (index 1)
+        // Navigate to Map tab (index 1)
+        final homeShellState = context.findAncestorStateOfType<HomeShellScreenState>();
+        if (homeShellState != null) {
+          homeShellState.onTabSelected(1); // Switch to Map tab
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Full map view coming soon!  Tap the Map tab below.'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.map, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Text('Opening full map view...'),
+              ],
+            ),
+            duration: const Duration(seconds: 1),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       },
       child: Container(
-        height: 200,
-        margin: const EdgeInsets. all(16),
+        height: 250,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius. circular(16),
+          borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
-              // Simple map placeholder with location marker
-              Container(
-                color:  Colors.grey.shade300,
-                child: Center(
-                  child: Column(
+              // ✅ Real interactive mini-map
+              AbsorbPointer(
+                absorbing: true, // Disable map interactions (pan/zoom)
+                child: WeatherMapWidget(
+                  selectedLocation: selectedLocation ?? LatLng(14.3583, 121.0167),
+                  initialZoom: 13.0,
+                  forecastLayer: ForecastLayer.none,
+                  showHazardLocations: true,
+                  showEvacuationCenters: true,
+                  showNearestEvacuationCenters: false,
+                  showGovernmentAgencies: false,
+                  showRainAnimation: false,
+                  showWindArrows: false,
+                  showTemperatureHeatmap: false,
+                  hazardLocations: const [],
+                  evacuationCenters: const [],
+                  governmentAgencies: const [],
+                  temperaturePoints: const [],
+                  windData: const [],
+                  rainParticleLocations: const [],
+                  rainAnimation: AlwaysStoppedAnimation(0.0),
+                  scaleAnimation: AlwaysStoppedAnimation(1.0),
+                  searchRadius: 500,
+                ),
+              ),
+
+              // ✅ Overlay gradient for better text visibility
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.4),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // ✅ "Tap to explore" overlay
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.7),
+                      ],
+                    ),
+                  ),
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.location_on,
-                        size:  60,
-                        color: Colors. green.shade700,
+                        Icons.map,
+                        color: Colors.white,
+                        size: 24,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.5),
+                            offset: const Offset(0, 2),
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'San Pedro, Laguna',
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Tap to explore full map',
                         style: TextStyle(
+                          color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors. grey.shade700,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              offset: Offset(0, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 20,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.5),
+                            offset: const Offset(0, 2),
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ),
-              // Overlay with "Tap to explore" prompt
-              Positioned(
-                bottom:  12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius. circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.map, color: Colors.white, size: 16),
-                      SizedBox(width: 4),
-                      Text(
-                        'Tap to explore',
-                        style: TextStyle(color:  Colors.white, fontSize: 12),
-                      ),
-                    ],
+
+              // ✅ Tap indicator (pulsing effect)
+              Positioned.fill(
+                child: Center(
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.touch_app,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
                 ),
               ),
@@ -332,7 +437,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: NotificationService.instance.userNotificationsStream(),
+              stream: FirestoreNotificationService.instance.userNotificationsStream(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

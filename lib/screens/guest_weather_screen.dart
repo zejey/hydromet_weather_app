@@ -7,7 +7,7 @@ import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
 import '../widgets/weather/weather_tiles_grid.dart';
 import '../widgets/weather/weather_map_widget.dart';
-import '../services/notification_service.dart';
+import '../services/firestore_notification_service.dart';
 
 class GuestWeatherScreen extends StatefulWidget {
   const GuestWeatherScreen({super.key});
@@ -73,7 +73,7 @@ class _GuestWeatherScreenState extends State<GuestWeatherScreen>
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: NotificationService.instance
+              stream: FirestoreNotificationService.instance
                   .userNotificationsStream(), // ✅ Public notifications
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
