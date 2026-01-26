@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_service.dart';
 
-class NotificationService {
-  static final NotificationService instance = NotificationService._();
-  NotificationService._();
+// ✅ Renamed class to avoid conflict
+class FirestoreNotificationService {
+  static final FirestoreNotificationService instance = FirestoreNotificationService._();
+  FirestoreNotificationService._();
 
   final CollectionReference<Map<String, dynamic>> _collection =
       FirebaseFirestore.instance.collection('notifications');
@@ -39,13 +40,13 @@ class NotificationService {
     return isRegistered;
   }
 
-  /// Show notification with info about SMS capability
+  /// Get notification capabilities
   Future<Map<String, dynamic>> getNotificationCapabilities() async {
     await _authService.initialize();
 
     return {
-      'in_app': true, // Always available
-      'sms': _authService.isLoggedIn, // Only for registered users
+      'in_app': true,
+      'sms': _authService.isLoggedIn,
       'phone_number': _authService.phoneNumber,
       'is_guest': !_authService.isLoggedIn,
     };
