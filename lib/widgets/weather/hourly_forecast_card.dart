@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'temperature_graph_painter.dart';
 
-class HourlyForecastCard extends StatefulWidget {
+class HourlyForecastCard extends StatelessWidget {
   final List<Map<String, dynamic>> forecast;
 
   const HourlyForecastCard({
@@ -10,231 +9,265 @@ class HourlyForecastCard extends StatefulWidget {
   });
 
   @override
-  State<HourlyForecastCard> createState() => _HourlyForecastCardState();
-}
-
-class _HourlyForecastCardState extends State<HourlyForecastCard> {
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final displayData = widget.forecast.take(24).toList();
-    if (displayData.isEmpty) return const SizedBox();
+    if (forecast.isEmpty) return const SizedBox.shrink();
 
-    final temps =
-        displayData.map((e) => (e['temp']?.toDouble() ?? 0.0)).toList();
-    final minTemp = temps.reduce((a, b) => a < b ? a : b);
-    final maxTemp = temps.reduce((a, b) => a > b ? a : b);
-    final tempRange = maxTemp - minTemp;
+    // Get min and max temps for scaling the graph
+    double minTemp = forecast
+        .map((f) => (f['temp'] as num).toDouble())
+        .reduce((a, b) => a < b ? a : b);
+    double maxTemp = forecast
+        .map((f) => (f['temp'] as num).toDouble())
+        .reduce((a, b) => a > b ? a : b);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.13)),
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Title
-          Padding(
-            padding: const EdgeInsets.only(left: 0, bottom: 8),
-            child: Row(
-              children: [
-                const Text(
-                  '24-Hour Forecast',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+          // Header
+          Row(
+            children: [
+              const Icon(Icons.access_time, color: Colors.black87, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                '24-Hour Forecast',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.update, size: 14, color: Colors.green.shade700),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Updated ${_getUpdateTime()}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: forecast.length > 24 ? 24 : forecast.length,
+              itemBuilder: (context, index) {
+                final item = forecast[index];
+                final temp = (item['temp'] as num).toDouble();
+                final time = item['time'] as String;
+                final icon = item['icon'] as String;
+                
+                // Calculate position for line chart
+                final normalizedTemp = maxTemp > minTemp
+                    ? (temp - minTemp) / (maxTemp - minTemp)
+                    : 0.5;
+
+                return Container(
+                  width: 70,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
+                      // Temperature text
+                      Text(
+                        '${temp.round()}°',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      
+                      const SizedBox(height: 4),
+                      
+                      // Temperature line chart indicator
+                      SizedBox(
+                        height: 60,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            // Vertical line from bottom to temp position
+                            Positioned(
+                              bottom: 0,
+                              left: 33,
+                              child: Container(
+                                width: 3,
+                                height: 60 * normalizedTemp,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [
+                                      Colors.blue.shade300,
+                                      Colors.blue.shade600,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                            // Temperature dot
+                            Positioned(
+                              bottom: (60 * normalizedTemp) - 4,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade700,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.blue.withOpacity(0.3),
+                                        blurRadius: 4,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 4),
+                      
+                      // ✅ Weather icon - use colored Material Icons instead
+                      Container(
+                        width: 44,
+                        height: 44,
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: _getWeatherColor(icon).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _getWeatherColor(icon).withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          _getWeatherIcon(icon),
+                          color: _getWeatherColor(icon),
+                          size: 28,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 2),
+                      
+                      // ✅ Time label - simplified format
                       Text(
-                        'Updated ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(
-                          color: Colors.black87,
+                        _formatTime(time),
+                        style: TextStyle(
                           fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // Temperature Graph
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              children: [
-                // Graph
-                SizedBox(
-                  height: 135,
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: SizedBox(
-                      width: displayData.length * 85.0,
-                      child: CustomPaint(
-                        size: Size(displayData.length * 85.0, 135),
-                        painter: TemperatureGraphPainter(
-                          data: displayData,
-                          minTemp: minTemp,
-                          maxTemp: maxTemp,
-                          tempRange: tempRange,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Weather Icons Row
-                SizedBox(
-                  height: 64,
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: displayData.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final forecast = entry.value;
-                        final icon = forecast['icon'] ?? '01d';
-                        return Container(
-                          width: 85,
-                          padding: EdgeInsets.only(
-                            left: index == 0 ? 16 : 0,
-                            right: index == displayData.length - 1 ? 16 : 0,
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.13),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Image.network(
-                                  "https://openweathermap.org/img/wn/$icon.png",
-                                  width: 40,
-                                  height: 40,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(
-                                      Icons.wb_cloudy,
-                                      color: Colors.white,
-                                      size: 36,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Time Labels Row
-                SizedBox(
-                  height: 27,
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: displayData.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final forecast = entry.value;
-                        final time = forecast['time'] ?? '';
-                        String displayTime = "N/A";
-                        bool isNow = index == 0;
-
-                        if (time.isNotEmpty) {
-                          try {
-                            final dateTime = DateTime.parse(time);
-                            if (isNow) {
-                              displayTime = "Now";
-                            } else {
-                              displayTime =
-                                  "${dateTime.hour.toString().padLeft(2, '0')}:00";
-                            }
-                          } catch (e) {
-                            displayTime = "${index}h";
-                          }
-                        }
-
-                        return Container(
-                          width: 85,
-                          padding: EdgeInsets.only(
-                            left: index == 0 ? 16 : 0,
-                            right: index == displayData.length - 1 ? 16 : 0,
-                          ),
-                          child: Text(
-                            displayTime,
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: isNow ? 16 : 14,
-                              fontWeight:
-                                  isNow ? FontWeight.bold : FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],
       ),
     );
+  }
+
+  // ✅ Map weather icon codes to Material Icons
+  IconData _getWeatherIcon(String iconCode) {
+    if (iconCode.contains('01')) return Icons.wb_sunny; // Clear sky
+    if (iconCode.contains('02')) return Icons.wb_sunny_outlined; // Few clouds
+    if (iconCode.contains('03')) return Icons.cloud; // Scattered clouds
+    if (iconCode.contains('04')) return Icons.cloud_queue; // Broken clouds
+    if (iconCode.contains('09')) return Icons.grain; // Shower rain
+    if (iconCode.contains('10')) return Icons.wb_cloudy; // Rain
+    if (iconCode.contains('11')) return Icons.thunderstorm; // Thunderstorm
+    if (iconCode.contains('13')) return Icons.ac_unit; // Snow
+    if (iconCode.contains('50')) return Icons.blur_on; // Mist
+    return Icons.wb_cloudy; // Default
+  }
+
+  // ✅ Get color based on weather condition
+  Color _getWeatherColor(String iconCode) {
+    if (iconCode.contains('01')) return Colors.orange; // Clear - orange/yellow
+    if (iconCode.contains('02')) return Colors.amber; // Few clouds - amber
+    if (iconCode.contains('03')) return Colors.grey.shade600; // Clouds - grey
+    if (iconCode.contains('04')) return Colors.grey.shade700; // More clouds - dark grey
+    if (iconCode.contains('09')) return Colors.blue.shade600; // Shower - blue
+    if (iconCode.contains('10')) return Colors.blue.shade700; // Rain - darker blue
+    if (iconCode.contains('11')) return Colors.deepPurple; // Thunderstorm - purple
+    if (iconCode.contains('13')) return Colors.lightBlue.shade300; // Snow - light blue
+    if (iconCode.contains('50')) return Colors.blueGrey; // Mist - blue grey
+    return Colors.grey.shade600; // Default
+  }
+
+  // ✅ Format time to simple hour format
+  String _formatTime(String timeString) {
+    try {
+      // Parse ISO datetime string
+      final dateTime = DateTime.parse(timeString);
+      final now = DateTime.now();
+      
+      // Check if it's the current hour (show "Now")
+      if (dateTime.hour == now.hour && dateTime.day == now.day) {
+        return 'Now';
+      }
+      
+      // Format to 12-hour time with AM/PM
+      final hour = dateTime.hour;
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final period = hour >= 12 ? 'PM' : 'AM';
+      
+      return '$displayHour $period';
+    } catch (e) {
+      print('Error parsing time "$timeString": $e');
+      return timeString;
+    }
+  }
+
+  String _getUpdateTime() {
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 }
