@@ -10,7 +10,7 @@ class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
 
   @override
-  State<HomeShellScreen> createState() => _HomeShellScreenState();
+  State<HomeShellScreen> createState() => HomeShellScreenState();
 }
 
 class HomeShellNavigator extends InheritedWidget {
@@ -30,8 +30,15 @@ class HomeShellNavigator extends InheritedWidget {
   bool updateShouldNotify(HomeShellNavigator oldWidget) => false;
 }
 
-class _HomeShellScreenState extends State<HomeShellScreen> {
+class HomeShellScreenState extends State<HomeShellScreen> {
   int _currentIndex = 0;
+  
+  void onTabSelected(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   bool _isUserLoggedIn = false;
   final AuthService _authService = AuthService();
 
@@ -166,7 +173,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _getCurrentNavIndex(),
-        onTap: _onTap,
+        onTap: onTabSelected,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
