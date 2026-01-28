@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';  // ✅ ADD THIS IMPORT
 import '../services/weather_service.dart';
 import '../services/auth_service.dart' as auth_service;
 import '../services/firestore_notification_service.dart';
 import '../services/local_notification_service.dart';
+import '../services/cache_service.dart';
+import '../services/connectivity_service.dart';
 import '../widgets/weather/weather_header.dart';
 import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
@@ -28,9 +31,13 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   Map<String, dynamic>? airData;
   List<Map<String, dynamic>> hourlyForecast = [];
   bool isLoading = true;
+  bool _isOffline = false;
+  DateTime? _lastUpdate;
   LatLng? selectedLocation;
 
   // Services
+  final ConnectivityService _connectivityService = ConnectivityService();
+  final CacheService _cacheService = CacheService();
   final WeatherService _weatherService = WeatherService();
   final auth_service.AuthService _authService = auth_service.AuthService();
 
@@ -41,6 +48,8 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   @override
   void initState() {
     super.initState();
+    _checkConnectivity();
+    _monitorConnectivity(); 
     _checkAuth();
     loadWeather();
     _loadNotificationCount();
@@ -56,6 +65,117 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
         curve: Curves.easeInOut,
       ),
     );
+  }
+
+  Future<void> _checkConnectivity() async {
+    final isOnline = await _connectivityService.isOnline();
+    final lastUpdate = await _cacheService.getLastUpdateTime();
+    
+    setState(() {
+      _isOffline = !isOnline;
+      _lastUpdate = lastUpdate;
+    });
+  }
+
+  // ✅ Monitor connectivity changes
+  void _monitorConnectivity() {
+    _connectivityService.onConnectivityChanged.listen((result) async {
+      final isOnline = result.contains(ConnectivityResult.mobile) ||
+                      result.contains(ConnectivityResult.wifi) ||
+                      result.contains(ConnectivityResult.ethernet);
+      
+      setState(() {
+        _isOffline = !isOnline;
+      });
+      
+      if (isOnline) {
+        // Back online - refresh data
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.wifi, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Back online - refreshing data'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        loadWeather();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.wifi_off, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Offline - showing cached data'),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    });
+  }
+
+  // ✅ Build offline indicator
+  Widget _buildOfflineIndicator() {
+    if (!_isOffline) return const SizedBox.shrink();
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.orange.shade700,
+      child: Row(
+        children: [
+          const Icon(Icons.wifi_off, color: Colors.white, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Offline Mode',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                if (_lastUpdate != null)
+                  Text(
+                    'Last updated: ${_formatLastUpdate(_lastUpdate!)}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: loadWeather,
+            child: const Text(
+              'Retry',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatLastUpdate(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+    
+    if (difference.inMinutes < 1) return 'Just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    return '${difference.inDays}d ago';
   }
 
 
@@ -537,6 +657,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
         Column(
           children: [
             // Weather Header
+            _buildOfflineIndicator(),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
               child: Row(

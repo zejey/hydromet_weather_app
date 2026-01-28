@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'cache_service.dart';
+import 'connectivity_service.dart';
 
 class WeatherService {
   // ✅ Use your Railway deployed backend
   static const String baseUrl = 'https://caring-kindness-production.up.railway.app/api/weather';
-  
+  final CacheService _cacheService = CacheService();
+  final ConnectivityService _connectivityService = ConnectivityService(); 
   // For local development, uncomment this:
   // static const String baseUrl = 'http://10.0.2.2:8000/api/weather'; // Android emulator
   // static const String baseUrl = 'http://localhost:8000/api/weather'; // iOS simulator
@@ -12,6 +15,21 @@ class WeatherService {
   // Fetch Current Weather by Coordinates
   Future<Map<String, dynamic>> fetchCurrentWeatherByCoords(double lat, double lon) async {
     try {
+      final isOnline = await _connectivityService.isOnline();
+      
+      // If offline, return cached data
+      if (!isOnline) {
+        print('📴 Offline - loading from cache');
+        final cachedData = await _cacheService.getCachedWeatherData();
+        
+        if (cachedData != null) {
+          return cachedData;
+        } else {
+          throw Exception('No internet connection and no cached data available');
+        }
+      }
+      
+      // If online, fetch from API
       final url = '$baseUrl/current?lat=$lat&lon=$lon&units=metric';
       print('🌤️ Fetching weather from: $url');
       
@@ -25,18 +43,37 @@ class WeatherService {
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         
-        // Backend returns: { "success": true, "data": {...}, "timestamp": "..." }
         if (jsonData['success'] == true && jsonData['data'] != null) {
           print('✅ Weather data fetched successfully');
-          return jsonData['data']; // Return the weather data
+          
+          // Cache the data
+          await _cacheService.cacheWeatherData(jsonData['data']);
+          
+          return jsonData['data'];
         } else {
           throw Exception('Invalid response format from backend');
         }
       } else {
-        throw Exception('Failed to load weather: ${response.statusCode} - ${response.body}');
+        // If API fails, try cache
+        print('⚠️ API request failed, trying cache...');
+        final cachedData = await _cacheService.getCachedWeatherData();
+        
+        if (cachedData != null) {
+          return cachedData;
+        } else {
+          throw Exception('Failed to load weather: ${response.statusCode}');
+        }
       }
     } catch (e) {
       print('❌ Error fetching current weather: $e');
+      
+      // Try cache as fallback
+      final cachedData = await _cacheService.getCachedWeatherData();
+      if (cachedData != null) {
+        print('📦 Returning cached data due to error');
+        return cachedData;
+      }
+      
       rethrow;
     }
   }
@@ -73,9 +110,15 @@ class WeatherService {
   // Fetch Air Quality
   Future<Map<String, dynamic>> fetchAirPollution(double lat, double lon) async {
     try {
-      final url = '$baseUrl/air-quality?lat=$lat&lon=$lon';
-      print('🌫️ Fetching air quality data...');
+      final isOnline = await _connectivityService.isOnline();
       
+      if (!isOnline) {
+        final cachedData = await _cacheService.getCachedAirData();
+        if (cachedData != null) return cachedData;
+        throw Exception('No internet connection');
+      }
+      
+      final url = '$baseUrl/air-quality?lat=$lat&lon=$lon';
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
@@ -85,16 +128,15 @@ class WeatherService {
         final jsonData = json.decode(response.body);
         
         if (jsonData['success'] == true && jsonData['data'] != null) {
-          print('✅ Air quality data fetched successfully');
+          await _cacheService.cacheAirData(jsonData['data']);
           return jsonData['data'];
-        } else {
-          throw Exception('Invalid response format from backend');
         }
-      } else {
-        throw Exception('Failed to load air quality: ${response.statusCode}');
       }
+      
+      throw Exception('Failed to load air quality');
     } catch (e) {
-      print('❌ Error fetching air quality: $e');
+      final cachedData = await _cacheService.getCachedAirData();
+      if (cachedData != null) return cachedData;
       rethrow;
     }
   }
@@ -131,15 +173,19 @@ class WeatherService {
   // ✅ Fetch Hourly Forecast (24 hours with interpolation)
   Future<List<Map<String, dynamic>>> fetchHourlyForecast(double lat, double lon) async {
     try {
-      final url = '$baseUrl/forecast?lat=$lat&lon=$lon&units=metric&cnt=24';
-      print('📅 Fetching hourly forecast...');
+      final isOnline = await _connectivityService.isOnline();
       
+      if (!isOnline) {
+        final cachedData = await _cacheService.getCachedForecastData();
+        if (cachedData != null) return cachedData;
+        throw Exception('No internet connection');
+      }
+      
+      final url = '$baseUrl/forecast?lat=$lat&lon=$lon&units=metric&cnt=24';
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
-
-      print('📡 Forecast response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
@@ -151,11 +197,9 @@ class WeatherService {
         final data = jsonData['data'];
         final List forecasts = data['list'];
         
-        print('✅ Received ${forecasts.length} forecast points');
-        
         List<Map<String, dynamic>> hourlyData = [];
         
-        // Add current hour as "Now"
+        // Process forecast data (your existing logic)
         if (forecasts.isNotEmpty) {
           final firstForecast = forecasts[0];
           hourlyData.add({
@@ -167,7 +211,6 @@ class WeatherService {
           });
         }
         
-        // Generate 23 more hours of data by interpolating between 3-hour forecasts
         final available3HourForecasts = forecasts.take(8).toList();
         
         for (int hour = 1; hour <= 23; hour++) {
@@ -178,13 +221,11 @@ class WeatherService {
             final currentForecast = available3HourForecasts[forecastIndex];
             final nextForecast = available3HourForecasts[nextForecastIndex];
             
-            // Interpolate temperature between forecasts
             final progress = (hour % 3) / 3.0;
             final currentTemp = currentForecast['main']['temp'].toDouble();
             final nextTemp = nextForecast['main']['temp'].toDouble();
             final interpolatedTemp = currentTemp + (nextTemp - currentTemp) * progress;
             
-            // Interpolate wind speed between forecasts
             final currentWindSpeed = (currentForecast['wind']['speed'] ?? 0.0).toDouble();
             final nextWindSpeed = (nextForecast['wind']['speed'] ?? 0.0).toDouble();
             final interpolatedWindSpeed = currentWindSpeed + (nextWindSpeed - currentWindSpeed) * progress;
@@ -199,14 +240,16 @@ class WeatherService {
           }
         }
         
-        print('✅ Generated ${hourlyData.length} hourly data points');
-        return hourlyData;
+        // Cache the data
+        await _cacheService.cacheForecastData(hourlyData);
         
-      } else {
-        throw Exception('Failed to load hourly forecast: ${response.statusCode} - ${response.body}');
+        return hourlyData;
       }
+      
+      throw Exception('Failed to load forecast');
     } catch (e) {
-      print('❌ Error fetching hourly forecast: $e');
+      final cachedData = await _cacheService.getCachedForecastData();
+      if (cachedData != null) return cachedData;
       rethrow;
     }
   }
