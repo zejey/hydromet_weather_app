@@ -4,6 +4,8 @@ import 'dart:async';
 import '../services/otp_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_registration_service.dart';
+import '../services/user_emails_api_service.dart';
+import 'email_verification_prompt_screen.dart';
 
 class RegistrationOTPVerifyScreen extends StatefulWidget {
   final String phoneNumber;
@@ -156,6 +158,7 @@ class _RegistrationOTPVerifyScreenState
         username: '${userData['first_name']} ${userData['last_name']}',
         phoneNumber: widget.phoneNumber,
         email: userData['email'] ?? '',
+        emailVerified: false, // Email not yet verified
       );
 
       await _authService.markDeviceVerified(widget.phoneNumber);
@@ -167,7 +170,7 @@ class _RegistrationOTPVerifyScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Registration complete! Welcome to HydroMet!'),
+            content: Text('✅ Phone verified! Welcome to HydroMet!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -175,7 +178,32 @@ class _RegistrationOTPVerifyScreenState
 
         await Future.delayed(const Duration(milliseconds: 500));
 
-        // Navigate to weather screen
+        // Step 5: Check email status and prompt for verification
+        final emailService = UserEmailsApiService();
+        final emailResult = await emailService.checkByPhone(widget.phoneNumber);
+
+        if (emailResult['success'] && emailResult['data'] != null) {
+          final emailData = emailResult['data'];
+          final email = emailData['email'];
+          final isVerified = emailData['is_verified'] ?? false;
+
+          if (email != null && !isVerified) {
+            // Email exists but not verified - show prompt
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationPromptScreen(
+                  userId: userData['id'] ?? '',
+                  email: email,
+                  phoneNumber: widget.phoneNumber,
+                ),
+              ),
+            );
+            return;
+          }
+        }
+
+        // No email or already verified - go to weather screen
         Navigator.pushNamedAndRemoveUntil(
           context,
           '/weather',

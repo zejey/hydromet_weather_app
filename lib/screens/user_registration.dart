@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/user_registration_service.dart';
 import '../services/otp_api_service.dart';
+import '../services/user_emails_api_service.dart';
 import 'registration_otp_verify.dart';
 
 class UserRegistrationScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   final TextEditingController _suffixController = TextEditingController();
   final TextEditingController _houseAddressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
   final FocusNode _firstNameFocusNode = FocusNode();
   final FocusNode _middleNameFocusNode = FocusNode();
@@ -25,6 +27,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   final FocusNode _suffixFocusNode = FocusNode();
   final FocusNode _houseAddressFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
+  final FocusNode _emailFocusNode = FocusNode();
 
   String? _selectedBarangay;
   bool _agreeToTerms = false;
@@ -166,10 +169,12 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
     _suffixController.dispose();
     _houseAddressController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _firstNameFocusNode.dispose();
     _lastNameFocusNode.dispose();
     _houseAddressFocusNode.dispose();
     _phoneFocusNode.dispose();
+    _emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -191,6 +196,18 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
     if (_selectedBarangay == null) {
       _showSnackBar('Please select your barangay', isError: true);
+      return;
+    }
+
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showSnackBar('Please enter your email address', isError: true);
+      return;
+    }
+
+    // Validate email format
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      _showSnackBar('Please enter a valid email address', isError: true);
       return;
     }
 
@@ -231,6 +248,23 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
         _showSnackBar(registrationResult['error'] ?? 'Registration failed',
             isError: true);
         return;
+      }
+
+      // ✅ STEP 1.5: Attach email to user (required for email OTP fallback)
+      final userData = registrationResult['user'];
+      final userId = userData['id']?.toString() ?? '';
+      
+      if (userId.isNotEmpty) {
+        print('📧 Attaching email to user: $userId');
+        final emailService = UserEmailsApiService();
+        final emailResult = await emailService.addEmail(userId, email);
+        
+        if (!emailResult['success']) {
+          print('⚠️ Failed to attach email: ${emailResult['message']}');
+          // Continue anyway - user can add email later
+        } else {
+          print('✅ Email attached successfully');
+        }
       }
 
       // ✅ STEP 2: Send OTP to verify phone number
@@ -561,6 +595,43 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                 _selectedBarangay = value;
               });
             },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Email Input
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Email',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _emailController,
+            focusNode: _emailFocusNode,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              hintText: 'your.email@example.com *',
+              hintStyle: TextStyle(color: Colors.grey.shade500),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.green, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
           ),
 
           const SizedBox(height: 16),

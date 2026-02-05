@@ -4,6 +4,8 @@ import 'dart:async';
 import '../services/otp_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_registration_service.dart';
+import '../services/user_emails_api_service.dart';
+import 'email_verification_prompt_screen.dart';
 
 class OTPVerifyLoginScreen extends StatefulWidget {
   final String phoneNumber;
@@ -149,11 +151,22 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
 
       // Step 4: Save session (30 days)
       print('💾 Step 4: Saving session...');
+
+      // Check email verification status
+      final emailService = UserEmailsApiService();
+      final emailResult = await emailService.checkByPhone(widget.phoneNumber);
+      
+      bool emailVerified = false;
+      if (emailResult['success'] && emailResult['data'] != null) {
+        emailVerified = emailResult['data']['is_verified'] ?? false;
+      }
+
       await _authService.loginWithUserData(
         userId: userData['id'] ?? '',
         username: '${userData['first_name']} ${userData['last_name']}',
         phoneNumber: widget.phoneNumber,
         email: userData['email'] ?? '',
+        emailVerified: emailVerified,
       );
 
       await _authService.markDeviceVerified(widget.phoneNumber);
@@ -172,6 +185,28 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
         );
 
         await Future.delayed(const Duration(milliseconds: 500));
+
+        // Check if email verification prompt should be shown
+        if (emailResult['success'] && emailResult['data'] != null) {
+          final emailData = emailResult['data'];
+          final email = emailData['email'];
+          final isVerified = emailData['is_verified'] ?? false;
+
+          if (email != null && !isVerified) {
+            // Email exists but not verified - show prompt
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationPromptScreen(
+                  userId: userData['id'] ?? '',
+                  email: email,
+                  phoneNumber: widget.phoneNumber,
+                ),
+              ),
+            );
+            return;
+          }
+        }
 
         // Navigate to weather screen
         Navigator.pushNamedAndRemoveUntil(

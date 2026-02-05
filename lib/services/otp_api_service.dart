@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 /// OTP API Service
 /// Handles OTP sending, verification, and resending via FastAPI backend
 class OtpApiService {
-  static const String baseUrl =
-      'https://caring-kindness-production.up.railway.app/api/otp';
-  static const Duration timeout = Duration(seconds: 30);
+  static const String baseUrl = ApiConfig.otpBase;
+  static const Duration timeout = ApiConfig.timeout;
 
   /// ✅ NEW: Send OTP for REGISTRATION (doesn't check if user exists)
   ///

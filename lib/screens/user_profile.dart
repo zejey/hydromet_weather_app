@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 
 import 'dart:ui' as ui;
 
@@ -25,6 +26,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final FocusNode _mobileFocusNode = FocusNode();
   final FocusNode _addressFocusNode = FocusNode();
 
+  final AuthService _authService = AuthService();
+
   bool _isEditing = false;
   bool _isLoading = false;
 
@@ -32,6 +35,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   void initState() {
     super.initState();
     _loadUserProfile();
+    _authService.initialize();
   }
 
   @override
@@ -214,6 +218,87 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 18),
+                    
+                    // Email Verification Banner
+                    if (!_authService.emailVerified && _authService.primaryEmail.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.orange.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orange.shade700,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Email Unverified',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange.shade900,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Your email ${_authService.primaryEmail} is not verified.',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade800,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (_authService.primaryEmail.isEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.blue.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue.shade700,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'No email on file. Add an email for account recovery.',
+                                style: TextStyle(
+                                  color: Colors.blue.shade900,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    
                     _profileFieldCard('First Name', _firstNameController,
                         enabled: _isEditing),
                     const SizedBox(height: 12),

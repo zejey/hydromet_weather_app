@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class UserRegistrationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // ⚠️ CHANGE THIS to your actual backend URL
-  static const String baseUrl = 'https://caring-kindness-production.up.railway.app/api';
+  // Using centralized API config
+  static const String baseUrl = ApiConfig.usersBase;
 
   static const String _loginKey = 'user_logged_in';
   static const String _usernameKey = 'username';
@@ -53,7 +54,7 @@ class UserRegistrationService {
       print('📱 Fetching user data for: $phoneNumber');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/users/phone/$phoneNumber'),
+        Uri.parse('${ApiConfig.usersBase}/phone/$phoneNumber'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -127,7 +128,7 @@ class UserRegistrationService {
       // ✅ FIX: Add trailing slash
       final checkResponse = await http
           .post(
-            Uri.parse('$baseUrl/users/check-user'), // ← This one is OK
+            Uri.parse(ApiConfig.usersCheckUser),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'phone_number': normalizedPhone}),
           )
@@ -149,7 +150,7 @@ class UserRegistrationService {
       // ✅ FIX: Add trailing slash here!
       final registerResponse = await http
           .post(
-            Uri.parse('$baseUrl/users/'), // ← Add trailing slash!
+            Uri.parse(ApiConfig.usersCreate),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'first_name': firstName.trim(),
@@ -211,7 +212,7 @@ class UserRegistrationService {
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/users/check-user'),
+            Uri.parse(ApiConfig.usersCheckUser),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'phone_number': normalizedPhone}),
           )
@@ -242,8 +243,7 @@ class UserRegistrationService {
 
       final response = await http
           .post(
-            Uri.parse(
-                '$baseUrl/users/get-user'), // ← This one is fine (no redirect)
+            Uri.parse(ApiConfig.usersGetUser),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'phone_number': normalizedPhone}),
           )
@@ -287,8 +287,7 @@ class UserRegistrationService {
     try {
       final response = await http
           .post(
-            Uri.parse(
-                '$baseUrl/users/get-user'), // ← This one is fine (no redirect)
+            Uri.parse(ApiConfig.usersGetUser),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'phone_number': _phoneNumber}),
           )
