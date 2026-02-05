@@ -264,8 +264,6 @@ class AuthService {
     await _prefs.setBool(_emailVerifiedKey, verified);
     if (email != null) {
       await _prefs.setString(_primaryEmailKey, email);
-      await _prefs.setString(_emailKey, email);
-      _email = email;
       _primaryEmail = email;
     }
     
