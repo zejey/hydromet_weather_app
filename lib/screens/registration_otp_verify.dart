@@ -264,6 +264,51 @@ class _RegistrationOTPVerifyScreenState
     }
   }
 
+  Future<void> _resendViaEmail() async {
+    if (_resendCountdown > 0) return;
+
+    setState(() => _isResending = true);
+
+    try {
+      final result = await _otpService.sendEmailOtp(widget.phoneNumber);
+
+      setState(() => _isResending = false);
+
+      if (result['success']) {
+        _startResendTimer();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP sent to your email successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to send OTP via email'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isResending = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -512,6 +557,29 @@ class _RegistrationOTPVerifyScreenState
                             ),
                         ],
                       ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Resend via Email button
+                      if (_resendCountdown == 0)
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _isResending ? null : _resendViaEmail,
+                            icon: const Icon(
+                              Icons.email_outlined,
+                              size: 18,
+                              color: Colors.blue,
+                            ),
+                            label: const Text(
+                              'Resend via Email',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
