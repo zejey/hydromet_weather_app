@@ -31,6 +31,11 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
   final UserRegistrationService _userService = UserRegistrationService();
   final UserEmailsApiService _emailService = UserEmailsApiService();
 
+  // Email validation regex (compiled once as constant)
+  static final RegExp _emailRegex = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
+
   bool _isLoading = false;
   bool _isResending = false;
   String? _errorMessage;
@@ -307,27 +312,22 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
           return;
         }
 
-        // Get userId - try from AuthService first, then fetch from backend
-        await _authService.initialize();
-        String userId = _authService.userId;
-
-        if (userId.isEmpty) {
-          // Fetch from backend
-          final userData = await _userService.getUserData();
-          if (userData != null && userData['id'] != null) {
-            userId = userData['id'];
-          } else {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Failed to retrieve user data'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            return;
+        // Get userId from backend using phone number (no authentication required)
+        final userData = await _userService.getUserByPhone(widget.phoneNumber);
+        
+        if (userData == null || userData['id'] == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to retrieve user data'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
+          return;
         }
+        
+        final String userId = userData['id'];
 
         // Attach the email to user account
         setState(() => _isResending = true);
@@ -458,11 +458,7 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
                       return;
                     }
                     
-                    final emailRegex = RegExp(
-                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-                    );
-                    
-                    if (!emailRegex.hasMatch(email)) {
+                    if (!_emailRegex.hasMatch(email)) {
                       setState(() => errorText = 'Please enter a valid email');
                       return;
                     }
