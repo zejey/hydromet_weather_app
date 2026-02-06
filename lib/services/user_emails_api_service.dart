@@ -21,7 +21,7 @@ class UserEmailsApiService {
 
       final response = await http
           .post(
-        Uri.parse('${ApiConfig.userEmailsBase}/'),
+        Uri.parse('${ApiConfig.userEmailsBase}/add'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': userId,
