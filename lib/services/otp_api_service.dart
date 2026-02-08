@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 /// OTP API Service
 /// Handles OTP sending, verification, and resending via FastAPI backend
 class OtpApiService {
-  static const String baseUrl =
-      'https://caring-kindness-production.up.railway.app/api/otp';
-  static const Duration timeout = Duration(seconds: 30);
+  static const String baseUrl = ApiConfig.otpBase;
+  static const Duration timeout = ApiConfig.timeout;
 
   /// ✅ NEW: Send OTP for REGISTRATION (doesn't check if user exists)
   ///
@@ -274,6 +274,73 @@ class OtpApiService {
           'success': false,
           'message':
               data['detail'] ?? data['message'] ?? 'Failed to resend OTP',
+          'data': null,
+        };
+      }
+    } on http.ClientException catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: ${e.message}',
+        'data': null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error: ${e.toString()}',
+        'data': null,
+      };
+    }
+  }
+
+  /// Send OTP via email (requires email attached to user)
+  ///
+  /// Parameters:
+  /// - phoneNumber: Phone number in format 09XXXXXXXXX or 639XXXXXXXXX
+  ///
+  /// Returns:
+  /// - success: bool
+  /// - message: String
+  /// - data: Map with OTP data
+  Future<Map<String, dynamic>> sendEmailOtp(String phoneNumber, String email) async {
+    try {
+      final normalizedPhone = _normalizePhoneNumber(phoneNumber);
+
+      print('📧 Sending OTP via email to: $normalizedPhone');
+
+      final response = await http
+          .post(
+        Uri.parse('$baseUrl/send-email'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'phone_number': normalizedPhone,
+          'email': email,
+          'delivery_method': 'email',
+        }),
+      )
+          .timeout(
+        timeout,
+        onTimeout: () {
+          throw Exception('Request timed out');
+        },
+      );
+
+      print('📡 Email OTP Status: ${response.statusCode}');
+      print('📡 Email OTP Body: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': data['success'] ?? true,
+          'message': data['message'] ?? 'OTP sent to email successfully',
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['detail'] ?? data['message'] ?? 'Failed to send OTP via email',
           'data': null,
         };
       }

@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../services/user_registration_service.dart';
 import '../services/otp_api_service.dart';
+import '../services/user_emails_api_service.dart';
 import 'otp_verify_login.dart';
+import 'email_verification_prompt_screen.dart';
 
 class SmartLoginScreen extends StatefulWidget {
   const SmartLoginScreen({super.key});
@@ -39,7 +41,7 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
     // If user is already logged in, go directly to weather
     if (_authService.isLoggedIn) {
       Future.microtask(() {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/weather');
       });
     }
   }
@@ -86,11 +88,21 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
         final userData = await _userService.getUserByPhone(phone);
 
         if (userData != null) {
+          // Check email verification status
+          final emailService = UserEmailsApiService();
+          final emailResult = await emailService.checkByPhone(phone);
+          
+          bool emailVerified = false;
+          if (emailResult['success'] && emailResult['data'] != null) {
+            emailVerified = emailResult['data']['is_verified'] ?? false;
+          }
+
           final success = await _authService.loginWithUserData(
             userId: userData['id'],
             username: '${userData['first_name']} ${userData['last_name']}',
             phoneNumber: phone,
             email: userData['email'] ?? '',
+            emailVerified: emailVerified,
           );
 
           setState(() => _isLoading = false);
@@ -104,7 +116,29 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
               ),
             );
 
-            Navigator.pushReplacementNamed(context, '/home');
+            // Check if email verification prompt should be shown
+            if (emailResult['success'] && emailResult['data'] != null) {
+              final emailData = emailResult['data'];
+              final email = emailData['email'];
+              final isVerified = emailData['is_verified'] ?? false;
+
+              if (email != null && !isVerified) {
+                // Email exists but not verified - show prompt
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EmailVerificationPromptScreen(
+                      userId: userData['id'],
+                      email: email,
+                      phoneNumber: phone,
+                    ),
+                  ),
+                );
+                return;
+              }
+            }
+
+            Navigator.pushReplacementNamed(context, '/weather');
             return;
           }
         }
@@ -233,7 +267,7 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
   }
 
   void _continueAsGuest() {
-    Navigator.pushReplacementNamed(context, '/home');
+    Navigator.pushReplacementNamed(context, '/guest-weather');
   }
 
   @override

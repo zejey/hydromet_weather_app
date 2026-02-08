@@ -4,6 +4,8 @@ import 'dart:async';
 import '../services/otp_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_registration_service.dart';
+import '../services/user_emails_api_service.dart';
+import 'email_verification_prompt_screen.dart';
 
 class RegistrationOTPVerifyScreen extends StatefulWidget {
   final String phoneNumber;
@@ -156,6 +158,7 @@ class _RegistrationOTPVerifyScreenState
         username: '${userData['first_name']} ${userData['last_name']}',
         phoneNumber: widget.phoneNumber,
         email: userData['email'] ?? '',
+        emailVerified: false, // Email not yet verified
       );
 
       await _authService.markDeviceVerified(widget.phoneNumber);
@@ -167,7 +170,7 @@ class _RegistrationOTPVerifyScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Registration complete! Welcome to HydroMet!'),
+            content: Text('✅ Phone verified! Welcome to HydroMet!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -175,10 +178,35 @@ class _RegistrationOTPVerifyScreenState
 
         await Future.delayed(const Duration(milliseconds: 500));
 
-        // Navigate to weather screen
+        // Step 5: Check email status and prompt for verification
+        final emailService = UserEmailsApiService();
+        final emailResult = await emailService.checkByPhone(widget.phoneNumber);
+
+        if (emailResult['success'] && emailResult['data'] != null) {
+          final emailData = emailResult['data'];
+          final email = emailData['email'];
+          final isVerified = emailData['is_verified'] ?? false;
+
+          if (email != null && !isVerified) {
+            // Email exists but not verified - show prompt
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationPromptScreen(
+                  userId: userData['id'] ?? '',
+                  email: email,
+                  phoneNumber: widget.phoneNumber,
+                ),
+              ),
+            );
+            return;
+          }
+        }
+
+        // No email or already verified - go to weather screen
         Navigator.pushNamedAndRemoveUntil(
           context,
-          '/home',
+          '/weather',
           (route) => false,
         );
       }
@@ -217,6 +245,51 @@ class _RegistrationOTPVerifyScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['message'] ?? 'Failed to resend OTP'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isResending = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _resendViaEmail() async {
+    if (_resendCountdown > 0) return;
+
+    setState(() => _isResending = true);
+
+    try {
+      final result = await _otpService.sendEmailOtp(widget.phoneNumber);
+
+      setState(() => _isResending = false);
+
+      if (result['success']) {
+        _startResendTimer();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP sent to your email successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to send OTP via email'),
               backgroundColor: Colors.red,
             ),
           );
@@ -484,6 +557,29 @@ class _RegistrationOTPVerifyScreenState
                             ),
                         ],
                       ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Resend via Email button
+                      if (_resendCountdown == 0)
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _isResending ? null : _resendViaEmail,
+                            icon: const Icon(
+                              Icons.email_outlined,
+                              size: 18,
+                              color: Colors.blue,
+                            ),
+                            label: const Text(
+                              'Resend via Email',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

@@ -11,6 +11,8 @@ class AuthService {
   static const String _lastLoginKey = 'last_login_at';
   static const String _trustedPhoneKey = "trusted_device_phone";
   static const String _lastVerifiedKey = "last_otp_verified";
+  static const String _emailVerifiedKey = "email_verified";
+  static const String _primaryEmailKey = "primary_email";
 
   late SharedPreferences _prefs;
   bool _isInitialized = false;
@@ -25,6 +27,8 @@ class AuthService {
   String _token = '';
   String _phoneNumber = '';
   String _userId = '';
+  bool _emailVerified = false;
+  String _primaryEmail = '';
 
   // Getters
   bool get isLoggedIn => _isLoggedIn;
@@ -33,6 +37,8 @@ class AuthService {
   String get token => _token;
   String get phoneNumber => _phoneNumber;
   String get userId => _userId;
+  bool get emailVerified => _emailVerified;
+  String get primaryEmail => _primaryEmail;
 
   /// Initialize - Load session from storage
   /// Initialize - Load session from storage
@@ -45,6 +51,8 @@ class AuthService {
     _token = _prefs.getString(_tokenKey) ?? '';
     _phoneNumber = _prefs.getString(_phoneKey) ?? '';
     _userId = _prefs.getString(_userIdKey) ?? '';
+    _emailVerified = _prefs.getBool(_emailVerifiedKey) ?? false;
+    _primaryEmail = _prefs.getString(_primaryEmailKey) ?? '';
 
     // Check if session expired (30 days)
     final lastLoginStr = _prefs.getString(_lastLoginKey);
@@ -140,6 +148,7 @@ class AuthService {
     required String username,
     required String phoneNumber,
     String? email,
+    bool? emailVerified,
   }) async {
     try {
       await _ensureInitialized(); // ✅ Use the new method
@@ -152,6 +161,8 @@ class AuthService {
       await _prefs.setString(_phoneKey, phoneNumber);
       await _prefs.setString(_userIdKey, userId);
       await _prefs.setString(_lastLoginKey, now);
+      await _prefs.setBool(_emailVerifiedKey, emailVerified ?? false);
+      await _prefs.setString(_primaryEmailKey, email ?? '');
 
       _isLoggedIn = true;
       _username = username;
@@ -159,6 +170,8 @@ class AuthService {
       _token = userId;
       _phoneNumber = phoneNumber;
       _userId = userId;
+      _emailVerified = emailVerified ?? false;
+      _primaryEmail = email ?? '';
 
       final expiryDate = DateTime.parse(now).add(sessionDuration);
       print('✅ User logged in: $username ($phoneNumber)');
@@ -184,6 +197,8 @@ class AuthService {
       await _prefs.remove(_phoneKey);
       await _prefs.remove(_userIdKey);
       await _prefs.remove(_lastLoginKey);
+      await _prefs.remove(_emailVerifiedKey);
+      await _prefs.remove(_primaryEmailKey);
 
       // Note: We DON'T clear device trust here!
       // Device trust persists for the same user
@@ -194,6 +209,8 @@ class AuthService {
       _token = '';
       _phoneNumber = '';
       _userId = '';
+      _emailVerified = false;
+      _primaryEmail = '';
 
       print('✅ User logged out (device trust preserved)');
     } catch (e) {
@@ -235,6 +252,24 @@ class AuthService {
     final difference = expiry.difference(now);
 
     return difference.inDays;
+  }
+
+  /// Update email verification status
+  Future<void> updateEmailVerificationStatus({
+    required bool verified,
+    String? email,
+  }) async {
+    await _ensureInitialized();
+    
+    await _prefs.setBool(_emailVerifiedKey, verified);
+    if (email != null) {
+      await _prefs.setString(_primaryEmailKey, email);
+      _primaryEmail = email;
+    }
+    
+    _emailVerified = verified;
+    
+    print('✅ Email verification status updated: verified=$verified, email=$email');
   }
 }
 

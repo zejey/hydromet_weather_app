@@ -4,6 +4,8 @@ import 'dart:async';
 import '../services/otp_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/user_registration_service.dart';
+import '../services/user_emails_api_service.dart';
+import 'email_verification_prompt_screen.dart';
 
 class OTPVerifyLoginScreen extends StatefulWidget {
   final String phoneNumber;
@@ -27,6 +29,12 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
   final OtpApiService _otpService = OtpApiService();
   final AuthService _authService = AuthService();
   final UserRegistrationService _userService = UserRegistrationService();
+  final UserEmailsApiService _emailService = UserEmailsApiService();
+
+  // Email validation regex (compiled once as constant)
+  static final RegExp _emailRegex = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
 
   bool _isLoading = false;
   bool _isResending = false;
@@ -149,11 +157,22 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
 
       // Step 4: Save session (30 days)
       print('💾 Step 4: Saving session...');
+
+      // Check email verification status
+      final emailService = UserEmailsApiService();
+      final emailResult = await emailService.checkByPhone(widget.phoneNumber);
+      
+      bool emailVerified = false;
+      if (emailResult['success'] && emailResult['data'] != null) {
+        emailVerified = emailResult['data']['is_verified'] ?? false;
+      }
+
       await _authService.loginWithUserData(
         userId: userData['id'] ?? '',
         username: '${userData['first_name']} ${userData['last_name']}',
         phoneNumber: widget.phoneNumber,
         email: userData['email'] ?? '',
+        emailVerified: emailVerified,
       );
 
       await _authService.markDeviceVerified(widget.phoneNumber);
@@ -173,10 +192,32 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
 
         await Future.delayed(const Duration(milliseconds: 500));
 
+        // Check if email verification prompt should be shown
+        if (emailResult['success'] && emailResult['data'] != null) {
+          final emailData = emailResult['data'];
+          final email = emailData['email'];
+          final isVerified = emailData['is_verified'] ?? false;
+
+          if (email != null && !isVerified) {
+            // Email exists but not verified - show prompt
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationPromptScreen(
+                  userId: userData['id'] ?? '',
+                  email: email,
+                  phoneNumber: widget.phoneNumber,
+                ),
+              ),
+            );
+            return;
+          }
+        }
+
         // Navigate to weather screen
         Navigator.pushNamedAndRemoveUntil(
           context,
-          '/home',
+          '/weather',
           (route) => false,
         );
       }
@@ -232,6 +273,217 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
         );
       }
     }
+  }
+
+Future<void> _resendViaEmail() async {
+  if (_resendCountdown > 0) return;
+
+  setState(() => _isResending = true);
+
+  try {
+    // Step 1: Check if email exists for this phone number
+    final emailCheckResult =
+        await _emailService.checkByPhone(widget.phoneNumber);
+
+    if (!emailCheckResult['success']) {
+      setState(() => _isResending = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(emailCheckResult['message'] ??
+                'Failed to check email status'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final emailData = emailCheckResult['data'];
+    String? emailToUse = emailData?['email'];
+
+    // Step 2: If no email exists, prompt user to enter one and attach it
+    if (emailToUse == null || emailToUse.isEmpty) {
+      setState(() => _isResending = false);
+
+      final capturedEmail = await _showEmailInputDialog();
+      if (capturedEmail == null || capturedEmail.isEmpty) {
+        // user cancelled
+        return;
+      }
+
+      // Get userId from backend using phone number (no auth required)
+      final userData = await _userService.getUserByPhone(widget.phoneNumber);
+
+      if (userData == null || userData['id'] == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to retrieve user data'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      final String userId = userData['id'];
+
+      // Attach the email to user account (unverified)
+      setState(() => _isResending = true);
+      final addEmailResult = await _emailService.addEmail(userId, capturedEmail);
+
+      if (!addEmailResult['success']) {
+        setState(() => _isResending = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text(addEmailResult['message'] ?? 'Failed to attach email'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      emailToUse = capturedEmail;
+    }
+
+    // Step 3: Send OTP via email
+    final result =
+        await _otpService.sendEmailOtp(widget.phoneNumber, emailToUse);
+
+    setState(() => _isResending = false);
+
+    if (result['success']) {
+      _startResendTimer();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('OTP sent to $emailToUse'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to send OTP via email'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    setState(() => _isResending = false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}  
+
+Future<String?> _showEmailInputDialog() async {
+    final TextEditingController emailController = TextEditingController();
+    String? errorText;
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Enter Your Email',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Please enter your email address to receive the OTP code.',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'Email Address',
+                      hintText: 'example@email.com',
+                      prefixIcon: const Icon(Icons.email, color: Colors.green),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.green, width: 2),
+                      ),
+                      errorText: errorText,
+                    ),
+                    onChanged: (value) {
+                      if (errorText != null) {
+                        setState(() => errorText = null);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(null),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final email = emailController.text.trim();
+                    
+                    // Validate email
+                    if (email.isEmpty) {
+                      setState(() => errorText = 'Email is required');
+                      return;
+                    }
+                    
+                    if (!_emailRegex.hasMatch(email)) {
+                      setState(() => errorText = 'Please enter a valid email');
+                      return;
+                    }
+                    
+                    Navigator.of(context).pop(email);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -507,6 +759,29 @@ class _OTPVerifyLoginScreenState extends State<OTPVerifyLoginScreen> {
                             ),
                         ],
                       ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Resend via Email button
+                      if (_resendCountdown == 0)
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _isResending ? null : _resendViaEmail,
+                            icon: const Icon(
+                              Icons.email_outlined,
+                              size: 18,
+                              color: Colors.blue,
+                            ),
+                            label: const Text(
+                              'Resend via Email',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
