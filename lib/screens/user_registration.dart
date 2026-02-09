@@ -136,6 +136,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
     'Chrysanthemum',
     'Ciudad Real',
     'Cuyab',
+    'Estrella',
     'Fatima',
     'G.S.I.S.',
     'Landayan',
