@@ -9,11 +9,13 @@ import 'email_verification_prompt_screen.dart';
 
 class RegistrationOTPVerifyScreen extends StatefulWidget {
   final String phoneNumber;
+  final String email;
   final String displayName;
 
   const RegistrationOTPVerifyScreen({
     super.key,
     required this.phoneNumber,
+    required this.email,
     required this.displayName,
   });
 
@@ -270,7 +272,7 @@ class _RegistrationOTPVerifyScreenState
     setState(() => _isResending = true);
 
     try {
-      final result = await _otpService.sendEmailOtp(widget.phoneNumber);
+      final result = await _otpService.sendEmailOtp(widget.phoneNumber, widget.email);
 
       setState(() => _isResending = false);
 

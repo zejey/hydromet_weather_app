@@ -134,7 +134,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
     'Bagong Silang',
     'Calendola',
     'Chrysanthemum',
-    'Ciudad Real',
     'Cuyab',
     'Estrella',
     'Fatima',
@@ -284,6 +283,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
             MaterialPageRoute(
               builder: (context) => RegistrationOTPVerifyScreen(
                 phoneNumber: phone,
+                email: email,
                 displayName:
                     '${_firstNameController.text} ${_lastNameController.text}',
               ),
