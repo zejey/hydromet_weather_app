@@ -491,13 +491,8 @@ class _GuestWeatherScreenState extends State<GuestWeatherScreen>
                                 if (selectedLocation != null)
                                   WeatherMapWidget(
                                     selectedLocation: selectedLocation!,
-                                    weatherData: weatherData!,
-                                    airData: airData,
-                                    hazardLocations: const [],
                                     evacuationCenters: const [],
                                     governmentAgencies: const [],
-                                    rainAnimation: _animationController,
-                                    scaleAnimation: _scaleAnimation,
                                   ),
 
                                 const SizedBox(height: 40),
