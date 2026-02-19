@@ -5,7 +5,8 @@ class AuthService {
   static const String _loginKey = 'is_logged_in';
   static const String _usernameKey = 'username';
   static const String _emailKey = 'email';
-  static const String _tokenKey = 'token';
+  static const String _tokenKey =
+      'token'; // ✅ real token storage (JWT) if you have one
   static const String _phoneKey = 'phone_number';
   static const String _userIdKey = 'user_id';
   static const String _lastLoginKey = 'last_login_at';
@@ -40,10 +41,8 @@ class AuthService {
   bool get emailVerified => _emailVerified;
   String get primaryEmail => _primaryEmail;
 
-  /// Initialize - Load session from storage
-  /// Initialize - Load session from storage
   Future<void> initialize() async {
-    await _ensureInitialized(); // ✅ Use the new method
+    await _ensureInitialized();
 
     _isLoggedIn = _prefs.getBool(_loginKey) ?? false;
     _username = _prefs.getString(_usernameKey) ?? '';
@@ -53,6 +52,18 @@ class AuthService {
     _userId = _prefs.getString(_userIdKey) ?? '';
     _emailVerified = _prefs.getBool(_emailVerifiedKey) ?? false;
     _primaryEmail = _prefs.getString(_primaryEmailKey) ?? '';
+
+    // ✅ Optional cleanup: older versions stored userId in token
+    // If token looks like UUID and we already have a userId, treat it as invalid token and clear.
+    final uuidRegex = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    if (_token.isNotEmpty && uuidRegex.hasMatch(_token)) {
+      // If token equals userId or just looks like UUID, clear it
+      // (We don't currently use real tokens, so this is safe.)
+      await _prefs.remove(_tokenKey);
+      _token = '';
+      print('🧹 Cleaned legacy token value (UUID stored in token key).');
+    }
 
     // Check if session expired (30 days)
     final lastLoginStr = _prefs.getString(_lastLoginKey);
@@ -80,14 +91,12 @@ class AuthService {
     }
   }
 
-  /// Check if current device is trusted for this specific phone number
   Future<bool> isDeviceTrusted(String phoneNumber) async {
     await _ensureInitialized();
 
     final trustedPhone = _prefs.getString(_trustedPhoneKey);
     final lastVerified = _prefs.getInt(_lastVerifiedKey);
 
-    // Check if phone number matches
     if (trustedPhone != phoneNumber) {
       print('🔒 Different user - device not trusted for $phoneNumber');
       return false;
@@ -98,7 +107,6 @@ class AuthService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final daysSinceVerified = (now - lastVerified) / (1000 * 60 * 60 * 24);
 
-    // Trust device for 30 days after last OTP verification
     if (daysSinceVerified < 30) {
       print(
           '✅ Device is trusted for $phoneNumber (verified ${daysSinceVerified.toStringAsFixed(1)} days ago)');
@@ -110,7 +118,6 @@ class AuthService {
     }
   }
 
-  /// Mark this device as trusted for a specific phone number
   Future<void> markDeviceVerified(String phoneNumber) async {
     await _ensureInitialized();
     await _prefs.setString(_trustedPhoneKey, phoneNumber);
@@ -119,7 +126,6 @@ class AuthService {
     print('✅ Device marked as trusted for: $phoneNumber');
   }
 
-  /// Clear device trust ONLY if different user is logging in
   Future<void> clearDeviceTrustIfDifferentUser(String newPhoneNumber) async {
     await _ensureInitialized();
     final trustedPhone = _prefs.getString(_trustedPhoneKey);
@@ -133,7 +139,6 @@ class AuthService {
     }
   }
 
-  /// Clear device trust completely (optional - for security settings)
   Future<void> clearDeviceTrust() async {
     await _ensureInitialized();
     await _prefs.remove(_trustedPhoneKey);
@@ -141,33 +146,40 @@ class AuthService {
     print('🔒 Device trust cleared completely');
   }
 
-  /// Login with user data (saves 30-day session)
-  /// Login with user data (saves 30-day session)
+  /// ✅ Login with user data (saves 30-day session)
+  /// token is optional and should be a REAL token (JWT) if your backend issues one.
   Future<bool> loginWithUserData({
     required String userId,
     required String username,
     required String phoneNumber,
     String? email,
     bool? emailVerified,
+    String? token,
   }) async {
     try {
-      await _ensureInitialized(); // ✅ Use the new method
+      await _ensureInitialized();
       final now = DateTime.now().toIso8601String();
 
       await _prefs.setBool(_loginKey, true);
       await _prefs.setString(_usernameKey, username);
       await _prefs.setString(_emailKey, email ?? '');
-      await _prefs.setString(_tokenKey, userId);
       await _prefs.setString(_phoneKey, phoneNumber);
       await _prefs.setString(_userIdKey, userId);
       await _prefs.setString(_lastLoginKey, now);
       await _prefs.setBool(_emailVerifiedKey, emailVerified ?? false);
       await _prefs.setString(_primaryEmailKey, email ?? '');
 
+      if (token != null && token.isNotEmpty) {
+        await _prefs.setString(_tokenKey, token);
+        _token = token;
+      } else {
+        await _prefs.remove(_tokenKey);
+        _token = '';
+      }
+
       _isLoggedIn = true;
       _username = username;
       _email = email ?? '';
-      _token = userId;
       _phoneNumber = phoneNumber;
       _userId = userId;
       _emailVerified = emailVerified ?? false;
@@ -184,8 +196,6 @@ class AuthService {
     }
   }
 
-  /// Logout - Clear session
-  /// Logout - Clear session (but preserve device trust for same user)
   Future<void> logout() async {
     try {
       await _ensureInitialized();
@@ -199,9 +209,6 @@ class AuthService {
       await _prefs.remove(_lastLoginKey);
       await _prefs.remove(_emailVerifiedKey);
       await _prefs.remove(_primaryEmailKey);
-
-      // Note: We DON'T clear device trust here!
-      // Device trust persists for the same user
 
       _isLoggedIn = false;
       _username = '';
@@ -218,8 +225,6 @@ class AuthService {
     }
   }
 
-  /// Check if session is still valid
-  /// Check if session is still valid
   Future<bool> isSessionValid() async {
     await _ensureInitialized();
     final lastLoginStr = _prefs.getString(_lastLoginKey);
@@ -232,7 +237,6 @@ class AuthService {
     return now.difference(lastLogin) <= sessionDuration;
   }
 
-  /// Get session expiry date
   Future<DateTime?> getSessionExpiry() async {
     await _ensureInitialized();
     final lastLoginStr = _prefs.getString(_lastLoginKey);
@@ -243,7 +247,6 @@ class AuthService {
     return lastLogin.add(sessionDuration);
   }
 
-  /// Get days until session expires
   Future<int> getDaysUntilExpiry() async {
     final expiry = await getSessionExpiry();
     if (expiry == null) return 0;
@@ -254,24 +257,24 @@ class AuthService {
     return difference.inDays;
   }
 
-  /// Update email verification status
   Future<void> updateEmailVerificationStatus({
     required bool verified,
     String? email,
   }) async {
     await _ensureInitialized();
-    
+
     await _prefs.setBool(_emailVerifiedKey, verified);
     if (email != null) {
       await _prefs.setString(_primaryEmailKey, email);
       _primaryEmail = email;
     }
-    
+
     _emailVerified = verified;
-    
-    print('✅ Email verification status updated: verified=$verified, email=$email');
+
+    print(
+      '✅ Email verification status updated: verified=$verified, email=$email',
+    );
   }
 }
 
-// Backwards compatibility alias
 typedef AuthManager = AuthService;
