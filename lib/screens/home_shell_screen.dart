@@ -15,14 +15,14 @@ class HomeShellScreen extends StatefulWidget {
 
 class HomeShellNavigator extends InheritedWidget {
   final Function(int) switchToTab;
-  
+
   const HomeShellNavigator({
     super.key,
     required this.switchToTab,
     required super.child,
   });
 
-  static HomeShellNavigator?  of(BuildContext context) {
+  static HomeShellNavigator? of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<HomeShellNavigator>();
   }
 
@@ -32,7 +32,7 @@ class HomeShellNavigator extends InheritedWidget {
 
 class HomeShellScreenState extends State<HomeShellScreen> {
   int _currentIndex = 0;
-  
+
   void onTabSelected(int index) {
     setState(() {
       _currentIndex = index;
