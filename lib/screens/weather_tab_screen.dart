@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';  // ✅ ADD THIS IMPORT
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/weather_service.dart';
 import '../services/auth_service.dart' as auth_service;
 import '../services/firestore_notification_service.dart';
 import '../services/local_notification_service.dart';
 import '../services/cache_service.dart';
 import '../services/connectivity_service.dart';
-import '../widgets/weather/weather_header.dart';
 import '../widgets/weather/weather_info_card.dart';
 import '../widgets/weather/hourly_forecast_card.dart';
 import '../widgets/weather/weather_tiles_grid.dart';
@@ -49,7 +50,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   void initState() {
     super.initState();
     _checkConnectivity();
-    _monitorConnectivity(); 
+    _monitorConnectivity();
     _checkAuth();
     loadWeather();
     _loadNotificationCount();
@@ -70,7 +71,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   Future<void> _checkConnectivity() async {
     final isOnline = await _connectivityService.isOnline();
     final lastUpdate = await _cacheService.getLastUpdateTime();
-    
+
     setState(() {
       _isOffline = !isOnline;
       _lastUpdate = lastUpdate;
@@ -81,13 +82,13 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   void _monitorConnectivity() {
     _connectivityService.onConnectivityChanged.listen((result) async {
       final isOnline = result.contains(ConnectivityResult.mobile) ||
-                      result.contains(ConnectivityResult.wifi) ||
-                      result.contains(ConnectivityResult.ethernet);
-      
+          result.contains(ConnectivityResult.wifi) ||
+          result.contains(ConnectivityResult.ethernet);
+
       setState(() {
         _isOffline = !isOnline;
       });
-      
+
       if (isOnline) {
         // Back online - refresh data
         ScaffoldMessenger.of(context).showSnackBar(
@@ -125,7 +126,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   // ✅ Build offline indicator
   Widget _buildOfflineIndicator() {
     if (!_isOffline) return const SizedBox.shrink();
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: Colors.orange.shade700,
@@ -171,29 +172,33 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   String _formatLastUpdate(DateTime time) {
     final now = DateTime.now();
     final difference = now.difference(time);
-    
+
     if (difference.inMinutes < 1) return 'Just now';
     if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
     if (difference.inHours < 24) return '${difference.inHours}h ago';
     return '${difference.inDays}d ago';
   }
 
-
   void _loadNotificationCount() {
     // ✅ Use renamed service
-    FirestoreNotificationService.instance.userNotificationsStream().listen((notifications) {
+    FirestoreNotificationService.instance
+        .userNotificationsStream()
+        .listen((notifications) {
       if (mounted) {
         setState(() {
           _notificationCount = notifications.length;
         });
-        
+
         // ✅ Show system notifications for new alerts
         for (var notification in notifications) {
-          if (notification['type'] == 'Emergency' || notification['type'] == 'Warning') {
+          if (notification['type'] == 'Emergency' ||
+              notification['type'] == 'Warning') {
             LocalNotificationService().showWeatherAlert(
               hazardType: notification['title'] ?? 'Weather Hazard',
-              message: notification['body'] ?? 'Unusual weather conditions detected.',
-              riskLevel: notification['type'] == 'Emergency' ? 'high' : 'medium',
+              message: notification['body'] ??
+                  'Unusual weather conditions detected.',
+              riskLevel:
+                  notification['type'] == 'Emergency' ? 'high' : 'medium',
             );
           }
         }
@@ -293,180 +298,6 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     }
   }
 
-    Widget _buildMapPreview() {
-    return GestureDetector(
-      onTap: () {
-        // Navigate to Map tab (index 1)
-        final homeShellState = context.findAncestorStateOfType<HomeShellScreenState>();
-        if (homeShellState != null) {
-          homeShellState.onTabSelected(1); // Switch to Map tab
-        }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.map, color: Colors.white, size: 20),
-                SizedBox(width: 12),
-                Text('Opening full map view...'),
-              ],
-            ),
-            duration: const Duration(seconds: 1),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
-      child: Container(
-        height: 250,
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              // ✅ Real interactive mini-map
-              AbsorbPointer(
-                absorbing: true, // Disable map interactions (pan/zoom)
-                child: WeatherMapWidget(
-                  selectedLocation: selectedLocation ?? LatLng(14.3583, 121.0167),
-                  initialZoom: 13.0,
-                  forecastLayer: ForecastLayer.none,
-                  showHazardLocations: true,
-                  showEvacuationCenters: true,
-                  showNearestEvacuationCenters: false,
-                  showGovernmentAgencies: false,
-                  showRainAnimation: false,
-                  showWindArrows: false,
-                  showTemperatureHeatmap: false,
-                  hazardLocations: const [],
-                  evacuationCenters: const [],
-                  governmentAgencies: const [],
-                  temperaturePoints: const [],
-                  windData: const [],
-                  rainParticleLocations: const [],
-                  rainAnimation: AlwaysStoppedAnimation(0.0),
-                  scaleAnimation: AlwaysStoppedAnimation(1.0),
-                  searchRadius: 500,
-                ),
-              ),
-
-              // ✅ Overlay gradient for better text visibility
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.4),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // ✅ "Tap to explore" overlay
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.7),
-                      ],
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.map,
-                        color: Colors.white,
-                        size: 24,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.5),
-                            offset: const Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Tap to explore full map',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black54,
-                              offset: Offset(0, 2),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward,
-                        color: Colors.white,
-                        size: 20,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.5),
-                            offset: const Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ✅ Tap indicator (pulsing effect)
-              Positioned.fill(
-                child: Center(
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.touch_app,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildNotificationButton() {
     return Stack(
       children: [
@@ -477,14 +308,14 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
           ),
           child: IconButton(
             onPressed: _showNotifications,
-            icon:  const Icon(
+            icon: const Icon(
               Icons.notifications,
               color: Colors.white,
               size: 28,
             ),
           ),
         ),
-        
+
         // Notification badge
         if (_notificationCount > 0)
           Positioned(
@@ -501,7 +332,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                 minWidth: 20,
                 minHeight: 20,
               ),
-              child:  Text(
+              child: Text(
                 _notificationCount > 9 ? '9+' : '$_notificationCount',
                 style: const TextStyle(
                   color: Colors.white,
@@ -518,7 +349,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
 
 // Keep your existing _showNotifications method
   void _showNotifications() {
-    if (! _isUserLoggedIn) {
+    if (!_isUserLoggedIn) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -536,7 +367,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                 ),
-                onPressed:  () {
+                onPressed: () {
                   Navigator.pop(context);
                   Navigator.pushNamed(context, '/login');
                 },
@@ -557,12 +388,13 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: FirestoreNotificationService.instance.userNotificationsStream(),
+              stream: FirestoreNotificationService.instance
+                  .userNotificationsStream(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                if (! snapshot.hasData || snapshot.data!.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Text('No new notifications.');
                 }
                 final notifications = snapshot.data!;
@@ -575,22 +407,22 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                     return ListTile(
                       leading: Icon(
                         _getNotificationIcon(notif['type']),
-                        color:  _getNotificationColor(notif['type']),
+                        color: _getNotificationColor(notif['type']),
                         size: 28,
                       ),
                       title: Text(
                         notif['title'] ?? '',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      subtitle:  Column(
-                        crossAxisAlignment:  CrossAxisAlignment.start,
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(notif['body'] ?? ''),
                           if (notif['timestamp'] != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
-                                notif['timestamp']. toString(),
+                                notif['timestamp'].toString(),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey,
@@ -616,7 +448,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     );
   }
 
-  IconData _getNotificationIcon(String?  type) {
+  IconData _getNotificationIcon(String? type) {
     switch (type) {
       case 'Emergency':
         return Icons.priority_high_rounded;
@@ -627,11 +459,11 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     }
   }
 
-  Color _getNotificationColor(String?  type) {
+  Color _getNotificationColor(String? type) {
     switch (type) {
       case 'Emergency':
         return Colors.red;
-      case 'Warning': 
+      case 'Warning':
         return Colors.orange;
       default:
         return Colors.blue;
@@ -665,16 +497,16 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                 children: [
                   // ✅ Custom notification button with badge
                   _buildNotificationButton(),
-                  
+
                   const Spacer(),
-                  
+
                   // App Title
                   const Text(
                     'HydroMet',
                     style: TextStyle(
-                      color:  Colors.white,
+                      color: Colors.white,
                       fontSize: 24,
-                      fontWeight:  FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                       shadows: [
                         Shadow(
                           color: Colors.black45,
@@ -684,9 +516,9 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                       ],
                     ),
                   ),
-                  
+
                   const Spacer(),
-                  
+
                   // Empty space to balance layout (no menu button)
                   const SizedBox(width: 48),
                 ],
@@ -721,9 +553,6 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
                               ),
 
                               const SizedBox(height: 20),
-
-                              // Map preview
-                              _buildMapPreview(),
 
                               const SizedBox(height: 40),
                             ],
