@@ -91,7 +91,7 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
           // Check email verification status
           final emailService = UserEmailsApiService();
           final emailResult = await emailService.checkByPhone(phone);
-          
+
           bool emailVerified = false;
           if (emailResult['success'] && emailResult['data'] != null) {
             emailVerified = emailResult['data']['is_verified'] ?? false;
@@ -302,7 +302,7 @@ class _SmartLoginScreenState extends State<SmartLoginScreen> {
                     child: Transform.rotate(
                       angle: -1.5708, // -90 degrees in radians
                       child: Image.asset(
-                        'assets/logo.png',
+                        'assets/hydromet.png',
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(

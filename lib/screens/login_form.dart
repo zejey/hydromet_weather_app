@@ -120,8 +120,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
         _showSnackBar('Login successful!');
         await UserRegistrationService().login(phone);
         await AuthManager().initialize();
-        Navigator.pushNamedAndRemoveUntil(
-            context, '/home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       } else {
         _showSnackBar(result['error'] ?? 'OTP verification failed',
             isError: true);
@@ -186,7 +185,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       if (mounted) {
         setState(() => _otpExpiryTimer--);
         if (_otpExpiryTimer == 0) {
-          _showSnackBar('OTP has expired. Please request a new one.', isError: true);
+          _showSnackBar('OTP has expired. Please request a new one.',
+              isError: true);
         }
         return _otpExpiryTimer > 0;
       }
@@ -303,7 +303,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                     child: Transform.rotate(
                       angle: -1.5708,
                       child: Image.asset(
-                        'assets/logo.png',
+                        'assets/hydromet.png',
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -366,17 +366,22 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           color: Colors.grey,
                         ),
                       ),
-                      
+
                       // Show expiry timer when OTP is sent
                       if (_isOtpSent && _otpExpiryTimer > 0) ...[
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
                           decoration: BoxDecoration(
-                            color: _otpExpiryTimer < 60 ? Colors.red.shade50 : Colors.green.shade50,
+                            color: _otpExpiryTimer < 60
+                                ? Colors.red.shade50
+                                : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: _otpExpiryTimer < 60 ? Colors.red.shade200 : Colors.green.shade200,
+                              color: _otpExpiryTimer < 60
+                                  ? Colors.red.shade200
+                                  : Colors.green.shade200,
                             ),
                           ),
                           child: Row(
@@ -385,7 +390,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                               Icon(
                                 Icons.timer,
                                 size: 16,
-                                color: _otpExpiryTimer < 60 ? Colors.red.shade700 : Colors.green.shade700,
+                                color: _otpExpiryTimer < 60
+                                    ? Colors.red.shade700
+                                    : Colors.green.shade700,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -393,14 +400,16 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: _otpExpiryTimer < 60 ? Colors.red.shade700 : Colors.green.shade700,
+                                  color: _otpExpiryTimer < 60
+                                      ? Colors.red.shade700
+                                      : Colors.green.shade700,
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ],
-                      
+
                       const SizedBox(height: 30),
 
                       // Phone Number Field

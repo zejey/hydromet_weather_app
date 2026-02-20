@@ -264,7 +264,7 @@ class _CommunityForumScreenState extends State<CommunityForumScreen> {
         'title': 'Community Emergency Drill Schedule',
         'content':
             'Monthly emergency drill scheduled for next Saturday at 2 PM. All residents are encouraged to participate.',
-        'image': 'assets/logo.png',
+        'image': 'assets/hydromet.png',
         'likes': 28,
         'comments': 11,
       },

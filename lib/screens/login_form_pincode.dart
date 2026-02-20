@@ -515,7 +515,7 @@ class _LoginMPINScreenState extends State<LoginMPINScreen> {
                           child: Transform.rotate(
                             angle: -1.5708,
                             child: Image.asset(
-                              'assets/logo.png',
+                              'assets/hydromet.png',
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(

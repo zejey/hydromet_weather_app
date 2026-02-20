@@ -14,7 +14,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initialize();  // ✅ Changed from _checkSession
+    _initialize(); // ✅ Changed from _checkSession
   }
 
   // ✅ New initialization method that includes permission check
@@ -24,8 +24,9 @@ class _SplashScreenState extends State<SplashScreen> {
     // ✅ Check if this is first launch and show permission dialog
     if (mounted) {
       final prefs = await SharedPreferences.getInstance();
-      final hasShownPermissions = prefs.getBool('has_shown_permissions') ?? false;
-      
+      final hasShownPermissions =
+          prefs.getBool('has_shown_permissions') ?? false;
+
       if (!hasShownPermissions) {
         // First launch - show permission dialog
         await PermissionHelper.showPermissionDialog(context);
@@ -121,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   child: Transform.rotate(
                     angle: -1.5708, // -90 degrees in radians
                     child: Image.asset(
-                      'assets/logo.png',
+                      'assets/hydromet.png',
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         // Fallback if logo fails to load
