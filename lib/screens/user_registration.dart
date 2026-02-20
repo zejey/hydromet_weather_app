@@ -252,12 +252,12 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       // ✅ STEP 1.5: Attach email to user (required for email OTP fallback)
       final userData = registrationResult['user'];
       final userId = userData['id']?.toString() ?? '';
-      
+
       if (userId.isNotEmpty) {
         print('📧 Attaching email to user: $userId');
         final emailService = UserEmailsApiService();
         final emailResult = await emailService.addEmail(userId, email);
-        
+
         if (!emailResult['success']) {
           print('⚠️ Failed to attach email: ${emailResult['message']}');
           // Continue anyway - user can add email later
@@ -268,7 +268,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
       // ✅ STEP 2: Send OTP to verify phone number
       final otpService = OtpApiService();
-      final otpResult = await otpService.sendRegistrationOtp(phone);
+      final otpResult = await otpService.sendOtp(phone);
 
       setState(() => _isLoading = false);
 
