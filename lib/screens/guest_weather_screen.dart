@@ -59,6 +59,7 @@ class _GuestWeatherScreenState extends State<GuestWeatherScreen>
 // Add this method to _GuestWeatherScreenState class
 
   void _showGuestNotifications() {
+    NotificationService.instance.refresh();
     showDialog(
       context: context,
       builder: (BuildContext context) {

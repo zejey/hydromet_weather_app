@@ -168,6 +168,7 @@ class _WeatherScreenState extends State<WeatherScreen>
 
   // ✅ LOGGED-IN USER NOTIFICATIONS
   void _showNotifications() {
+    NotificationService.instance.refresh();
     if (!_isUserLoggedIn) {
       showDialog(
         context: context,
