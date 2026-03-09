@@ -18,6 +18,21 @@ class GuestWeatherScreen extends StatefulWidget {
 
 class _GuestWeatherScreenState extends State<GuestWeatherScreen>
     with TickerProviderStateMixin {
+  // Bottom navigation
+  int _currentIndex = 0;
+
+  void _onNavTap(int index) {
+    if (index == 0) {
+      setState(() => _currentIndex = 0);
+    } else if (index == 1) {
+      Navigator.pushNamed(context, '/tips');
+    } else if (index == 2) {
+      Navigator.pushNamed(context, '/hotlines');
+    } else if (index == 3) {
+      Navigator.pushNamed(context, '/login');
+    }
+  }
+
   // Weather data
   Map<String, dynamic>? weatherData;
   Map<String, dynamic>? airData;
@@ -426,6 +441,29 @@ class _GuestWeatherScreenState extends State<GuestWeatherScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onNavTap,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.wb_sunny),
+            label: 'Weather',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.lightbulb_outline),
+            label: 'Tips',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.phone),
+            label: 'Hotlines',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Sign In',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Stack(
           children: [

@@ -14,35 +14,56 @@ class WeatherTilesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final feelsLike = (weatherData['main']['feels_like'] as num?)?.toDouble() ?? double.nan;
+    final feelsLikeStr = feelsLike.isFinite ? '${feelsLike.round()}°C' : 'N/A';
+
+    final humidity = weatherData['main']['humidity'];
+    final humidityStr = (humidity is num && humidity.toDouble().isFinite) ? '$humidity%' : 'N/A';
+
+    final windSpeed = weatherData['wind']?['speed'];
+    final windStr = (windSpeed is num && windSpeed.toDouble().isFinite) ? '$windSpeed m/s' : 'N/A';
+
+    final pressure = weatherData['main']['pressure'];
+    final pressureStr = (pressure is num && pressure.toDouble().isFinite) ? '$pressure hPa' : 'N/A';
+
+    final visRaw = weatherData['visibility'];
+    // API returns 0 when visibility data is unavailable, so treat 0 as missing
+    final visStr = (visRaw is num && visRaw > 0 && visRaw.toDouble().isFinite)
+        ? '${(visRaw / 1000).toStringAsFixed(1)} km'
+        : 'N/A';
+
+    final clouds = weatherData['clouds']?['all'];
+    final cloudsStr = (clouds is num && clouds.toDouble().isFinite) ? '$clouds%' : 'N/A';
+
     final tiles = <Widget>[
       _buildWeatherTile(
         "Feels Like",
-        "${weatherData['main']['feels_like'].round()}°C",
+        feelsLikeStr,
         Icons.thermostat,
       ),
       _buildWeatherTile(
         "Humidity",
-        "${weatherData['main']['humidity']}%",
+        humidityStr,
         Icons.water_drop,
       ),
       _buildWeatherTile(
         "Wind",
-        "${weatherData['wind']['speed']} m/s",
+        windStr,
         Icons.air,
       ),
       _buildWeatherTile(
         "Pressure",
-        "${weatherData['main']['pressure']} hPa",
+        pressureStr,
         Icons.speed,
       ),
       _buildWeatherTile(
         "Visibility",
-        "${(weatherData['visibility'] / 1000).toStringAsFixed(1)} km",
+        visStr,
         Icons.remove_red_eye,
       ),
       _buildWeatherTile(
         "Clouds",
-        "${weatherData['clouds']['all']}%",
+        cloudsStr,
         Icons.cloud,
       ),
     ];
