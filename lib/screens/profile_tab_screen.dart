@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_notification_service.dart';
+import '../services/notification_service.dart';
 import 'community_forum_screen.dart';
 import 'user_settings_screen.dart';
 
@@ -314,7 +314,7 @@ class _ProfileTabScreenState extends State<ProfileTabScreen> {
               if (showBadge)
                 StreamBuilder<List<Map<String, dynamic>>>(
                   stream:
-                      FirestoreNotificationService.instance.userNotificationsStream(),
+                      NotificationService.instance.notificationsStream,
                   builder: (context, snapshot) {
                     final count =
                         snapshot.hasData ? snapshot.data!.length : 0;
@@ -347,6 +347,7 @@ class _ProfileTabScreenState extends State<ProfileTabScreen> {
   }
 
   void _showNotifications() {
+    NotificationService.instance.refresh();
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -361,7 +362,7 @@ class _ProfileTabScreenState extends State<ProfileTabScreen> {
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: FirestoreNotificationService.instance.userNotificationsStream(),
+              stream: NotificationService.instance.notificationsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

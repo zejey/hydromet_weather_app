@@ -5,7 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/weather_service.dart';
 import '../services/auth_service.dart' as auth_service;
-import '../services/firestore_notification_service.dart';
+import '../services/notification_service.dart';
 import '../services/local_notification_service.dart';
 import '../services/cache_service.dart';
 import '../services/connectivity_service.dart';
@@ -180,10 +180,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
   }
 
   void _loadNotificationCount() {
-    // ✅ Use renamed service
-    FirestoreNotificationService.instance
-        .userNotificationsStream()
-        .listen((notifications) {
+    NotificationService.instance.notificationsStream.listen((notifications) {
       if (mounted) {
         setState(() {
           _notificationCount = notifications.length;
@@ -389,8 +386,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: FirestoreNotificationService.instance
-                  .userNotificationsStream(),
+              stream: NotificationService.instance.notificationsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
