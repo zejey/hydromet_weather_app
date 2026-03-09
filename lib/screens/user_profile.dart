@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../services/user_profile_api_service.dart';
+import '../services/barangay_api_service.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -20,10 +21,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _houseAddressController = TextEditingController();
-  final TextEditingController _barangayController = TextEditingController();
 
   final AuthService _authService = AuthService();
   final UserProfileApiService _profileApi = UserProfileApiService();
+  final BarangayApiService _barangayApi = BarangayApiService();
 
   bool _isEditing = false;
   bool _isLoading = false;
@@ -33,6 +34,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _userId = '';
   String _role = 'user';
   bool _isVerified = false;
+
+  // Barangay dropdown state
+  List<String> _barangayOptions = [];
+  String? _selectedBarangay;
+  bool _isBarangaysLoading = false;
 
   @override
   void initState() {
@@ -47,7 +53,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _lastNameController.dispose();
     _mobileController.dispose();
     _houseAddressController.dispose();
-    _barangayController.dispose();
     super.dispose();
   }
 
@@ -72,6 +77,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     // Load cache first (fast)
     await _loadFromCache();
 
+    // Load barangay options (needed for dropdown)
+    await _loadBarangays();
+
     // Load backend (source of truth)
     try {
       final user = await _profileApi.fetchUser(_userId);
@@ -89,6 +97,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     });
   }
 
+  Future<void> _loadBarangays() async {
+    try {
+      setState(() => _isBarangaysLoading = true);
+      final names = await _barangayApi.fetchBarangayNames(activeOnly: true);
+
+      if (!mounted) return;
+      setState(() {
+        _barangayOptions = names;
+        _isBarangaysLoading = false;
+
+        // If selected barangay isn't in the options (e.g., deactivated/renamed),
+        // keep it but dropdown won't match; you can choose to null it instead.
+        if (_selectedBarangay != null &&
+            !_barangayOptions.contains(_selectedBarangay)) {
+          // Keep value as-is to avoid wiping user data unexpectedly.
+        }
+      });
+    } catch (e) {
+      debugPrint('Barangays load failed: $e');
+      if (!mounted) return;
+      setState(() => _isBarangaysLoading = false);
+      _showSnackBar('Failed to load barangay list.');
+    }
+  }
+
   Future<void> _loadFromCache() async {
     final prefs = await SharedPreferences.getInstance();
     _firstNameController.text = prefs.getString('firstName') ?? '';
@@ -96,7 +129,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _lastNameController.text = prefs.getString('lastName') ?? '';
     _mobileController.text = prefs.getString('mobile') ?? '';
     _houseAddressController.text = prefs.getString('house_address') ?? '';
-    _barangayController.text = prefs.getString('barangay') ?? '';
+    _selectedBarangay = prefs.getString('barangay');
+    if (_selectedBarangay != null && _selectedBarangay!.trim().isEmpty) {
+      _selectedBarangay = null;
+    }
   }
 
   Future<void> _saveToCache() async {
@@ -106,7 +142,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     await prefs.setString('lastName', _lastNameController.text.trim());
     await prefs.setString('mobile', _mobileController.text.trim());
     await prefs.setString('house_address', _houseAddressController.text.trim());
-    await prefs.setString('barangay', _barangayController.text.trim());
+    await prefs.setString('barangay', (_selectedBarangay ?? '').trim());
   }
 
   void _applyUserJson(Map<String, dynamic> user) {
@@ -115,7 +151,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _lastNameController.text = (user['last_name'] ?? '').toString();
     _mobileController.text = (user['phone_number'] ?? '').toString();
     _houseAddressController.text = (user['house_address'] ?? '').toString();
-    _barangayController.text = (user['barangay'] ?? '').toString();
+
+    final brgy = (user['barangay'] ?? '').toString().trim();
+    _selectedBarangay = brgy.isEmpty ? null : brgy;
 
     _role = (user['role'] ?? 'user').toString();
     _isVerified = (user['is_verified'] ?? false) == true;
@@ -147,8 +185,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       _showSnackBar('Please enter your house address');
       return;
     }
-    if (_barangayController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your barangay');
+    if ((_selectedBarangay ?? '').trim().isEmpty) {
+      _showSnackBar('Please select your barangay');
       return;
     }
 
@@ -162,7 +200,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       "last_name": _lastNameController.text.trim(),
       "suffix": null,
       "house_address": _houseAddressController.text.trim(),
-      "barangay": _barangayController.text.trim(),
+      "barangay": _selectedBarangay!.trim(),
       "phone_number": _mobileController.text.trim(),
       "role": _role,
       "is_verified": _isVerified,
@@ -199,9 +237,38 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Widget _barangayDropdown() {
+    final enabled = _isEditing && !_isBarangaysLoading;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6FBF7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: DropdownButtonFormField<String>(
+        value: (_selectedBarangay != null && _barangayOptions.contains(_selectedBarangay))
+            ? _selectedBarangay
+            : null,
+        items: _barangayOptions
+            .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+            .toList(),
+        onChanged: enabled ? (v) => setState(() => _selectedBarangay = v) : null,
+        decoration: const InputDecoration(
+          labelText: 'Barangay',
+          border: InputBorder.none,
+        ),
+        hint: Text(
+          _isBarangaysLoading ? 'Loading barangays...' : 'Select barangay',
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Optionally show a light loading overlay during the initial load
     final showBlockingLoader = !_isInitialLoadDone && _isLoading;
 
     return Scaffold(
@@ -210,6 +277,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         title: const Text(
           'User Profile',
           style: TextStyle(
@@ -218,13 +286,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             fontSize: 22,
           ),
         ),
-        centerTitle: true,
+
+        // ✅ Back button
+        automaticallyImplyLeading: true,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).maybePop(),
+            tooltip: 'Back',
+          ),
+        ),
       ),
       body: Stack(
         children: [
+          // Background image
           SizedBox.expand(
             child: Image.asset('assets/b.jpg', fit: BoxFit.cover),
           ),
+
+          // Dark overlay + blur
           SizedBox.expand(
             child: Container(
               color: Colors.black.withOpacity(0.25),
@@ -234,6 +315,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
           ),
+
+          // Main content
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
@@ -270,14 +353,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 18),
-                    _profileFieldCard('First Name', _firstNameController,
-                        enabled: _isEditing),
+
+                    _profileFieldCard(
+                      'First Name',
+                      _firstNameController,
+                      enabled: _isEditing,
+                    ),
                     const SizedBox(height: 12),
-                    _profileFieldCard('Middle Name', _middleNameController,
-                        enabled: _isEditing),
+                    _profileFieldCard(
+                      'Middle Name',
+                      _middleNameController,
+                      enabled: _isEditing,
+                    ),
                     const SizedBox(height: 12),
-                    _profileFieldCard('Last Name', _lastNameController,
-                        enabled: _isEditing),
+                    _profileFieldCard(
+                      'Last Name',
+                      _lastNameController,
+                      enabled: _isEditing,
+                    ),
                     const SizedBox(height: 12),
                     _profileFieldCard(
                       'Mobile Number',
@@ -297,12 +390,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 12),
-                    _profileFieldCard(
-                      'Barangay',
-                      _barangayController,
-                      enabled: _isEditing,
-                    ),
+
+                    // ✅ Barangay dropdown
+                    _barangayDropdown(),
+
                     const SizedBox(height: 24),
+
                     Row(
                       children: [
                         Expanded(
@@ -345,6 +438,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
           ),
+
+          // Optional blocking loader overlay during first load
           if (showBlockingLoader)
             Positioned.fill(
               child: Container(

@@ -349,6 +349,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
 
 // Keep your existing _showNotifications method
   void _showNotifications() {
+    NotificationService.instance.refresh();
     if (!_isUserLoggedIn) {
       showDialog(
         context: context,

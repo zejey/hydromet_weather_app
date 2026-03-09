@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../services/user_registration_service.dart';
 import '../services/otp_api_service.dart';
 import '../services/user_emails_api_service.dart';
+import '../services/barangay_api_service.dart';
 import 'registration_otp_verify.dart';
 
 class UserRegistrationScreen extends StatefulWidget {
@@ -29,9 +31,57 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
   final FocusNode _phoneFocusNode = FocusNode();
   final FocusNode _emailFocusNode = FocusNode();
 
+  final BarangayApiService _barangayApi = BarangayApiService();
+
   String? _selectedBarangay;
+  List<String> _barangayOptions = [];
+  bool _isBarangaysLoading = false;
+
   bool _agreeToTerms = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBarangays();
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _lastNameController.dispose();
+    _suffixController.dispose();
+    _houseAddressController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+
+    _firstNameFocusNode.dispose();
+    _middleNameFocusNode.dispose();
+    _lastNameFocusNode.dispose();
+    _suffixFocusNode.dispose();
+    _houseAddressFocusNode.dispose();
+    _phoneFocusNode.dispose();
+    _emailFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadBarangays() async {
+    try {
+      setState(() => _isBarangaysLoading = true);
+      final names = await _barangayApi.fetchBarangayNames(activeOnly: true);
+      if (!mounted) return;
+      setState(() {
+        _barangayOptions = names;
+        _isBarangaysLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isBarangaysLoading = false);
+      _showSnackBar('Failed to load barangays. Please try again.',
+          isError: true);
+    }
+  }
 
   void _showTermsAndConditions() {
     showDialog(
@@ -118,10 +168,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text(content),
         ],
@@ -129,56 +176,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
     );
   }
 
-  // List of barangays in San Pedro, Laguna
-  final List<String> _barangays = [
-    'Bagong Silang',
-    'Calendola',
-    'Chrysanthemum',
-    'Cuyab',
-    'Estrella',
-    'Fatima',
-    'G.S.I.S.',
-    'Landayan',
-    'Langgam',
-    'Laram',
-    'Maharlika',
-    'Magsaysay',
-    'Narra',
-    'Nueva',
-    'Pacita Complex I',
-    'Pacita Complex II',
-    'Poblacion',
-    'Riverside',
-    'Rosario',
-    'Sampaguita Village',
-    'San Antonio',
-    'San Lorenzo Ruiz',
-    'San Roque',
-    'San Vicente',
-    'Santo Niño',
-    'United Bayanihan',
-    'United Better Living',
-  ];
-
-  @override
-  void dispose() {
-    _firstNameController.dispose();
-    _middleNameController.dispose();
-    _lastNameController.dispose();
-    _suffixController.dispose();
-    _houseAddressController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _firstNameFocusNode.dispose();
-    _lastNameFocusNode.dispose();
-    _houseAddressFocusNode.dispose();
-    _phoneFocusNode.dispose();
-    _emailFocusNode.dispose();
-    super.dispose();
-  }
-
   Future<void> _register() async {
-    // Validate all fields
     if (_firstNameController.text.trim().isEmpty) {
       _showSnackBar('Please enter your first name', isError: true);
       return;
@@ -204,7 +202,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       return;
     }
 
-    // Validate email format (permissive pattern)
     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email)) {
       _showSnackBar('Please enter a valid email address', isError: true);
       return;
@@ -254,15 +251,12 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       final userId = userData['id']?.toString() ?? '';
 
       if (userId.isNotEmpty) {
-        print('📧 Attaching email to user: $userId');
         final emailService = UserEmailsApiService();
         final emailResult = await emailService.addEmail(userId, email);
 
         if (!emailResult['success']) {
-          print('⚠️ Failed to attach email: ${emailResult['message']}');
           // Continue anyway - user can add email later
-        } else {
-          print('✅ Email attached successfully');
+          debugPrint('⚠️ Failed to attach email: ${emailResult['message']}');
         }
       }
 
@@ -276,7 +270,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
         _showSnackBar('Registration successful! Please verify your phone.',
             isError: false);
 
-        // ✅ STEP 3: Navigate to OTP verification screen
         if (mounted) {
           Navigator.push(
             context,
@@ -293,7 +286,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       } else {
         _showSnackBar('Registration successful but OTP failed. Please login.',
             isError: true);
-        // Still go to login since user is registered
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) Navigator.pop(context);
       }
@@ -320,7 +312,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          color: Colors.green, // Fallback color if image doesn't load
+          color: Colors.green,
           image: DecorationImage(
             image: AssetImage('assets/b.jpg'),
             fit: BoxFit.cover,
@@ -332,8 +324,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 40),
-
-                // Back Button
                 Row(
                   children: [
                     IconButton(
@@ -346,17 +336,10 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
-                // Registration Form
                 _buildRegistrationForm(),
-
                 const SizedBox(height: 30),
-
-                // Sign In Link
                 _buildSignInLink(),
-
                 const SizedBox(height: 30),
               ],
             ),
@@ -383,7 +366,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Title
           const Text(
             'Register',
             textAlign: TextAlign.center,
@@ -397,10 +379,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
           const Text(
             'Your future, forecasted — sign up to begin.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.black54),
           ),
           const SizedBox(height: 20),
 
@@ -412,23 +391,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   controller: _firstNameController,
                   focusNode: _firstNameFocusNode,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    hintText: 'First Name *',
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Colors.green, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
+                  decoration: _inputDecoration('First Name *'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -437,23 +400,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   controller: _middleNameController,
                   focusNode: _middleNameFocusNode,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    hintText: 'Middle Name (optional)',
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Colors.green, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
+                  decoration: _inputDecoration('Middle Name (optional)'),
                 ),
               ),
             ],
@@ -466,23 +413,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   controller: _lastNameController,
                   focusNode: _lastNameFocusNode,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    hintText: 'Last Name *',
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Colors.green, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
+                  decoration: _inputDecoration('Last Name *'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -491,23 +422,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   controller: _suffixController,
                   focusNode: _suffixFocusNode,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    hintText: 'Suffix (optional)',
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Colors.green, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
+                  decoration: _inputDecoration('Suffix (optional)'),
                 ),
               ),
             ],
@@ -515,7 +430,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
           const SizedBox(height: 16),
 
-          // House No./Street Input
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -532,26 +446,11 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
             controller: _houseAddressController,
             focusNode: _houseAddressFocusNode,
             textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              hintStyle: TextStyle(color: Colors.grey.shade500),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.green, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-            ),
+            decoration: _inputDecoration(''),
           ),
 
           const SizedBox(height: 16),
 
-          // Barangay Dropdown
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -564,6 +463,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
             ),
           ),
           const SizedBox(height: 8),
+
           DropdownButtonFormField<String>(
             value: _selectedBarangay,
             decoration: InputDecoration(
@@ -575,31 +475,26 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Colors.green, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             hint: Text(
-              'Select Barangay',
+              _isBarangaysLoading ? 'Loading barangays...' : 'Select Barangay',
               style: TextStyle(color: Colors.grey.shade500),
             ),
-            items: _barangays.map((barangay) {
+            items: _barangayOptions.map((barangay) {
               return DropdownMenuItem<String>(
                 value: barangay,
                 child: Text(barangay),
               );
             }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedBarangay = value;
-              });
-            },
+            onChanged: _isBarangaysLoading
+                ? null
+                : (value) => setState(() => _selectedBarangay = value),
           ),
 
           const SizedBox(height: 16),
 
-          // Email Input
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -616,27 +511,11 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
             controller: _emailController,
             focusNode: _emailFocusNode,
             keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              hintText: 'your.email@example.com *',
-              hintStyle: TextStyle(color: Colors.grey.shade500),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.green, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-            ),
+            decoration: _inputDecoration('your.email@example.com *'),
           ),
 
           const SizedBox(height: 16),
 
-          // Phone Number Input
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -657,27 +536,11 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(11),
             ],
-            decoration: InputDecoration(
-              hintText: '09XXXXXXXXX',
-              hintStyle: TextStyle(color: Colors.grey.shade500),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.green, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-            ),
+            decoration: _inputDecoration('09XXXXXXXXX'),
           ),
 
           const SizedBox(height: 16),
 
-          // Terms and Conditions Checkbox
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -696,17 +559,12 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: GestureDetector(
-                  onTap: () {
-                    _showTermsAndConditions();
-                  },
+                  onTap: _showTermsAndConditions,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 2.0),
                     child: RichText(
                       text: const TextSpan(
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.black87,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.black87),
                         children: [
                           TextSpan(text: 'I agree to the '),
                           TextSpan(
@@ -737,7 +595,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
           const SizedBox(height: 24),
 
-          // Register Button
           ElevatedButton(
             onPressed: _isLoading ? null : _register,
             style: ElevatedButton.styleFrom(
@@ -760,14 +617,27 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
                   )
                 : const Text(
                     'Register',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
           ),
         ],
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hintText) {
+    return InputDecoration(
+      hintText: hintText.isEmpty ? null : hintText,
+      hintStyle: TextStyle(color: Colors.grey.shade500),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.green, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 
@@ -777,15 +647,10 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
       children: [
         const Text(
           'Registered already? ',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.white70, fontSize: 14),
         ),
         TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
           child: const Text(
             'Sign in here',
             style: TextStyle(
