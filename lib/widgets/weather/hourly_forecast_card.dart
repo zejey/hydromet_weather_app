@@ -13,12 +13,14 @@ class HourlyForecastCard extends StatelessWidget {
     if (forecast.isEmpty) return const SizedBox.shrink();
 
     // Get min and max temps for scaling the graph
-    double minTemp = forecast
-        .map((f) => (f['temp'] as num).toDouble())
-        .reduce((a, b) => a < b ? a : b);
-    double maxTemp = forecast
-        .map((f) => (f['temp'] as num).toDouble())
-        .reduce((a, b) => a > b ? a : b);
+    final validTemps = forecast
+        .map((f) => (f['temp'] is num) ? (f['temp'] as num).toDouble() : double.nan)
+        .where((t) => t.isFinite)
+        .toList();
+
+    double minTemp = validTemps.isNotEmpty ? validTemps.reduce((a, b) => a < b ? a : b) : 0.0;
+    double maxTemp = validTemps.isNotEmpty ? validTemps.reduce((a, b) => a > b ? a : b) : 1.0;
+    if (maxTemp == minTemp) maxTemp = minTemp + 1; // avoid division by zero
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -83,7 +85,9 @@ class HourlyForecastCard extends StatelessWidget {
               itemCount: forecast.length > 24 ? 24 : forecast.length,
               itemBuilder: (context, index) {
                 final item = forecast[index];
-                final temp = (item['temp'] as num).toDouble();
+                final tempRaw = item['temp'];
+                final tempConverted = tempRaw is num ? tempRaw.toDouble() : double.nan;
+                final temp = tempConverted.isFinite ? tempConverted : 0.0;
                 final time = item['time'] as String;
                 final icon = item['icon'] as String;
                 
@@ -100,7 +104,7 @@ class HourlyForecastCard extends StatelessWidget {
                     children: [
                       // Temperature text
                       Text(
-                        '${temp.round()}°',
+                        temp.isFinite ? '${temp.round()}°' : 'N/A',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
