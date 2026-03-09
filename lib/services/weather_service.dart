@@ -222,8 +222,12 @@ class WeatherService {
             final nextForecast = available3HourForecasts[nextForecastIndex];
             
             final progress = (hour % 3) / 3.0;
-            final currentTemp = currentForecast['main']['temp'].toDouble();
-            final nextTemp = nextForecast['main']['temp'].toDouble();
+            final currentTempRaw = currentForecast['main']?['temp'];
+            final nextTempRaw = nextForecast['main']?['temp'];
+            final currentTempConverted = currentTempRaw is num ? currentTempRaw.toDouble() : double.nan;
+            final currentTemp = currentTempConverted.isFinite ? currentTempConverted : 0.0;
+            final nextTempConverted = nextTempRaw is num ? nextTempRaw.toDouble() : double.nan;
+            final nextTemp = nextTempConverted.isFinite ? nextTempConverted : currentTemp;
             final interpolatedTemp = currentTemp + (nextTemp - currentTemp) * progress;
             
             final currentWindSpeed = (currentForecast['wind']['speed'] ?? 0.0).toDouble();

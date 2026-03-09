@@ -51,7 +51,11 @@ class WeatherInfoCard extends StatelessWidget {
 
           // Temperature
           Text(
-            "${weatherData['main']['temp'].round()}°C",
+            () {
+              final tempRaw = weatherData['main']?['temp'];
+              final tempDouble = (tempRaw is num) ? tempRaw.toDouble() : double.nan;
+              return tempDouble.isFinite ? '${tempDouble.round()}°C' : 'N/A';
+            }(),
             style: const TextStyle(
               fontSize: 64,
               fontWeight: FontWeight.bold,
