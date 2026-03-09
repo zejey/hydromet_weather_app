@@ -14,16 +14,16 @@ class WeatherTilesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final feelsLike = (weatherData['main']['feels_like'] as num?)?.toDouble() ?? double.nan;
+    final feelsLike = (weatherData['main']?['feels_like'] as num?)?.toDouble() ?? double.nan;
     final feelsLikeStr = feelsLike.isFinite ? '${feelsLike.round()}°C' : 'N/A';
 
-    final humidity = weatherData['main']['humidity'];
+    final humidity = weatherData['main']?['humidity'];
     final humidityStr = (humidity is num && humidity.toDouble().isFinite) ? '$humidity%' : 'N/A';
 
     final windSpeed = weatherData['wind']?['speed'];
     final windStr = (windSpeed is num && windSpeed.toDouble().isFinite) ? '$windSpeed m/s' : 'N/A';
 
-    final pressure = weatherData['main']['pressure'];
+    final pressure = weatherData['main']?['pressure'];
     final pressureStr = (pressure is num && pressure.toDouble().isFinite) ? '$pressure hPa' : 'N/A';
 
     final visRaw = weatherData['visibility'];
@@ -70,7 +70,8 @@ class WeatherTilesGrid extends StatelessWidget {
 
     // Add Air Quality tile if available
     if (airData != null) {
-      final aqi = airData!['list'][0]['main']['aqi'];
+      final aqiRaw = airData!['list'][0]['main']['aqi'];
+      final aqi = (aqiRaw is num) ? aqiRaw.toInt() : 0;
       final aqiInfo = _getAQIInfo(aqi);
       tiles.add(
         Container(

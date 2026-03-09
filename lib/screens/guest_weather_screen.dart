@@ -8,6 +8,8 @@ import '../widgets/weather/hourly_forecast_card.dart';
 import '../widgets/weather/weather_tiles_grid.dart';
 import '../widgets/weather/weather_map_widget.dart';
 import '../services/notification_service.dart';
+import 'tips_screen.dart';
+import 'hotlines_screen.dart';
 
 class GuestWeatherScreen extends StatefulWidget {
   const GuestWeatherScreen({super.key});
@@ -22,15 +24,11 @@ class _GuestWeatherScreenState extends State<GuestWeatherScreen>
   int _currentIndex = 0;
 
   void _onNavTap(int index) {
-    if (index == 0) {
-      setState(() => _currentIndex = 0);
-    } else if (index == 1) {
-      Navigator.pushNamed(context, '/tips');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/hotlines');
-    } else if (index == 3) {
+    if (index == 3) {
       Navigator.pushNamed(context, '/login');
+      return;
     }
+    setState(() => _currentIndex = index);
   }
 
   // Weather data
@@ -464,85 +462,96 @@ class _GuestWeatherScreenState extends State<GuestWeatherScreen>
           ),
         ],
       ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Animated background
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _scaleAnimation,
-                builder: (context, child) {
-                  return Transform.scale(
-                      scale: _scaleAnimation.value, child: child);
-                },
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(getBackgroundImage(), fit: BoxFit.cover),
-                    Container(color: Colors.black.withOpacity(0.1)),
-                  ],
-                ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          _buildWeatherContent(),
+          const TipsScreen(),
+          const HotlinesScreen(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherContent() {
+    return SafeArea(
+      child: Stack(
+        children: [
+          // Animated background
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _scaleAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                    scale: _scaleAnimation.value, child: child);
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(getBackgroundImage(), fit: BoxFit.cover),
+                  Container(color: Colors.black.withOpacity(0.1)),
+                ],
               ),
             ),
+          ),
 
-            // Main content
-            Column(
-              children: [
-                // ✅ Shared Header Widget (Guest mode)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: WeatherHeader(
-                    isGuest: true, // ✅ Guest mode
-                    onNotificationTap: _showGuestNotifications,
-                    onMenuTap: _showGuestMenu,
-                  ),
+          // Main content
+          Column(
+            children: [
+              // ✅ Shared Header Widget (Guest mode)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: WeatherHeader(
+                  isGuest: true, // ✅ Guest mode
+                  onNotificationTap: _showGuestNotifications,
+                  onMenuTap: _showGuestMenu,
                 ),
+              ),
 
-                // Scrollable content
-                Expanded(
-                  child: isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: Column(
-                            children: [
-                              if (weatherData != null) ...[
-                                // ✅ Shared Weather Info Card
-                                WeatherInfoCard(weatherData: weatherData!),
+              // Scrollable content
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          children: [
+                            if (weatherData != null) ...[
+                              // ✅ Shared Weather Info Card
+                              WeatherInfoCard(weatherData: weatherData!),
 
-                                // ✅ Shared Hourly Forecast Card
-                                if (hourlyForecast.isNotEmpty)
-                                  HourlyForecastCard(forecast: hourlyForecast),
+                              // ✅ Shared Hourly Forecast Card
+                              if (hourlyForecast.isNotEmpty)
+                                HourlyForecastCard(forecast: hourlyForecast),
 
-                                const SizedBox(height: 20),
+                              const SizedBox(height: 20),
 
-                                // ✅ Shared Weather Tiles Grid
-                                WeatherTilesGrid(
-                                  weatherData: weatherData!,
-                                  airData: airData,
-                                  isGuest: true, // ✅ Guest mode
+                              // ✅ Shared Weather Tiles Grid
+                              WeatherTilesGrid(
+                                weatherData: weatherData!,
+                                airData: airData,
+                                isGuest: true, // ✅ Guest mode
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ✅ Shared Weather Map
+                              if (selectedLocation != null)
+                                WeatherMapWidget(
+                                  selectedLocation: selectedLocation!,
+                                  evacuationCenters: const [],
+                                  governmentAgencies: const [],
                                 ),
 
-                                const SizedBox(height: 20),
-
-                                // ✅ Shared Weather Map
-                                if (selectedLocation != null)
-                                  WeatherMapWidget(
-                                    selectedLocation: selectedLocation!,
-                                    evacuationCenters: const [],
-                                    governmentAgencies: const [],
-                                  ),
-
-                                const SizedBox(height: 40),
-                              ],
+                              const SizedBox(height: 40),
                             ],
-                          ),
+                          ],
                         ),
-                ),
-              ],
-            ),
-          ],
-        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
