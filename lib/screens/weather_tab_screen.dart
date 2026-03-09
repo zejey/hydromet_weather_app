@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/weather_service.dart';
@@ -344,7 +345,18 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
     );
   }
 
-// Keep your existing _showNotifications method
+  static const _timestampFormat = "MMM d, yyyy • h:mm a";
+
+  String _formatTimestamp(dynamic raw) {
+    if (raw == null) return '';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      return DateFormat(_timestampFormat).format(dt);
+    } catch (_) {
+      return raw.toString();
+    }
+  }
+
   void _showNotifications() {
     NotificationService.instance.refresh();
     if (!_isUserLoggedIn) {
@@ -352,9 +364,19 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('Notifications'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 8,
+            title: const Row(
+              children: [
+                Icon(Icons.notifications, color: Colors.green),
+                SizedBox(width: 10),
+                Text('Notifications'),
+              ],
+            ),
             content: const Text(
-                'Notifications are not available.  Please log in first to view notifications.'),
+                'Notifications are not available. Please log in first to view notifications.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -382,51 +404,157 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Notifications'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 8,
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+          contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          title: const Row(
+            children: [
+              Icon(Icons.notifications_active, color: Colors.green, size: 26),
+              SizedBox(width: 10),
+              Text(
+                'Weather Alerts',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: NotificationService.instance.notificationsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Loading alerts…',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text('No new notifications.');
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.notifications_none_outlined,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'No weather alerts right now',
+                          style: TextStyle(color: Colors.grey, fontSize: 15),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 final notifications = snapshot.data!;
-                return ListView.separated(
+                return ListView.builder(
                   shrinkWrap: true,
                   itemCount: notifications.length,
-                  separatorBuilder: (_, __) => const Divider(),
                   itemBuilder: (context, index) {
                     final notif = notifications[index];
-                    return ListTile(
-                      leading: Icon(
-                        _getNotificationIcon(notif['type']),
-                        color: _getNotificationColor(notif['type']),
-                        size: 28,
-                      ),
-                      title: Text(
-                        notif['title'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(notif['body'] ?? ''),
-                          if (notif['timestamp'] != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(
-                                notif['timestamp'].toString(),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey,
+                    final type = notif['type'] as String?;
+                    final color = _getNotificationColor(type);
+                    final formattedTime = _formatTimestamp(notif['timestamp']);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: color.withOpacity(0.35),
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                _getNotificationIcon(type),
+                                color: color,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            notif['title'] ?? '',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: color.withOpacity(0.15),
+                                            border: Border.all(
+                                                color: color.withOpacity(0.6)),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            type ?? 'Info',
+                                            style: TextStyle(
+                                              color: color,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      notif['body'] ?? '',
+                                      style: const TextStyle(fontSize: 13),
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (formattedTime.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        formattedTime,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
-                            ),
-                        ],
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -437,7 +565,7 @@ class _WeatherTabScreenState extends State<WeatherTabScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+              child: const Text('Close'),
             ),
           ],
         );
